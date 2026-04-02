@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clase en Vivo - Mi Aula de Enfermería</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/clasesYT.css">   
+    <link rel="shortcut icon" href="/img/logo.png" type="image/x-icon">
+</head>
+<body>
+    <div class="clase-container">
+        <!-- Header con información y contador -->
+        <header class="clase-header">
+            <h1 class="clase-titulo" id="tituloPrincipal">
+                <span class="clase-icon">🎥</span>
+                Clase en Vivo: Cargando...
+            </h1>
+            
+            <div class="header-info">
+                <!-- Contador de tiempo activo -->
+                <div class="tiempo-badge" id="tiempoBadge">
+                    <span class="tiempo-icon">⏱️</span>
+                    <span class="tiempo-label">Tiempo activo:</span>
+                    <span class="tiempo-numero" id="tiempoActivo">0</span>
+                    <span class="tiempo-unidad">segundos</span>
+                </div>
+                
+                <!-- Botón volver al menú -->
+                <a href="/index.html" class="btn-volver" id="btnVolver">
+                    <span class="btn-icon">←</span>
+                    Volver al Menú
+                </a>
+            </div>
+        </header>
+
+        <!-- Grid principal: video + chat REAL -->
+        <div class="clase-grid" id="claseGrid">
+            <!-- Columna del video -->
+            <section class="video-column">
+                <div class="video-wrapper" id="videoWrapper">
+                    <!-- El iframe se cargará dinámicamente con JavaScript -->
+                    <iframe 
+                        id="videoIframe"
+                        width="560" 
+                        height="315" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        referrerpolicy="strict-origin-when-cross-origin" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                
+                <!-- Información del usuario -->
+                <div class="video-info">
+                    <div class="user-info-compact">
+                        <span class="info-icon">👤</span>
+                        <span class="info-value" id="nombreUsuario">Cargando...</span>
+                        <span class="info-separator">|</span>
+                        <span class="info-icon">📋</span>
+                        <span class="info-value" id="legajoUsuario">-</span>
+                        <span class="info-separator">|</span>
+                        <span class="info-icon">⏰</span>
+                        <span class="info-value" id="turnoUsuario">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Columna del CHAT REAL DE YOUTUBE -->
+            <section class="chat-column">
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                        <span class="chat-icon">💬</span>
+                        <span class="chat-titulo">Chat de YouTube</span>
+                    </div>
+                    <div class="chat-header-right">
+                        <span class="chat-badge">🔴 EN VIVO</span>
+                    </div>
+                </div>
+                
+                <div class="chat-container" id="chatContainer">
+                    <iframe 
+                        id="chatIframe"
+                        src="about:blank"
+                        frameborder="0"
+                        allowfullscreen
+                        allow="autoplay; encrypted-media">
+                    </iframe>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/formularios.js"></script>
+    <script src="/js/clasesYT.js"></script>
+</body>
+</html>

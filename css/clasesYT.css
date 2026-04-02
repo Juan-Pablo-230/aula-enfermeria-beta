@@ -1,0 +1,377 @@
+/* ============================================
+   clasesYT.css - Versión con alturas iguales
+   ============================================ */
+
+/* ===== CONTENEDOR PRINCIPAL ===== */
+.clase-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    animation: fadeIn 0.5s ease;
+}
+
+/* ===== HEADER ===== */
+.clase-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 25px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.clase-titulo {
+    margin: 0;
+    font-size: 1.8em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* ===== BADGE DE TIEMPO ===== */
+.tiempo-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 12px 25px;
+    border-radius: 40px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tiempo-numero {
+    font-size: 1.6em;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 12px;
+    border-radius: 30px;
+    min-width: 70px;
+    text-align: center;
+}
+
+/* ===== BOTÓN VOLVER ===== */
+.btn-volver {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-volver:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+/* ===== GRID PRINCIPAL ===== */
+.clase-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 25px;
+    align-items: stretch; /* Hace que ambas columnas tengan la misma altura */
+}
+
+/* ===== COLUMNA DE VIDEO ===== */
+.video-column {
+    background: #1e1e2e;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ocupa toda la altura de la celda del grid */
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 */
+    background: #000;
+    line-height: 0;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.video-info {
+    padding: 15px 20px;
+    background: #2a2f36;
+    border-top: 1px solid #3a3f46;
+    flex-shrink: 0; /* Evita que se comprima */
+}
+
+/* Información de usuario compacta */
+.user-info-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: #e0e0e0;
+    font-size: 0.95em;
+}
+
+.user-info-compact .info-icon {
+    font-size: 1.1em;
+}
+
+.user-info-compact .info-value {
+    font-weight: 600;
+    color: white;
+}
+
+.user-info-compact .info-separator {
+    color: #666;
+    font-size: 1.2em;
+}
+
+/* ===== COLUMNA DE CHAT ===== */
+.chat-column {
+    background: #1e1e2e;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #3a3f46;
+    height: 100%; /* Ocupa toda la altura de la celda del grid */
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0; /* Evita que se comprima */
+}
+
+.chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-icon {
+    font-size: 1.2em;
+}
+
+.chat-titulo {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.chat-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+/* Contenedor del iframe del chat - AHORA OCUPADA EL ESPACIO RESTANTE */
+.chat-container {
+    flex: 1; /* Ocupa todo el espacio disponible */
+    min-height: 0; /* Importante para flexbox */
+    background: #1a1f25;
+    overflow: hidden;
+}
+
+.chat-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #1a1f25;
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ===== MENSAJE FLOTANTE ===== */
+.status-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #34a853;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 10000;
+    animation: slideInRight 0.3s ease;
+    display: none;
+}
+
+.status-message.error {
+    background: #ea4335;
+}
+
+.status-message.info {
+    background: #4285f4;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1200px) {
+    .clase-grid {
+        grid-template-columns: 1.2fr 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .clase-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .video-column {
+        order: 1;
+    }
+    
+    .chat-column {
+        order: 2;
+        min-height: 500px; /* Altura mínima en móvil */
+    }
+}
+
+@media (max-width: 768px) {
+    .clase-container {
+        padding: 15px;
+    }
+    
+    .clase-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+    }
+    
+    .header-info {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .tiempo-label {
+        display: none;
+    }
+    
+    .tiempo-numero {
+        font-size: 1.3em;
+        min-width: 60px;
+    }
+    
+    .user-info-compact {
+        font-size: 0.9em;
+        gap: 8px;
+    }
+    
+    .chat-column {
+        min-height: 450px;
+    }
+}
+
+@media (max-width: 480px) {
+    .clase-container {
+        padding: 10px;
+    }
+    
+    .clase-header {
+        padding: 15px;
+    }
+    
+    .clase-titulo {
+        font-size: 1.3em;
+    }
+    
+    .tiempo-badge {
+        padding: 8px 15px;
+    }
+    
+    .tiempo-numero {
+        font-size: 1.2em;
+        min-width: 50px;
+        padding: 3px 8px;
+    }
+    
+    .btn-volver {
+        padding: 8px 15px;
+    }
+    
+    .btn-volver span:not(.btn-icon) {
+        display: none;
+    }
+    
+    .user-info-compact {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .user-info-compact .info-separator {
+        display: none;
+    }
+    
+    .chat-column {
+        min-height: 400px;
+    }
+}
+
+/* Para pantallas muy grandes */
+@media (min-width: 1800px) {
+    .clase-container {
+        max-width: 1600px;
+    }
+}
+
+/* ===== UTILIDADES ===== */
+.h-100 {
+    height: 100%;
+}
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-1 {
+    flex: 1;
+}

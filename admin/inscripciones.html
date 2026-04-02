@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/admin/admin.css">
+    <link rel="stylesheet" href="/css/admin/inscripciones.css">
+</head>
+<body>
+    <div class="section-container">
+        <!-- Estadísticas -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>Total Inscripciones</h3>
+                <div class="stat-number" id="totalInscripciones">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Inscripciones Hoy</h3>
+                <div class="stat-number" id="inscripcionesHoy">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Última Semana</h3>
+                <div class="stat-number" id="inscripcionesSemana">0</div>
+            </div>
+        </div>
+
+        <!-- Filtros y acciones -->
+        <div class="filtros-container">
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: 100%;">
+                <label>📅 Filtrar por clase:</label>
+                <select id="filtroClase" class="filtro-select">
+                    <option value="todas">Todas las clases</option>
+                </select>
+                
+                <label>📆 Período:</label>
+                <select id="filtroPeriodo" class="filtro-select">
+                    <option value="todo">Todo</option>
+                    <option value="hoy">Hoy</option>
+                    <option value="semana">Última semana</option>
+                    <option value="mes">Último mes</option>
+                </select>
+                
+                <div class="contador-resultados" id="contadorResultados">0 inscripciones</div>
+                
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button id="exportBtn" class="btn btn-success btn-small">📥 Exportar CSV</button>
+                    <button id="refreshBtn" class="btn btn-primary btn-small">🔄 Actualizar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de inscripciones -->
+        <div class="table-container">
+            <h2>📋 Lista de Inscripciones</h2>
+            <div style="overflow-x: auto;">
+                <table class="inscripciones-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Apellido y Nombre</th>
+                            <th>Legajo</th>
+                            <th>Clase</th>
+                            <th>Turno</th>
+                            <th>Email</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inscripcionesBody">
+                        <tr>
+                            <td colspan="7" class="loading-message">
+                                <div class="spinner"></div>
+                                Cargando inscripciones...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/admin-core.js"></script>
+    <script src="/js/admin/inscripciones.js"></script>
+</body>
+</html>

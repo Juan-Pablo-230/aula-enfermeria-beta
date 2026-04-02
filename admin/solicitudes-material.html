@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/admin/admin.css">
+    <link rel="stylesheet" href="/css/admin/solicitudes-material.css">
+</head>
+<body>
+    <div class="section-container">
+        <!-- Estadísticas -->
+        <div class="stats-grid">
+            <div class="stat-mini-card">
+                <div class="stat-label">Total Solicitudes</div>
+                <div class="stat-value" id="totalSolicitudes">0</div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="stat-label">Clases Distintas</div>
+                <div class="stat-value" id="clasesDistintas">0</div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="stat-label">Usuarios Distintos</div>
+                <div class="stat-value" id="usuariosDistintos">0</div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="stat-label">Última Semana</div>
+                <div class="stat-value" id="solicitudesSemana">0</div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filtros-container">
+            <div class="filtros-wrapper">
+                <label>📅 Filtrar por clase:</label>
+                <select id="filtroClase" class="filtro-select">
+                    <option value="todas">Todas las clases</option>
+                </select>
+                
+                <label>👤 Por usuario:</label>
+                <input type="text" id="filtroUsuario" placeholder="Nombre o legajo..." class="filtro-select">
+                
+                <div class="filtros-actions">
+                    <button id="refreshBtn" class="btn btn-primary btn-small">🔄 Actualizar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de solicitudes -->
+        <div class="table-container">
+            <h2>📚 Solicitudes de Material</h2>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Apellido y Nombre</th>
+                            <th>Legajo</th>
+                            <th>Turno</th>
+                            <th>Clase</th>
+                            <th>Email</th>
+                            <th>Fecha Solicitud</th>
+                            <th>Material</th>
+                        </tr>
+                    </thead>
+                    <tbody id="solicitudesBody">
+                        <tr>
+                            <td colspan="8" class="loading-message">
+                                <div class="spinner"></div>
+                                Cargando solicitudes...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/admin-core.js"></script>
+    <script src="/js/admin/solicitudes-material.js"></script>
+</body>
+</html>

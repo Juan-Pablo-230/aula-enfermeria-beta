@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Mi Aula de Enfermería</title>
+    <link rel="stylesheet" href="/css/admin/admin.css">
+    <link rel="shortcut icon" href="/img/logo.png" type="image/x-icon">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>📊 Panel de Administración</h1>
+            <div class="admin-info">
+                <span>👤 <span id="adminName"></span></span>
+                <span>📧 <span id="adminEmail"></span></span>
+                <span id="adminRole"></span>
+                <button id="homeBtn" class="btn btn-primary">🏠 Inicio</button>
+                <button id="logoutBtn" class="btn btn-danger">🚪 Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <!-- Navegación entre vistas -->
+        <div class="view-navigation">
+            <button class="view-btn active" data-page="cartelera">📢 Cartelera</button>
+            <button class="view-btn" data-page="inscripciones">📋 Inscripciones</button>
+            <button class="view-btn" data-page="usuarios">👥 Gestión de Usuarios</button>
+            <button class="view-btn" data-page="solicitudes-material">📚 Solicitudes de material</button>
+            <button class="view-btn" data-page="gestion-clases">🎯 Carga del material de clases</button>
+            <button class="view-btn" data-page="tiempoenclases">⏱️ Tiempo en clase</button>
+            <button class="view-btn" data-page="clases-publicas">📢 Armado de clases</button>
+        </div>
+
+        <!-- Contenedor para los iframes -->
+        <div id="pageContainer" style="width: 100%;">
+            <iframe id="pageFrame" class="iframe-container" src="/admin/cartelera.html" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+     <script src="/js/area.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/admin-core.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar acceso
+            if (!authSystem.isLoggedIn() || (!authSystem.isAdmin() && !authSystem.isAdvancedUser())) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            // Mostrar info del admin
+            const user = authSystem.getCurrentUser();
+            document.getElementById('adminName').textContent = user.apellidoNombre;
+            document.getElementById('adminEmail').textContent = user.email;
+            
+            const roleEl = document.getElementById('adminRole');
+            roleEl.textContent = authSystem.getUserRoleText(user.role);
+            roleEl.className = `admin-role-badge role-${user.role}`;
+
+            // Manejo de navegación con iframes
+            const viewButtons = document.querySelectorAll('.view-btn');
+            const pageFrame = document.getElementById('pageFrame');
+            const pageContainer = document.getElementById('pageContainer');
+
+            // Función para cambiar de página
+            function changePage(page) {
+                // Actualizar botones
+                viewButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.page === page) {
+                        btn.classList.add('active');
+                    }
+                });
+
+                // Mostrar loading
+                pageFrame.classList.add('loading');
+
+                // Cambiar src del iframe
+                pageFrame.src = `/admin/${page}.html`;
+
+                // Quitar loading cuando cargue
+                pageFrame.onload = function() {
+                    pageFrame.classList.remove('loading');
+                    
+                    // Pasar el usuario al iframe
+                    if (pageFrame.contentWindow) {
+                        pageFrame.contentWindow.postMessage({
+                            type: 'SET_USER',
+                            user: user
+                        }, '*');
+                    }
+                };
+            }
+
+            // Event listeners para los botones
+            viewButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    changePage(btn.dataset.page);
+                });
+            });
+
+            // Botones de acción
+            document.getElementById('homeBtn').addEventListener('click', () => {
+                window.location.href = '/index.html';
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                authSystem.logout();
+                window.location.href = '/index.html';
+            });
+
+            // Escuchar mensajes desde los iframes
+            window.addEventListener('message', function(event) {
+                if (event.data.type === 'CHANGE_PAGE') {
+                    changePage(event.data.page);
+                } else if (event.data.type === 'SHOW_MESSAGE') {
+                    alert(event.data.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
