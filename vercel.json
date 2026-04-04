@@ -18,6 +18,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "logs/**/*",
+      "use": "@vercel/static"
+    },
+    {
       "src": "img/**/*",
       "use": "@vercel/static"
     },
@@ -42,6 +46,10 @@
     {
       "src": "/js/(.*)",
       "dest": "/js/$1"
+    },
+    {
+      "src": "/logs/(.*)",
+      "dest": "/logs/$1"
     },
     {
       "src": "/img/(.*)",

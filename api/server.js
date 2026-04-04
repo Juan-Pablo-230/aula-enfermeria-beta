@@ -131,7 +131,11 @@ app.get('/api/debug/routes', (req, res) => {
             '/api/clases-publicas (POST)',
             '/api/clases-publicas/:id (PUT)',
             '/api/clases-publicas/:id/visibilidad (PUT)',
-            '/api/clases-publicas/:id (DELETE)'
+            '/api/clases-publicas/:id (DELETE)',
+            '/api/logs/browser (POST)',
+            '/api/logs/browser/consultar (GET)',
+            '/api/logs/browser/sesion/:sessionId (GET)',
+            '/api/logs/browser/limpiar (DELETE)'
         ],
         timestamp: new Date().toISOString()
     });
@@ -141,6 +145,7 @@ app.get('/api/env-check', (req, res) => {
     res.json({
         mongoDB_URI: process.env.MONGODB_URI ? 'DEFINED' : 'NOT DEFINED',
         mongoDB_URI_length: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0,
+        MONGODB_URI_LOGS: process.env.MONGODB_URI_LOGS ? 'DEFINED' : 'NOT DEFINED',
         NODE_ENV: process.env.NODE_ENV || 'development'
     });
 });
@@ -2282,6 +2287,490 @@ app.get('/api/tiempo-clase/init', async (req, res) => {
             success: false, 
             message: 'Error interno del servidor',
             error: error.message 
+        });
+    }
+});
+
+// ==================== RUTAS PARA LOGS DEL NAVEGADOR ====================
+
+// POST - Guardar logs del navegador
+app.post('/api/logs/browser', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        const { logs, sessionId, url, userAgent, timestamp, screenResolution } = req.body;
+        
+        console.log(`📝 POST /api/logs/browser - Session: ${sessionId}, Logs: ${logs?.length || 0}`);
+        
+        if (!logs || !Array.isArray(logs) || logs.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No hay logs para guardar' 
+            });
+        }
+        
+        // Obtener información del usuario si está autenticado
+        let usuarioInfo = null;
+        let usuarioObjectId = null;
+        
+        if (userHeader && userHeader.length > 0 && ObjectId.isValid(userHeader)) {
+            try {
+                const db = await mongoDB.getDatabaseSafe('formulario');
+                const usuario = await db.collection('usuarios').findOne(
+                    { _id: new ObjectId(userHeader) },
+                    { projection: { password: 0, _id: 1, apellidoNombre: 1, legajo: 1, email: 1, turno: 1, area: 1 } }
+                );
+                if (usuario) {
+                    usuarioInfo = usuario;
+                    usuarioObjectId = usuario._id;
+                }
+            } catch (e) {
+                console.warn('No se pudo obtener info del usuario:', e.message);
+            }
+        }
+        
+        // Obtener IP
+        const ip = req.headers['x-forwarded-for'] || 
+                   req.headers['x-real-ip'] || 
+                   req.socket.remoteAddress || 
+                   'unknown';
+        
+        // Conectar a la base de logs
+        let logsDb;
+        try {
+            logsDb = await mongoDB.getLogsDB();
+        } catch (e) {
+            console.error('❌ Error conectando a DB de logs:', e.message);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error conectando a la base de datos de logs' 
+            });
+        }
+        
+        const collection = logsDb.collection('logs');
+        
+        // Configurar TTL (15 días = 1296000 segundos)
+        try {
+            const indexes = await collection.indexes();
+            const hasTTL = indexes.some(idx => idx.name === 'ttl_expire');
+            if (!hasTTL) {
+                await collection.createIndex(
+                    { ultimaActualizacion: 1 },
+                    { expireAfterSeconds: 1296000, name: 'ttl_expire' }
+                );
+                console.log('✅ Índice TTL configurado (15 días)');
+            }
+            
+            const hasIdIndex = indexes.some(idx => idx.name === 'id_index');
+            if (!hasIdIndex) {
+                await collection.createIndex(
+                    { _id: 1 },
+                    { name: 'id_index' }
+                );
+                console.log('✅ Índice por _id creado');
+            }
+        } catch (indexError) {
+            console.warn('Índice TTL:', indexError.message);
+        }
+        
+        // Calcular estadísticas de los logs entrantes
+        const errorCount = logs.filter(l => l.level === 'error').length;
+        const warningCount = logs.filter(l => l.level === 'warn').length;
+        const infoCount = logs.filter(l => l.level === 'log' || l.level === 'info').length;
+        
+        let result;
+        
+        if (usuarioObjectId) {
+            // Usuario autenticado: usar su _id como identificador
+            console.log(`👤 Usuario autenticado: ${usuarioInfo.apellidoNombre} (ID: ${usuarioObjectId})`);
+            
+            const filtroPorId = { _id: usuarioObjectId };
+            const documentoExistente = await collection.findOne(filtroPorId);
+            
+            if (documentoExistente) {
+                result = await collection.updateOne(
+                    filtroPorId,
+                    {
+                        $set: {
+                            ultimaActualizacion: new Date(),
+                            sessionId: sessionId,
+                            url: url || req.headers.referer || 'unknown',
+                            userAgent: userAgent || req.headers['user-agent'] || 'unknown',
+                            ip: ip,
+                            screenResolution: screenResolution || 'unknown',
+                            usuario: {
+                                _id: usuarioInfo._id,
+                                nombre: usuarioInfo.apellidoNombre,
+                                legajo: usuarioInfo.legajo,
+                                email: usuarioInfo.email,
+                                turno: usuarioInfo.turno,
+                                area: usuarioInfo.area
+                            }
+                        },
+                        $push: {
+                            logs: { 
+                                $each: logs.map(log => ({
+                                    ...log,
+                                    serverTimestamp: new Date()
+                                }))
+                            }
+                        },
+                        $inc: {
+                            totalLogs: logs.length,
+                            errorCount: errorCount,
+                            warningCount: warningCount,
+                            infoCount: infoCount
+                        },
+                        $min: {
+                            fechaInicio: new Date()
+                        }
+                    }
+                );
+                console.log(`✅ Logs ACTUALIZADOS para usuario ${usuarioInfo.apellidoNombre}`);
+            } else {
+                const nuevoDocumento = {
+                    _id: usuarioObjectId,
+                    sessionId: sessionId,
+                    usuarioId: usuarioObjectId.toString(),
+                    usuario: {
+                        _id: usuarioInfo._id,
+                        nombre: usuarioInfo.apellidoNombre,
+                        legajo: usuarioInfo.legajo,
+                        email: usuarioInfo.email,
+                        turno: usuarioInfo.turno,
+                        area: usuarioInfo.area
+                    },
+                    logs: logs.map(log => ({
+                        ...log,
+                        serverTimestamp: new Date()
+                    })),
+                    totalLogs: logs.length,
+                    errorCount: errorCount,
+                    warningCount: warningCount,
+                    infoCount: infoCount,
+                    fechaInicio: new Date(),
+                    ultimaActualizacion: new Date(),
+                    url: url || req.headers.referer || 'unknown',
+                    userAgent: userAgent || req.headers['user-agent'] || 'unknown',
+                    ip: ip,
+                    screenResolution: screenResolution || 'unknown'
+                };
+                
+                result = await collection.insertOne(nuevoDocumento);
+                console.log(`✅ Nuevo documento CREADO para usuario ${usuarioInfo.apellidoNombre} con _id: ${usuarioObjectId}`);
+            }
+            
+            // Limitar el tamaño del array de logs (máximo 500 logs por usuario)
+            await collection.updateOne(
+                { _id: usuarioObjectId },
+                {
+                    $push: {
+                        logs: {
+                            $each: [],
+                            $slice: -500
+                        }
+                    }
+                }
+            );
+            
+        } else {
+            // Usuario no autenticado: usar sessionId como identificador
+            console.log(`👤 Usuario anónimo: Session ${sessionId}`);
+            
+            const filtroPorSession = { sessionId: sessionId };
+            const documentoExistente = await collection.findOne(filtroPorSession);
+            
+            if (documentoExistente) {
+                result = await collection.updateOne(
+                    filtroPorSession,
+                    {
+                        $set: {
+                            ultimaActualizacion: new Date(),
+                            url: url || req.headers.referer || 'unknown',
+                            userAgent: userAgent || req.headers['user-agent'] || 'unknown',
+                            ip: ip,
+                            screenResolution: screenResolution || 'unknown'
+                        },
+                        $push: {
+                            logs: { 
+                                $each: logs.map(log => ({
+                                    ...log,
+                                    serverTimestamp: new Date()
+                                }))
+                            }
+                        },
+                        $inc: {
+                            totalLogs: logs.length,
+                            errorCount: errorCount,
+                            warningCount: warningCount,
+                            infoCount: infoCount
+                        },
+                        $min: {
+                            fechaInicio: new Date()
+                        }
+                    }
+                );
+            } else {
+                const nuevoDocumento = {
+                    sessionId: sessionId,
+                    logs: logs.map(log => ({
+                        ...log,
+                        serverTimestamp: new Date()
+                    })),
+                    totalLogs: logs.length,
+                    errorCount: errorCount,
+                    warningCount: warningCount,
+                    infoCount: infoCount,
+                    fechaInicio: new Date(),
+                    ultimaActualizacion: new Date(),
+                    url: url || req.headers.referer || 'unknown',
+                    userAgent: userAgent || req.headers['user-agent'] || 'unknown',
+                    ip: ip,
+                    screenResolution: screenResolution || 'unknown',
+                    usuario: null
+                };
+                
+                result = await collection.insertOne(nuevoDocumento);
+                console.log(`✅ Nuevo documento CREADO para sesión anónima: ${sessionId}`);
+            }
+            
+            // Limitar el tamaño del array de logs (máximo 500 logs por sesión)
+            await collection.updateOne(
+                { sessionId: sessionId },
+                {
+                    $push: {
+                        logs: {
+                            $each: [],
+                            $slice: -500
+                        }
+                    }
+                }
+            );
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Logs guardados correctamente',
+            stats: {
+                totalLogsEnviados: logs.length,
+                errores: errorCount,
+                advertencias: warningCount,
+                usuarioAutenticado: !!usuarioObjectId
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error guardando logs:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
+// GET - Consultar logs (solo para admin/advanced)
+app.get('/api/logs/browser/consultar', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        const { usuarioId, sessionId, from, to, limit = 100, nivel } = req.query;
+        
+        console.log('🔍 GET /api/logs/browser/consultar - Por:', userHeader);
+        
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No autenticado' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No tienes permisos para consultar logs' 
+            });
+        }
+        
+        // Construir filtro
+        const filtro = {};
+        
+        if (usuarioId && ObjectId.isValid(usuarioId)) {
+            filtro._id = new ObjectId(usuarioId);
+        }
+        
+        if (sessionId) filtro.sessionId = sessionId;
+        
+        if (from || to) {
+            filtro.ultimaActualizacion = {};
+            if (from) filtro.ultimaActualizacion.$gte = new Date(from);
+            if (to) filtro.ultimaActualizacion.$lte = new Date(to);
+        }
+        
+        if (nivel && nivel === 'errores') {
+            filtro.errorCount = { $gt: 0 };
+        }
+        
+        let logs = [];
+        
+        try {
+            const logsDb = await mongoDB.getLogsDB();
+            logs = await logsDb.collection('logs')
+                .find(filtro)
+                .sort({ ultimaActualizacion: -1 })
+                .limit(parseInt(limit))
+                .toArray();
+            console.log(`✅ ${logs.length} logs encontrados en DB de logs`);
+        } catch (logsError) {
+            console.error('❌ Error accediendo a DB de logs:', logsError.message);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error accediendo a la base de datos de logs' 
+            });
+        }
+        
+        const estadisticas = {
+            totalUsuarios: logs.filter(l => l._id).length,
+            totalSesionesAnonimas: logs.filter(l => !l._id && l.sessionId).length,
+            totalLogs: logs.reduce((sum, l) => sum + (l.totalLogs || 0), 0),
+            totalErrores: logs.reduce((sum, l) => sum + (l.errorCount || 0), 0),
+            fechaInicio: logs.length > 0 ? logs[logs.length - 1]?.ultimaActualizacion : null,
+            fechaFin: logs.length > 0 ? logs[0]?.ultimaActualizacion : null
+        };
+        
+        res.json({ 
+            success: true, 
+            data: logs,
+            estadisticas: estadisticas,
+            filtros_aplicados: { usuarioId, sessionId, from, to, limit, nivel }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error consultando logs:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
+// GET - Obtener una sesión específica de logs
+app.get('/api/logs/browser/sesion/:sessionId', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const userHeader = req.headers['user-id'];
+        
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No autenticado' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No tienes permisos para consultar logs' 
+            });
+        }
+        
+        let logs = [];
+        
+        try {
+            const logsDb = await mongoDB.getLogsDB();
+            logs = await logsDb.collection('logs')
+                .find({ sessionId: sessionId })
+                .sort({ ultimaActualizacion: -1 })
+                .toArray();
+        } catch (e) {
+            console.error('Error obteniendo sesión:', e.message);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error accediendo a la base de datos de logs' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            data: logs,
+            sessionId: sessionId,
+            totalRegistros: logs.length
+        });
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo sesión de logs:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor' 
+        });
+    }
+});
+
+// DELETE - Limpiar logs antiguos (solo admin)
+app.delete('/api/logs/browser/limpiar', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        const { dias = 15 } = req.body;
+        
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No autenticado' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || usuario.role !== 'admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Solo administradores pueden limpiar logs' 
+            });
+        }
+        
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - dias);
+        
+        let deletedCount = 0;
+        
+        try {
+            const logsDb = await mongoDB.getLogsDB();
+            const result = await logsDb.collection('logs').deleteMany({
+                ultimaActualizacion: { $lt: fechaLimite }
+            });
+            deletedCount = result.deletedCount;
+            console.log(`🧹 Limpiados ${deletedCount} logs anteriores a ${dias} días`);
+        } catch (e) {
+            console.error('Error limpiando logs:', e.message);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error limpiando logs' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Se eliminaron ${deletedCount} registros de logs anteriores a ${dias} días`,
+            deletedCount: deletedCount
+        });
+        
+    } catch (error) {
+        console.error('❌ Error limpiando logs:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor' 
         });
     }
 });
