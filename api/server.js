@@ -2299,8 +2299,6 @@ app.post('/api/logs/browser', async (req, res) => {
         const userHeader = req.headers['user-id'];
         const { logs, sessionId, url, userAgent, timestamp, screenResolution } = req.body;
         
-        console.log(`📝 POST /api/logs/browser - Session: ${sessionId}, Logs: ${logs?.length || 0}`);
-        
         if (!logs || !Array.isArray(logs) || logs.length === 0) {
             return res.status(400).json({ 
                 success: false, 
@@ -2308,9 +2306,39 @@ app.post('/api/logs/browser', async (req, res) => {
             });
         }
         
-        // Obtener información del usuario si está autenticado
-        let usuarioInfo = null;
+        // Obtener conexión FRESCA para esta petición
+        let logsDb;
+        try {
+            logsDb = await mongoDB.getLogsDB();
+        } catch (e) {
+            console.error('❌ Error conectando a DB de logs:', e.message);
+            // No fallar la petición, solo responder que no se guardaron
+            return res.json({ 
+                success: false, 
+                message: 'Base de datos de logs no disponible temporalmente',
+                stats: { totalLogsEnviados: logs.length, guardados: false }
+            });
+        }
+        
+        const collection = logsDb.collection('logs');
+        
+        // Configurar TTL (15 días) - silenciosamente
+        try {
+            const indexes = await collection.indexes();
+            const hasTTL = indexes.some(idx => idx.name === 'ttl_expire');
+            if (!hasTTL) {
+                await collection.createIndex(
+                    { ultimaActualizacion: 1 },
+                    { expireAfterSeconds: 1296000, name: 'ttl_expire' }
+                );
+            }
+        } catch (indexError) {
+            // Ignorar errores de índice
+        }
+        
+        // Obtener información del usuario
         let usuarioObjectId = null;
+        let usuarioInfo = null;
         
         if (userHeader && userHeader.length > 0 && ObjectId.isValid(userHeader)) {
             try {
@@ -2328,222 +2356,98 @@ app.post('/api/logs/browser', async (req, res) => {
             }
         }
         
-        // Obtener IP
         const ip = req.headers['x-forwarded-for'] || 
                    req.headers['x-real-ip'] || 
                    req.socket.remoteAddress || 
                    'unknown';
         
-        // Conectar a la base de logs
-        let logsDb;
-        try {
-            logsDb = await mongoDB.getLogsDB();
-        } catch (e) {
-            console.error('❌ Error conectando a DB de logs:', e.message);
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Error conectando a la base de datos de logs' 
-            });
-        }
-        
-        const collection = logsDb.collection('logs');
-        
-        // Configurar TTL (15 días = 1296000 segundos)
-        try {
-            const indexes = await collection.indexes();
-            const hasTTL = indexes.some(idx => idx.name === 'ttl_expire');
-            if (!hasTTL) {
-                await collection.createIndex(
-                    { ultimaActualizacion: 1 },
-                    { expireAfterSeconds: 1296000, name: 'ttl_expire' }
-                );
-                console.log('✅ Índice TTL configurado (15 días)');
-            }
-            
-            const hasIdIndex = indexes.some(idx => idx.name === 'id_index');
-            if (!hasIdIndex) {
-                await collection.createIndex(
-                    { _id: 1 },
-                    { name: 'id_index' }
-                );
-                console.log('✅ Índice por _id creado');
-            }
-        } catch (indexError) {
-            console.warn('Índice TTL:', indexError.message);
-        }
-        
-        // Calcular estadísticas de los logs entrantes
         const errorCount = logs.filter(l => l.level === 'error').length;
         const warningCount = logs.filter(l => l.level === 'warn').length;
         const infoCount = logs.filter(l => l.level === 'log' || l.level === 'info').length;
         
-        let result;
-        
         if (usuarioObjectId) {
-            // Usuario autenticado: usar su _id como identificador
-            console.log(`👤 Usuario autenticado: ${usuarioInfo.apellidoNombre} (ID: ${usuarioObjectId})`);
-            
-            const filtroPorId = { _id: usuarioObjectId };
-            const documentoExistente = await collection.findOne(filtroPorId);
-            
-            if (documentoExistente) {
-                result = await collection.updateOne(
-                    filtroPorId,
-                    {
-                        $set: {
-                            ultimaActualizacion: new Date(),
-                            sessionId: sessionId,
-                            url: url || req.headers.referer || 'unknown',
-                            userAgent: userAgent || req.headers['user-agent'] || 'unknown',
-                            ip: ip,
-                            screenResolution: screenResolution || 'unknown',
-                            usuario: {
-                                _id: usuarioInfo._id,
-                                nombre: usuarioInfo.apellidoNombre,
-                                legajo: usuarioInfo.legajo,
-                                email: usuarioInfo.email,
-                                turno: usuarioInfo.turno,
-                                area: usuarioInfo.area
-                            }
-                        },
-                        $push: {
-                            logs: { 
-                                $each: logs.map(log => ({
-                                    ...log,
-                                    serverTimestamp: new Date()
-                                }))
-                            }
-                        },
-                        $inc: {
-                            totalLogs: logs.length,
-                            errorCount: errorCount,
-                            warningCount: warningCount,
-                            infoCount: infoCount
-                        },
-                        $min: {
-                            fechaInicio: new Date()
-                        }
-                    }
-                );
-                console.log(`✅ Logs ACTUALIZADOS para usuario ${usuarioInfo.apellidoNombre}`);
-            } else {
-                const nuevoDocumento = {
-                    _id: usuarioObjectId,
-                    sessionId: sessionId,
-                    usuarioId: usuarioObjectId.toString(),
-                    usuario: {
-                        _id: usuarioInfo._id,
-                        nombre: usuarioInfo.apellidoNombre,
-                        legajo: usuarioInfo.legajo,
-                        email: usuarioInfo.email,
-                        turno: usuarioInfo.turno,
-                        area: usuarioInfo.area
-                    },
-                    logs: logs.map(log => ({
-                        ...log,
-                        serverTimestamp: new Date()
-                    })),
-                    totalLogs: logs.length,
-                    errorCount: errorCount,
-                    warningCount: warningCount,
-                    infoCount: infoCount,
-                    fechaInicio: new Date(),
-                    ultimaActualizacion: new Date(),
-                    url: url || req.headers.referer || 'unknown',
-                    userAgent: userAgent || req.headers['user-agent'] || 'unknown',
-                    ip: ip,
-                    screenResolution: screenResolution || 'unknown'
-                };
-                
-                result = await collection.insertOne(nuevoDocumento);
-                console.log(`✅ Nuevo documento CREADO para usuario ${usuarioInfo.apellidoNombre} con _id: ${usuarioObjectId}`);
-            }
-            
-            // Limitar el tamaño del array de logs (máximo 500 logs por usuario)
-            await collection.updateOne(
+            // Usuario autenticado
+            const result = await collection.updateOne(
                 { _id: usuarioObjectId },
                 {
+                    $set: {
+                        ultimaActualizacion: new Date(),
+                        sessionId: sessionId,
+                        url: url || req.headers.referer || 'unknown',
+                        userAgent: userAgent || req.headers['user-agent'] || 'unknown',
+                        ip: ip,
+                        screenResolution: screenResolution || 'unknown',
+                        usuario: usuarioInfo ? {
+                            _id: usuarioInfo._id,
+                            nombre: usuarioInfo.apellidoNombre,
+                            legajo: usuarioInfo.legajo,
+                            email: usuarioInfo.email,
+                            turno: usuarioInfo.turno,
+                            area: usuarioInfo.area
+                        } : null
+                    },
                     $push: {
-                        logs: {
-                            $each: [],
-                            $slice: -500
+                        logs: { 
+                            $each: logs.map(log => ({
+                                ...log,
+                                serverTimestamp: new Date()
+                            }))
                         }
+                    },
+                    $inc: {
+                        totalLogs: logs.length,
+                        errorCount: errorCount,
+                        warningCount: warningCount,
+                        infoCount: infoCount
+                    },
+                    $min: {
+                        fechaInicio: new Date()
                     }
-                }
+                },
+                { upsert: true }
             );
             
-        } else {
-            // Usuario no autenticado: usar sessionId como identificador
-            console.log(`👤 Usuario anónimo: Session ${sessionId}`);
-            
-            const filtroPorSession = { sessionId: sessionId };
-            const documentoExistente = await collection.findOne(filtroPorSession);
-            
-            if (documentoExistente) {
-                result = await collection.updateOne(
-                    filtroPorSession,
-                    {
-                        $set: {
-                            ultimaActualizacion: new Date(),
-                            url: url || req.headers.referer || 'unknown',
-                            userAgent: userAgent || req.headers['user-agent'] || 'unknown',
-                            ip: ip,
-                            screenResolution: screenResolution || 'unknown'
-                        },
-                        $push: {
-                            logs: { 
-                                $each: logs.map(log => ({
-                                    ...log,
-                                    serverTimestamp: new Date()
-                                }))
-                            }
-                        },
-                        $inc: {
-                            totalLogs: logs.length,
-                            errorCount: errorCount,
-                            warningCount: warningCount,
-                            infoCount: infoCount
-                        },
-                        $min: {
-                            fechaInicio: new Date()
-                        }
-                    }
-                );
-            } else {
-                const nuevoDocumento = {
-                    sessionId: sessionId,
-                    logs: logs.map(log => ({
-                        ...log,
-                        serverTimestamp: new Date()
-                    })),
-                    totalLogs: logs.length,
-                    errorCount: errorCount,
-                    warningCount: warningCount,
-                    infoCount: infoCount,
-                    fechaInicio: new Date(),
-                    ultimaActualizacion: new Date(),
-                    url: url || req.headers.referer || 'unknown',
-                    userAgent: userAgent || req.headers['user-agent'] || 'unknown',
-                    ip: ip,
-                    screenResolution: screenResolution || 'unknown',
-                    usuario: null
-                };
-                
-                result = await collection.insertOne(nuevoDocumento);
-                console.log(`✅ Nuevo documento CREADO para sesión anónima: ${sessionId}`);
-            }
-            
-            // Limitar el tamaño del array de logs (máximo 500 logs por sesión)
+            // Limitar logs a 500
             await collection.updateOne(
+                { _id: usuarioObjectId },
+                { $push: { logs: { $each: [], $slice: -500 } } }
+            );
+        } else {
+            // Usuario anónimo
+            const result = await collection.updateOne(
                 { sessionId: sessionId },
                 {
+                    $set: {
+                        ultimaActualizacion: new Date(),
+                        url: url || req.headers.referer || 'unknown',
+                        userAgent: userAgent || req.headers['user-agent'] || 'unknown',
+                        ip: ip,
+                        screenResolution: screenResolution || 'unknown'
+                    },
                     $push: {
-                        logs: {
-                            $each: [],
-                            $slice: -500
+                        logs: { 
+                            $each: logs.map(log => ({
+                                ...log,
+                                serverTimestamp: new Date()
+                            }))
                         }
+                    },
+                    $inc: {
+                        totalLogs: logs.length,
+                        errorCount: errorCount,
+                        warningCount: warningCount,
+                        infoCount: infoCount
+                    },
+                    $min: {
+                        fechaInicio: new Date()
                     }
-                }
+                },
+                { upsert: true }
+            );
+            
+            await collection.updateOne(
+                { sessionId: sessionId },
+                { $push: { logs: { $each: [], $slice: -500 } } }
             );
         }
         
@@ -2560,10 +2464,11 @@ app.post('/api/logs/browser', async (req, res) => {
         
     } catch (error) {
         console.error('❌ Error guardando logs:', error);
-        res.status(500).json({ 
+        // Responder éxito aunque falle para no afectar la experiencia del usuario
+        res.json({ 
             success: false, 
-            message: 'Error interno del servidor',
-            error: error.message 
+            message: 'Error interno, logs no guardados',
+            stats: { totalLogsEnviados: req.body?.logs?.length || 0, guardados: false }
         });
     }
 });
