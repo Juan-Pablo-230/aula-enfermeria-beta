@@ -291,7 +291,7 @@ class BrowserLogger {
       }
     }, this.sendInterval);
   }
-  
+
   async sendLogs() {
     if (!this.logs.length) return;
     
@@ -299,56 +299,62 @@ class BrowserLogger {
     this.logs = [];
     
     try {
-      const user = window.authSystem?.getCurrentUser ? window.authSystem.getCurrentUser() : null;
-      
-      const response = await fetch('/api/logs/browser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': user?._id || ''
-        },
-        body: JSON.stringify({
-          logs: logsToSend,
-          sessionId: this.sessionId,
-          url: window.location.href,
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-          screenResolution: `${screen.width}x${screen.height}`
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log(`[Logger] Enviados ${logsToSend.length} logs`);
-      
+        const user = window.authSystem?.getCurrentUser ? window.authSystem.getCurrentUser() : null;
+        
+        console.log('[Logger] Enviando logs...', {
+            cantidad: logsToSend.length,
+            url: '/api/logs/browser',
+            userId: user?._id || 'anonimo'
+        });
+        
+        const response = await fetch('/api/logs/browser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'user-id': user?._id || ''
+            },
+            body: JSON.stringify({
+                logs: logsToSend,
+                sessionId: this.sessionId,
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString(),
+                screenResolution: `${screen.width}x${screen.height}`
+            })
+        });
+        
+        console.log('[Logger] Respuesta recibida:', {
+            status: response.status,
+            ok: response.ok,
+            statusText: response.statusText
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[Logger] Error respuesta:', {
+                status: response.status,
+                body: errorText.substring(0, 500)
+            });
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log(`[Logger] ✅ Enviados ${logsToSend.length} logs`, result);
+        
     } catch (error) {
-      // Si falla, recuperar los logs
-      this.logs = [...logsToSend, ...this.logs];
-      if (this.logs.length > this.maxLogs * 2) {
-        this.logs = this.logs.slice(-this.maxLogs);
-      }
-      console.warn('[Logger] Error enviando logs, reintentará más tarde');
+        // Si falla, recuperar los logs
+        this.logs = [...logsToSend, ...this.logs];
+        if (this.logs.length > this.maxLogs * 2) {
+            this.logs = this.logs.slice(-this.maxLogs);
+        }
+        console.error('[Logger] ❌ Error detallado:', {
+            message: error.message,
+            stack: error.stack,
+            tipo: error.name
+        });
     }
-  }
-  
-  async flush() {
-    await this.sendLogs();
-  }
-  
-  getCurrentLogs() {
-    return [...this.logs];
-  }
-  
-  getStats() {
-    return {
-      logsInMemory: this.logs.length,
-      sessionId: this.sessionId,
-      maxLogs: this.maxLogs
-    };
-  }
+}
+
 }
 
 // Inicializar cuando el DOM esté listo

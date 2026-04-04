@@ -3087,6 +3087,16 @@ app.put('/api/cartelera/:id', async (req, res) => {
     }
 });
 
+// Agrega esto cerca de las otras rutas de prueba
+app.get('/api/logs/test', (req, res) => {
+    console.log('✅ Ruta /api/logs/test funcionando');
+    res.json({ 
+        success: true, 
+        message: 'Ruta de logs funcionando',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // DELETE - Eliminar aviso
 app.delete('/api/cartelera/:id', async (req, res) => {
     try {
