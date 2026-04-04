@@ -10,19 +10,6 @@ const { connectToDatabase, getDB, mongoDB } = require('../database');
 
 const app = express();
 
-// ==================== CONFIGURACIÓN TEMPORAL ====================
-
-app.get('/api/debug-env', (req, res) => {
-    res.json({
-        MONGODB_URI: process.env.MONGODB_URI ? '✅ DEFINIDA' : '❌ NO DEFINIDA',
-        MONGODB_URI_LOGS: process.env.MONGODB_URI_LOGS ? '✅ DEFINIDA' : '❌ NO DEFINIDA',
-        MONGODB_URI_LOGS_LENGTH: process.env.MONGODB_URI_LOGS?.length || 0,
-        // Mostrar primeros 50 caracteres de la URI (enmascarada)
-        MONGODB_URI_LOGS_PREVIEW: process.env.MONGODB_URI_LOGS ? 
-            process.env.MONGODB_URI_LOGS.substring(0, 50) + '...' : 'N/A'
-    });
-});
-
 // ==================== FUNCIONES DE HASH CON SCRYPT ====================
 
 // Configuración de scrypt (optimizada para Vercel)
