@@ -1,5 +1,5 @@
 // /logs/browser-logger.js
-// Logger para capturar errores del navegador (excluyendo YouTube y extensiones)
+// Logger para capturar errores del navegador (excluyendo YouTube, extensiones y logs propios)
 
 class BrowserLogger {
   constructor() {
@@ -75,7 +75,17 @@ class BrowserLogger {
       // Errores de React/DevTools (no relevantes)
       /Download the React DevTools/i,
       /ReactDOM/i,
-      /development mode/i
+      /development mode/i,
+      
+      // ============================================
+      // EXCLUIR LOGS PROPIOS DEL SISTEMA
+      // ============================================
+      /\[Logger\]/i,
+      /browser-logger\.js/i,
+      /Log enviado correctamente/i,
+      /Logger.*enviado/i,
+      /Enviando logs/i,
+      /Logs guardados/i
     ];
     
     if (this.isRecording) {
@@ -83,7 +93,8 @@ class BrowserLogger {
       this.startPeriodicSend();
       this.catchGlobalErrors();
       this.interceptNetworkErrors();
-      console.log('[Logger] Iniciado - Solo logs del sitio (excluye YouTube y extensiones)');
+      // Este mensaje no se guardará por el patrón [Logger]
+      console.log('[Logger] Iniciado - Solo logs del sitio (excluye YouTube, extensiones y logs propios)');
     }
   }
   
@@ -105,6 +116,9 @@ class BrowserLogger {
     
     if (messageStr.includes('chrome-extension://')) return true;
     if (messageStr.includes('moz-extension://')) return true;
+    
+    // Verificar si el mensaje contiene rutas del propio logger
+    if (messageStr.includes('browser-logger.js')) return true;
     
     for (const pattern of this.ignoredPatterns) {
       if (pattern.test(messageStr)) {
@@ -312,7 +326,11 @@ class BrowserLogger {
       }
       
       const result = await response.json();
-      console.log(`[Logger] Enviados ${logsToSend.length} logs`);
+      
+      // ============================================
+      // IMPRIMIR CONFIRMACIÓN EN CONSOLA
+      // ============================================
+      console.log(`✅ Log enviado correctamente - ${logsToSend.length} logs - ${new Date().toLocaleTimeString()}`);
       
     } catch (error) {
       this.logs = [...logsToSend, ...this.logs];
