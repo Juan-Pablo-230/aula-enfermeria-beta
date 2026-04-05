@@ -137,7 +137,7 @@ class ReportsManager {
 
     async verDetalleReporte(id) {
         try {
-            const result = await authSystem.makeRequest(`/api/reports/${id}`, null, 'GET');
+            const result = await authSystem.makeRequest(`/reports/${id}`, null, 'GET');
             
             if (result.success && result.data) {
                 this.mostrarModalDetalle(result.data, result.browserLogs);
@@ -330,7 +330,7 @@ class ReportsManager {
 
     async actualizarEstado(id, nuevoEstado, comentario) {
         try {
-            const result = await authSystem.makeRequest(`/api/reports/${id}/estado`, {
+            const result = await authSystem.makeRequest(`/reports/${id}/estado`, {
                 estado: nuevoEstado,
                 comentario: comentario
             }, 'PUT');
