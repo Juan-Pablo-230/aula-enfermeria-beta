@@ -52,22 +52,25 @@ class ProfileUpdater {
         if (guestInfo) guestInfo.style.display = 'none';
     }
 
-    showUserInfo() {
-        const user = authSystem.getCurrentUser();
-        const userInfo = document.getElementById('userInfo');
-        const userName = document.getElementById('userName');
-        if (user && userInfo && userName) {
-            let roleBadge = '';
-            if (user.role === 'admin') roleBadge = ' 👑';
-            else if (user.role === 'advanced') roleBadge = ' ⭐';
-            userName.textContent = `👤 ${user.apellidoNombre} - Legajo: ${user.legajo}${roleBadge}`;
-            userInfo.style.display = 'block';
-            if (this.materialButtonContainer) this.materialButtonContainer.style.display = 'block';
-            this.showAdminPanelButton(user);
-            const userActions = document.querySelector('.user-actions');
-            if (userActions) this.showCalendarButton(userActions);
+showUserInfo() {
+    const user = authSystem.getCurrentUser();
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    if (user && userInfo && userName) {
+        let roleBadge = '';
+        if (user.role === 'admin') roleBadge = ' 👑';
+        else if (user.role === 'advanced') roleBadge = ' ⭐';
+        userName.textContent = `👤 ${user.apellidoNombre} - Legajo: ${user.legajo}${roleBadge}`;
+        userInfo.style.display = 'block';
+        if (this.materialButtonContainer) this.materialButtonContainer.style.display = 'block';
+        this.showAdminPanelButton(user);
+        const userActions = document.querySelector('.user-actions');
+        if (userActions) {
+            this.showCalendarButton(userActions);
+            this.showReportButtons(userActions);  // ← Esta línea debe existir
         }
     }
+}
 
     showCalendarButton(userActions) {
         const existingCalendarBtn = document.getElementById('calendarBtn');
@@ -455,6 +458,8 @@ class ProfileUpdater {
         }
     }
 
+    // /js/profile-updater.js - Método showReportButtons corregido
+
 showReportButtons(userActions) {
     // Esperar a que authSystem esté listo
     if (!authSystem || !authSystem.getCurrentUser()) {
@@ -476,18 +481,22 @@ showReportButtons(userActions) {
     const existingContainer = document.querySelector('.report-buttons-container');
     if (existingContainer) existingContainer.remove();
     
+    // Determinar qué botones mostrar según el rol
+    let showReportBtn = (user.role === 'user');
+    let showViewReportsBtn = (user.role === 'advanced' || user.role === 'admin');
+    
+    // Si no hay botones que mostrar, salir
+    if (!showReportBtn && !showViewReportsBtn) return;
+    
     // Crear contenedor para botones de reportes
     const reportContainer = document.createElement('div');
     reportContainer.className = 'report-buttons-container';
     reportContainer.style.display = 'inline-flex';
     reportContainer.style.gap = '8px';
-    reportContainer.style.marginLeft = '10px';
+    reportContainer.style.alignItems = 'center';
     
-    // ============================================
-    // BOTÓN "REPORTAR UN ERROR"
-    // SOLO para usuarios ESTÁNDAR (role = 'user')
-    // ============================================
-    if (user.role === 'user') {
+    // Botón "Reportar un error" (solo para usuarios estándar)
+    if (showReportBtn) {
         const reportBtn = document.createElement('button');
         reportBtn.id = 'reportErrorBtn';
         reportBtn.className = 'report-error-btn';
@@ -505,6 +514,7 @@ showReportButtons(userActions) {
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         `;
         reportBtn.onmouseover = () => {
             reportBtn.style.transform = 'translateY(-2px)';
@@ -521,11 +531,8 @@ showReportButtons(userActions) {
         reportContainer.appendChild(reportBtn);
     }
     
-    // ============================================
-    // BOTÓN "VER REPORTES"
-    // SOLO para usuarios AVANZADOS y ADMINISTRADORES
-    // ============================================
-    if (user.role === 'advanced' || user.role === 'admin') {
+    // Botón "Ver reportes" (solo para advanced y admin)
+    if (showViewReportsBtn) {
         const viewReportsBtn = document.createElement('button');
         viewReportsBtn.id = 'viewReportsBtn';
         viewReportsBtn.className = 'view-reports-btn';
@@ -543,6 +550,7 @@ showReportButtons(userActions) {
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         `;
         viewReportsBtn.onmouseover = () => {
             viewReportsBtn.style.transform = 'translateY(-2px)';
@@ -559,16 +567,24 @@ showReportButtons(userActions) {
         reportContainer.appendChild(viewReportsBtn);
     }
     
-    // Si no hay botones que mostrar, no agregar el contenedor
-    if (reportContainer.children.length === 0) return;
-    
-    // Buscar dónde insertar el contenedor
-    const updateProfileBtn = document.getElementById('updateProfileBtn');
-    if (updateProfileBtn && updateProfileBtn.parentNode) {
-        updateProfileBtn.parentNode.insertBefore(reportContainer, updateProfileBtn.nextSibling);
+    // Buscar el contenedor de acciones del usuario (.user-actions)
+    // y agregar los botones después de los botones existentes
+    const userActionsDiv = document.querySelector('.user-actions');
+    if (userActionsDiv) {
+        // Agregar los botones al final del contenedor .user-actions
+        userActionsDiv.appendChild(reportContainer);
     } else {
-        userActions.appendChild(reportContainer);
+        // Fallback: buscar por ID
+        const userActionsElement = document.getElementById('userInfo');
+        if (userActionsElement) {
+            const actionsDiv = userActionsElement.querySelector('.user-actions');
+            if (actionsDiv) {
+                actionsDiv.appendChild(reportContainer);
+            }
+        }
     }
+    
+    console.log(`✅ Botones de reportes mostrados para rol: ${user.role}`);
 }
 
 showReportModal() {
