@@ -458,7 +458,7 @@ showUserInfo() {
         }
     }
 
-// /js/profile-updater.js - Método showReportButtons corregido
+    // /js/profile-updater.js - Método showReportButtons con posición corregida
 
 showReportButtons(userActions) {
     // Esperar a que authSystem esté listo
@@ -482,8 +482,8 @@ showReportButtons(userActions) {
     if (existingContainer) existingContainer.remove();
     
     // Determinar qué botones mostrar según el rol
-    let showReportBtn = (user.role === 'user');
-    let showViewReportsBtn = (user.role === 'advanced' || user.role === 'admin');
+    const showReportBtn = (user.role === 'user');
+    const showViewReportsBtn = (user.role === 'advanced' || user.role === 'admin');
     
     // Si no hay botones que mostrar, salir
     if (!showReportBtn && !showViewReportsBtn) return;
@@ -493,7 +493,7 @@ showReportButtons(userActions) {
     reportContainer.className = 'report-buttons-container';
     reportContainer.style.display = 'inline-flex';
     reportContainer.style.gap = '8px';
-    reportContainer.style.alignItems = 'center';
+    reportContainer.style.marginLeft = '10px';
     
     // Botón "Reportar un error" (solo para usuarios estándar)
     if (showReportBtn) {
@@ -514,7 +514,6 @@ showReportButtons(userActions) {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            white-space: nowrap;
         `;
         reportBtn.onmouseover = () => {
             reportBtn.style.transform = 'translateY(-2px)';
@@ -550,7 +549,6 @@ showReportButtons(userActions) {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            white-space: nowrap;
         `;
         viewReportsBtn.onmouseover = () => {
             viewReportsBtn.style.transform = 'translateY(-2px)';
@@ -567,24 +565,20 @@ showReportButtons(userActions) {
         reportContainer.appendChild(viewReportsBtn);
     }
     
-    // Buscar el contenedor de acciones del usuario (.user-actions)
-    // y agregar los botones después de los botones existentes
-    const userActionsDiv = document.querySelector('.user-actions');
-    if (userActionsDiv) {
-        // Agregar los botones al final del contenedor .user-actions
-        userActionsDiv.appendChild(reportContainer);
+    // ============================================
+    // IMPORTANTE: Insertar DESPUÉS del botón "Mi perfil"
+    // y ANTES del botón "Calendario Educativo"
+    // ============================================
+    const updateProfileBtn = document.getElementById('updateProfileBtn');
+    if (updateProfileBtn && updateProfileBtn.parentNode) {
+        // Insertar el contenedor después del botón "Mi perfil"
+        updateProfileBtn.parentNode.insertBefore(reportContainer, updateProfileBtn.nextSibling);
     } else {
-        // Fallback: buscar por ID
-        const userActionsElement = document.getElementById('userInfo');
-        if (userActionsElement) {
-            const actionsDiv = userActionsElement.querySelector('.user-actions');
-            if (actionsDiv) {
-                actionsDiv.appendChild(reportContainer);
-            }
-        }
+        // Fallback: agregar al final de userActions
+        userActions.appendChild(reportContainer);
     }
     
-    console.log(`✅ Botones de reportes mostrados para rol: ${user.role}`);
+    console.log(`✅ Botones de reportes añadidos después de "Mi perfil" para rol: ${user.role}`);
 }
   
   // /js/profile-updater.js - Método showReportModal modificado
