@@ -1100,6 +1100,80 @@ body {
     opacity: 0.7;
 }
 
+/* Contenedor de botones de reportes */
+.report-buttons-container {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 10px;
+}
+
+/* Botón Reportar error (color naranja) */
+.report-error-btn {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.report-error-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.report-error-btn:active {
+    transform: translateY(0);
+}
+
+/* Botón Ver reportes (color azul) */
+.view-reports-btn {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.view-reports-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    background: linear-gradient(135deg, #2980b9 0%, #1a6fa0 100%);
+}
+
+.view-reports-btn:active {
+    transform: translateY(0);
+}
+
+/* Ajustes responsivos para móviles */
+@media (max-width: 768px) {
+    .report-buttons-container {
+        display: flex;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-top: 8px;
+    }
+    
+    .report-error-btn, .view-reports-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+
 @keyframes slideDown {
     from {
         opacity: 0;
