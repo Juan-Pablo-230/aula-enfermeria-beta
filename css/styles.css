@@ -198,7 +198,8 @@ body {
 .update-profile-btn,
 .logout-btn,
 .admin-panel-btn,
-.calendar-btn {
+.calendar-btn,
+.report-error-btn {
     padding: 12px 18px;
     border: none;
     border-radius: 8px;
