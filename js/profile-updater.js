@@ -458,7 +458,7 @@ showUserInfo() {
         }
     }
 
-    // /js/profile-updater.js - Método showReportButtons corregido
+// /js/profile-updater.js - Método showReportButtons corregido
 
 showReportButtons(userActions) {
     // Esperar a que authSystem esté listo
@@ -586,6 +586,8 @@ showReportButtons(userActions) {
     
     console.log(`✅ Botones de reportes mostrados para rol: ${user.role}`);
 }
+  
+  // /js/profile-updater.js - Método showReportModal modificado
 
 showReportModal() {
     // Verificar si ya existe un modal
@@ -655,33 +657,29 @@ showReportModal() {
         await this.submitReport();
     });
 }
-
-async submitReport() {
+  
+  // Enviar reporte al servidor
+  async submitReport() {
     const title = document.getElementById('reportTitle').value.trim();
     const description = document.getElementById('reportDescription').value.trim();
     const steps = document.getElementById('reportSteps').value.trim();
-    
-    // Los logs SIEMPRE se incluyen (obligatorio)
-    const includeLogs = true;
+    const includeLogs = document.getElementById('includeLogs').checked;
     
     if (!title || !description) {
-        this.showReportModalMessage('❌ Título y descripción son obligatorios', 'error');
-        return;
+      this.showReportModalMessage('❌ Título y descripción son obligatorios', 'error');
+      return;
     }
     
     const user = authSystem.getCurrentUser();
     if (!user) {
-        this.showReportModalMessage('❌ Debes iniciar sesión para reportar un error', 'error');
-        return;
+      this.showReportModalMessage('❌ Debes iniciar sesión para reportar un error', 'error');
+      return;
     }
     
-    // Obtener logs recientes (SIEMPRE)
+    // Obtener logs recientes si se solicita
     let logs = [];
-    if (window.browserLogger) {
-        logs = window.browserLogger.getCurrentLogs();
-        console.log(`📊 Incluyendo ${logs.length} logs en el reporte`);
-    } else {
-        console.warn('⚠️ Browser logger no disponible, logs no incluidos');
+    if (includeLogs && window.browserLogger) {
+      logs = window.browserLogger.getCurrentLogs();
     }
     
     // Mostrar loading
@@ -691,43 +689,43 @@ async submitReport() {
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('/api/reports', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'user-id': user._id
-            },
-            body: JSON.stringify({
-                title: title,
-                description: description,
-                steps: steps || null,
-                logs: logs,
-                includeLogs: includeLogs,
-                url: window.location.href,
-                userAgent: navigator.userAgent
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            this.showReportModalMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
-            setTimeout(() => {
-                const modal = document.getElementById('reportErrorModal');
-                if (modal) modal.remove();
-            }, 2000);
-        } else {
-            throw new Error(result.message || 'Error al enviar el reporte');
-        }
-        
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user._id
+        },
+        body: JSON.stringify({
+          title: title,
+          description: description,
+          steps: steps || null,
+          logs: logs,
+          includeLogs: includeLogs,
+          url: window.location.href,
+          userAgent: navigator.userAgent
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        this.showReportModalMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
+        setTimeout(() => {
+          const modal = document.getElementById('reportErrorModal');
+          if (modal) modal.remove();
+        }, 2000);
+      } else {
+        throw new Error(result.message || 'Error al enviar el reporte');
+      }
+      
     } catch (error) {
-        console.error('Error enviando reporte:', error);
-        this.showReportModalMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
+      console.error('Error enviando reporte:', error);
+      this.showReportModalMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
     } finally {
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
     }
-}
+  }
   
   showReportModalMessage(message, type) {
     const msgDiv = document.getElementById('reportModalMessage');

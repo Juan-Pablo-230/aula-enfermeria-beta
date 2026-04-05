@@ -1159,6 +1159,31 @@ body {
     transform: translateY(0);
 }
 
+.user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.report-buttons-container {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .user-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .report-buttons-container {
+        margin-top: 5px;
+    }
+}
+
 /* Ajustes responsivos para móviles */
 @media (max-width: 768px) {
     .report-buttons-container {
