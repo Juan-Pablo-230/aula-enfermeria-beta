@@ -454,6 +454,234 @@ class ProfileUpdater {
             throw error;
         }
     }
+
+    // /js/profile-updater.js - Añadir esta función al final de la clase ProfileUpdater
+
+  // Añadir botones de reportes en el área de usuario
+  showReportButtons(userActions) {
+    // Eliminar botones existentes para evitar duplicados
+    const existingReportBtn = document.getElementById('reportErrorBtn');
+    const existingViewReportsBtn = document.getElementById('viewReportsBtn');
+    if (existingReportBtn) existingReportBtn.remove();
+    if (existingViewReportsBtn) existingViewReportsBtn.remove();
+    
+    // Crear contenedor para botones de reportes
+    const reportContainer = document.createElement('div');
+    reportContainer.className = 'report-buttons-container';
+    reportContainer.style.display = 'flex';
+    reportContainer.style.gap = '8px';
+    
+    // Botón "Reportar un error" (visible para todos los usuarios logueados)
+    const reportBtn = document.createElement('button');
+    reportBtn.id = 'reportErrorBtn';
+    reportBtn.className = 'report-error-btn';
+    reportBtn.innerHTML = '🐛 Reportar un error';
+    reportBtn.onclick = () => this.showReportModal();
+    reportContainer.appendChild(reportBtn);
+    
+    // Botón "Ver reportes" (solo para advanced y admin)
+    const user = authSystem.getCurrentUser();
+    if (user && (user.role === 'advanced' || user.role === 'admin')) {
+      const viewReportsBtn = document.createElement('button');
+      viewReportsBtn.id = 'viewReportsBtn';
+      viewReportsBtn.className = 'view-reports-btn';
+      viewReportsBtn.innerHTML = '📋 Ver reportes';
+      viewReportsBtn.onclick = () => {
+        window.location.href = '/reports.html';
+      };
+      reportContainer.appendChild(viewReportsBtn);
+    }
+    
+    // Insertar después del botón de Mi perfil
+    const updateProfileBtn = document.getElementById('updateProfileBtn');
+    if (updateProfileBtn && updateProfileBtn.parentNode) {
+      updateProfileBtn.parentNode.insertBefore(reportContainer, updateProfileBtn.nextSibling);
+    } else {
+      userActions.appendChild(reportContainer);
+    }
+  }
+  
+  // Mostrar modal para reportar error
+  showReportModal() {
+    // Verificar si ya existe un modal
+    const existingModal = document.getElementById('reportErrorModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    const user = authSystem.getCurrentUser();
+    
+    const modalHTML = `
+      <div id="reportErrorModal" class="modal-overlay" style="display: flex;">
+        <div class="modal-container" style="max-width: 500px;">
+          <div class="modal-header">
+            <h2>🐛 Reportar un error</h2>
+            <button class="close-modal" onclick="document.getElementById('reportErrorModal').remove()">&times;</button>
+          </div>
+          <form id="reportErrorForm" class="modal-form">
+            <div id="reportModalMessage" class="message" style="display: none;"></div>
+            
+            <div class="form-group">
+              <label for="reportTitle">Título del problema *</label>
+              <input type="text" id="reportTitle" name="title" required maxlength="100" 
+                     placeholder="Ej: No puedo inscribirme a una clase">
+              <small class="field-info">Breve descripción del problema</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="reportDescription">Descripción detallada *</label>
+              <textarea id="reportDescription" name="description" rows="5" required maxlength="2000"
+                        placeholder="Describe detalladamente qué estaba haciendo cuando ocurrió el error..."></textarea>
+              <small class="field-info">Máximo 2000 caracteres</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="reportSteps">Pasos para reproducir (opcional)</label>
+              <textarea id="reportSteps" name="steps" rows="3" maxlength="1000"
+                        placeholder="1. Hice clic en...&#10;2. Luego seleccioné...&#10;3. Apareció el error..."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="includeLogs" checked>
+                Incluir logs recientes del navegador (recomendado)
+              </label>
+              <small class="field-info">Esto ayudará a los administradores a identificar el problema más rápido</small>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="submit-btn">📤 Enviar reporte</button>
+              <button type="button" class="cancel-btn" onclick="document.getElementById('reportErrorModal').remove()">❌ Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    const modal = document.getElementById('reportErrorModal');
+    const form = document.getElementById('reportErrorForm');
+    
+    // Cerrar modal al hacer clic fuera
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.submitReport();
+    });
+  }
+  
+  // Enviar reporte al servidor
+  async submitReport() {
+    const title = document.getElementById('reportTitle').value.trim();
+    const description = document.getElementById('reportDescription').value.trim();
+    const steps = document.getElementById('reportSteps').value.trim();
+    const includeLogs = document.getElementById('includeLogs').checked;
+    
+    if (!title || !description) {
+      this.showReportModalMessage('❌ Título y descripción son obligatorios', 'error');
+      return;
+    }
+    
+    const user = authSystem.getCurrentUser();
+    if (!user) {
+      this.showReportModalMessage('❌ Debes iniciar sesión para reportar un error', 'error');
+      return;
+    }
+    
+    // Obtener logs recientes si se solicita
+    let logs = [];
+    if (includeLogs && window.browserLogger) {
+      logs = window.browserLogger.getCurrentLogs();
+    }
+    
+    // Mostrar loading
+    const submitBtn = document.querySelector('#reportErrorForm .submit-btn');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Enviando...';
+    submitBtn.disabled = true;
+    
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user._id
+        },
+        body: JSON.stringify({
+          title: title,
+          description: description,
+          steps: steps || null,
+          logs: logs,
+          includeLogs: includeLogs,
+          url: window.location.href,
+          userAgent: navigator.userAgent
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        this.showReportModalMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
+        setTimeout(() => {
+          const modal = document.getElementById('reportErrorModal');
+          if (modal) modal.remove();
+        }, 2000);
+      } else {
+        throw new Error(result.message || 'Error al enviar el reporte');
+      }
+      
+    } catch (error) {
+      console.error('Error enviando reporte:', error);
+      this.showReportModalMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
+    } finally {
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
+  }
+  
+  showReportModalMessage(message, type) {
+    const msgDiv = document.getElementById('reportModalMessage');
+    if (!msgDiv) return;
+    
+    msgDiv.textContent = message;
+    msgDiv.className = `message ${type}`;
+    msgDiv.style.display = 'block';
+    
+    if (type === 'success') {
+      setTimeout(() => {
+        msgDiv.style.display = 'none';
+      }, 3000);
+    }
+  }
+  
+  // Modificar el método showUserInfo existente para incluir los botones de reportes
+  // Busca este método en tu archivo y actualízalo:
+  showUserInfo() {
+    const user = authSystem.getCurrentUser();
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    if (user && userInfo && userName) {
+      let roleBadge = '';
+      if (user.role === 'admin') roleBadge = ' 👑';
+      else if (user.role === 'advanced') roleBadge = ' ⭐';
+      userName.textContent = `👤 ${user.apellidoNombre} - Legajo: ${user.legajo}${roleBadge}`;
+      userInfo.style.display = 'block';
+      if (this.materialButtonContainer) this.materialButtonContainer.style.display = 'block';
+      this.showAdminPanelButton(user);
+      const userActions = document.querySelector('.user-actions');
+      if (userActions) {
+        this.showCalendarButton(userActions);
+        this.showReportButtons(userActions);  // ← AÑADIR ESTA LÍNEA
+      }
+    }
+  }
+  
 }
 
 document.addEventListener('DOMContentLoaded', function() {

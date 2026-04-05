@@ -2689,6 +2689,320 @@ app.get('/api/logs/expiring', async (req, res) => {
     }
 });
 
+// ==================== RUTAS PARA REPORTES DE ERRORES ====================
+
+// POST - Crear un nuevo reporte de error
+app.post('/api/reports', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        const { title, description, steps, logs, includeLogs, url, userAgent } = req.body;
+        
+        console.log(`📝 POST /api/reports - Usuario: ${userHeader}, Título: ${title}`);
+        
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No autenticado' 
+            });
+        }
+        
+        if (!title || !description) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Título y descripción son obligatorios' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne(
+            { _id: new ObjectId(userHeader) },
+            { projection: { password: 0 } }
+        );
+        
+        if (!usuario) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
+            });
+        }
+        
+        // Obtener IP
+        const ip = req.headers['x-forwarded-for'] || 
+                   req.headers['x-real-ip'] || 
+                   req.socket.remoteAddress || 
+                   'unknown';
+        
+        // Crear el reporte
+        const reporte = {
+            usuarioId: new ObjectId(userHeader),
+            usuario: {
+                nombre: usuario.apellidoNombre,
+                legajo: usuario.legajo,
+                email: usuario.email,
+                turno: usuario.turno,
+                area: usuario.area,
+                role: usuario.role
+            },
+            title: title,
+            description: description,
+            steps: steps || null,
+            includeLogs: includeLogs || false,
+            logs: includeLogs && logs ? logs : [],
+            url: url || 'unknown',
+            userAgent: userAgent || 'unknown',
+            ip: ip,
+            estado: 'pendiente',  // pendiente, en_revision, resuelto, cerrado
+            fechaCreacion: new Date(),
+            fechaActualizacion: new Date()
+        };
+        
+        const result = await db.collection('reports').insertOne(reporte);
+        
+        console.log(`✅ Reporte creado: ${result.insertedId}`);
+        
+        // Notificar a los administradores (opcional, puedes enviar email)
+        
+        res.json({ 
+            success: true, 
+            message: 'Reporte enviado correctamente',
+            data: { _id: result.insertedId }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error creando reporte:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
+// GET - Obtener reportes (solo admin y advanced)
+app.get('/api/reports', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        const { estado, usuarioId, from, to, limit = 50 } = req.query;
+        
+        console.log('🔍 GET /api/reports');
+        
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No autenticado' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No tienes permisos para ver los reportes' 
+            });
+        }
+        
+        // Construir filtro
+        const filtro = {};
+        if (estado && estado !== 'todos') {
+            filtro.estado = estado;
+        }
+        if (usuarioId && ObjectId.isValid(usuarioId)) {
+            filtro.usuarioId = new ObjectId(usuarioId);
+        }
+        if (from || to) {
+            filtro.fechaCreacion = {};
+            if (from) filtro.fechaCreacion.$gte = new Date(from);
+            if (to) filtro.fechaCreacion.$lte = new Date(to);
+        }
+        
+        const reports = await db.collection('reports')
+            .find(filtro)
+            .sort({ fechaCreacion: -1 })
+            .limit(parseInt(limit))
+            .toArray();
+        
+        // Estadísticas
+        const estadisticas = {
+            total: await db.collection('reports').countDocuments(),
+            pendientes: await db.collection('reports').countDocuments({ estado: 'pendiente' }),
+            en_revision: await db.collection('reports').countDocuments({ estado: 'en_revision' }),
+            resueltos: await db.collection('reports').countDocuments({ estado: 'resuelto' }),
+            cerrados: await db.collection('reports').countDocuments({ estado: 'cerrado' })
+        };
+        
+        res.json({ 
+            success: true, 
+            data: reports,
+            estadisticas: estadisticas
+        });
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo reportes:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
+// GET - Obtener un reporte específico con sus logs
+app.get('/api/reports/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userHeader = req.headers['user-id'];
+        
+        if (!userHeader || !ObjectId.isValid(id) || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Solicitud inválida' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No tienes permisos para ver este reporte' 
+            });
+        }
+        
+        const reporte = await db.collection('reports').findOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+        if (!reporte) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Reporte no encontrado' 
+            });
+        }
+        
+        // Si el reporte incluye logs, también buscar logs del navegador
+        let browserLogs = [];
+        if (reporte.includeLogs && reporte.usuarioId) {
+            try {
+                const logsDb = await mongoDB.getLogsDB();
+                const logsCollection = logsDb.collection('logs');
+                const userLogs = await logsCollection.findOne({ 
+                    _id: reporte.usuarioId 
+                });
+                if (userLogs && userLogs.logs) {
+                    browserLogs = userLogs.logs.slice(-100); // Últimos 100 logs
+                }
+            } catch (e) {
+                console.warn('No se pudieron obtener logs del navegador:', e.message);
+            }
+        }
+        
+        res.json({ 
+            success: true, 
+            data: reporte,
+            browserLogs: browserLogs
+        });
+        
+    } catch (error) {
+        console.error('❌ Error obteniendo reporte:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
+// PUT - Actualizar estado de un reporte (solo admin/advanced)
+app.put('/api/reports/:id/estado', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userHeader = req.headers['user-id'];
+        const { estado, comentario } = req.body;
+        
+        if (!userHeader || !ObjectId.isValid(id) || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Solicitud inválida' 
+            });
+        }
+        
+        const estadosValidos = ['pendiente', 'en_revision', 'resuelto', 'cerrado'];
+        if (!estadosValidos.includes(estado)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Estado inválido' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No tienes permisos para modificar reportes' 
+            });
+        }
+        
+        const updateData = {
+            $set: {
+                estado: estado,
+                fechaActualizacion: new Date()
+            }
+        };
+        
+        if (comentario) {
+            updateData.$push = {
+                historial: {
+                    fecha: new Date(),
+                    usuario: usuario.apellidoNombre,
+                    comentario: comentario,
+                    estadoAnterior: (await db.collection('reports').findOne({ _id: new ObjectId(id) }))?.estado,
+                    estadoNuevo: estado
+                }
+            };
+        }
+        
+        const result = await db.collection('reports').updateOne(
+            { _id: new ObjectId(id) },
+            updateData
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Reporte no encontrado' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Estado actualizado correctamente' 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error actualizando estado:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
 // ==================== INICIALIZACIÓN DE BASE DE DATOS ====================
 app.get('/api/init-db', async (req, res) => {
     try {
