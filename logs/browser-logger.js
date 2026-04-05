@@ -96,20 +96,16 @@ class BrowserLogger {
     return id;
   }
   
-  // Verificar si un mensaje debe ser ignorado
   shouldIgnore(message) {
     if (!message) return true;
     
     const messageStr = String(message);
     
-    // Ignorar si está vacío o es muy corto
     if (messageStr.length === 0 || messageStr.length < 5) return true;
     
-    // Ignorar si contiene URLs de extensiones
     if (messageStr.includes('chrome-extension://')) return true;
     if (messageStr.includes('moz-extension://')) return true;
     
-    // Ignorar si coincide con algún patrón
     for (const pattern of this.ignoredPatterns) {
       if (pattern.test(messageStr)) {
         return true;
@@ -125,7 +121,6 @@ class BrowserLogger {
     const addLog = (level, args) => {
       if (!self.isRecording) return;
       
-      // Convertir argumentos a string
       const message = args.map(arg => {
         try {
           if (arg instanceof Error) {
@@ -140,12 +135,10 @@ class BrowserLogger {
         }
       }).join(' ');
       
-      // IGNORAR si coincide con patrones
       if (self.shouldIgnore(message)) {
         return;
       }
       
-      // Limitar longitud del mensaje
       const trimmedMessage = message.length > 1000 ? message.substring(0, 1000) + '...' : message;
       
       self.logs.push({
@@ -155,31 +148,26 @@ class BrowserLogger {
         url: window.location.href
       });
       
-      // Limitar tamaño del array
       if (self.logs.length > self.maxLogs) {
         self.logs.shift();
       }
     };
     
-    // Interceptar console.log
     console.log = (...args) => {
       this.originalConsole.log.apply(console, args);
       addLog('log', args);
     };
     
-    // Interceptar console.error
     console.error = (...args) => {
       this.originalConsole.error.apply(console, args);
       addLog('error', args);
     };
     
-    // Interceptar console.warn
     console.warn = (...args) => {
       this.originalConsole.warn.apply(console, args);
       addLog('warn', args);
     };
     
-    // Interceptar console.info
     console.info = (...args) => {
       this.originalConsole.info.apply(console, args);
       addLog('info', args);
@@ -189,7 +177,6 @@ class BrowserLogger {
   catchGlobalErrors() {
     const self = this;
     
-    // Errores no capturados
     window.addEventListener('error', (event) => {
       const errorMsg = `${event.message} at ${event.filename}:${event.lineno}:${event.colno}`;
       
@@ -210,7 +197,6 @@ class BrowserLogger {
       }
     });
     
-    // Promesas rechazadas no capturadas
     window.addEventListener('unhandledrejection', (event) => {
       const reason = event.reason;
       let errorMsg = `Unhandled Promise Rejection: `;
@@ -238,7 +224,6 @@ class BrowserLogger {
   }
   
   interceptNetworkErrors() {
-    // Interceptar fetch errors
     const originalFetch = window.fetch;
     const self = this;
     
@@ -264,7 +249,6 @@ class BrowserLogger {
       });
     };
     
-    // Interceptar XHR errors
     const originalXHROpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function() {
       this.addEventListener('error', function() {
@@ -291,7 +275,7 @@ class BrowserLogger {
       }
     }, this.sendInterval);
   }
-
+  
   async sendLogs() {
     if (!this.logs.length) return;
     
@@ -299,68 +283,69 @@ class BrowserLogger {
     this.logs = [];
     
     try {
-        const user = window.authSystem?.getCurrentUser ? window.authSystem.getCurrentUser() : null;
-        
-        console.log('[Logger] Enviando logs...', {
-            cantidad: logsToSend.length,
-            url: '/api/logs/browser',
-            userId: user?._id || 'anonimo'
-        });
-        
-        const response = await fetch('/api/logs/browser', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'user-id': user?._id || ''
-            },
-            body: JSON.stringify({
-                logs: logsToSend,
-                sessionId: this.sessionId,
-                url: window.location.href,
-                userAgent: navigator.userAgent,
-                timestamp: new Date().toISOString(),
-                screenResolution: `${screen.width}x${screen.height}`
-            })
-        });
-        
-        console.log('[Logger] Respuesta recibida:', {
-            status: response.status,
-            ok: response.ok,
-            statusText: response.statusText
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('[Logger] Error respuesta:', {
-                status: response.status,
-                body: errorText.substring(0, 500)
-            });
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log(`[Logger] ✅ Enviados ${logsToSend.length} logs`, result);
-        
+      const user = window.authSystem?.getCurrentUser ? window.authSystem.getCurrentUser() : null;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('/api/logs/browser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user?._id || ''
+        },
+        body: JSON.stringify({
+          logs: logsToSend,
+          sessionId: this.sessionId,
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          screenResolution: `${screen.width}x${screen.height}`
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log(`[Logger] Enviados ${logsToSend.length} logs`);
+      
     } catch (error) {
-        // Si falla, recuperar los logs
-        this.logs = [...logsToSend, ...this.logs];
-        if (this.logs.length > this.maxLogs * 2) {
-            this.logs = this.logs.slice(-this.maxLogs);
-        }
-        console.error('[Logger] ❌ Error detallado:', {
-            message: error.message,
-            stack: error.stack,
-            tipo: error.name
-        });
+      this.logs = [...logsToSend, ...this.logs];
+      if (this.logs.length > this.maxLogs * 2) {
+        this.logs = this.logs.slice(-this.maxLogs);
+      }
+      
+      if (!this.lastErrorTime || Date.now() - this.lastErrorTime > 30000) {
+        console.warn('[Logger] Error enviando logs:', error.message);
+        this.lastErrorTime = Date.now();
+      }
     }
+  }
+  
+  async flush() {
+    await this.sendLogs();
+  }
+  
+  getCurrentLogs() {
+    return [...this.logs];
+  }
+  
+  getStats() {
+    return {
+      logsInMemory: this.logs.length,
+      sessionId: this.sessionId,
+      maxLogs: this.maxLogs
+    };
+  }
 }
 
-}
-
-// Inicializar cuando el DOM esté listo
 if (typeof window !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
-    // Esperar a que authSystem esté disponible
     const checkAuth = setInterval(() => {
       if (typeof window.authSystem !== 'undefined' && window.authSystem) {
         clearInterval(checkAuth);
@@ -368,7 +353,6 @@ if (typeof window !== 'undefined') {
       }
     }, 100);
     
-    // Timeout para no esperar indefinidamente
     setTimeout(() => {
       if (!window.browserLogger) {
         clearInterval(checkAuth);
