@@ -36,7 +36,8 @@ class ReportsManager {
         container.innerHTML = '<div class="loading-message">Cargando reportes...</div>';
         
         try {
-            let url = '/api/reports?limit=100';
+            // ✅ CORREGIDO: usar '/reports' no '/api/reports'
+            let url = '/reports?limit=100';
             if (this.filtros.estado && this.filtros.estado !== 'todos') {
                 url += `&estado=${this.filtros.estado}`;
             }
@@ -137,6 +138,7 @@ class ReportsManager {
 
     async verDetalleReporte(id) {
         try {
+            // ✅ CORREGIDO: usar '/reports' no '/api/reports'
             const result = await authSystem.makeRequest(`/reports/${id}`, null, 'GET');
             
             if (result.success && result.data) {
@@ -330,6 +332,7 @@ class ReportsManager {
 
     async actualizarEstado(id, nuevoEstado, comentario) {
         try {
+            // ✅ CORREGIDO: usar '/reports' no '/api/reports'
             const result = await authSystem.makeRequest(`/reports/${id}/estado`, {
                 estado: nuevoEstado,
                 comentario: comentario
