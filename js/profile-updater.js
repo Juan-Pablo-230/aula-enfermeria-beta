@@ -354,8 +354,8 @@ class ProfileUpdater {
     }
 
     validateNewPassword(newPassword, confirmPassword) {
-        if (newPassword && newPassword.length < 6) {
-            this.showMessage('❌ La nueva contraseña debe tener al menos 6 caracteres', 'error');
+        if (newPassword && newPassword.length < 8) {
+            this.showMessage('❌ La nueva contraseña debe tener al menos 8 caracteres', 'error');
             return false;
         }
         if (newPassword && newPassword.length > 15) {
@@ -455,107 +455,171 @@ class ProfileUpdater {
         }
     }
 
-    // /js/profile-updater.js - Añadir esta función al final de la clase ProfileUpdater
-
-  // Añadir botones de reportes en el área de usuario
-  showReportButtons(userActions) {
+showReportButtons(userActions) {
+    // Esperar a que authSystem esté listo
+    if (!authSystem || !authSystem.getCurrentUser()) {
+        console.log('⏳ Esperando authSystem para mostrar botones de reportes');
+        setTimeout(() => this.showReportButtons(userActions), 500);
+        return;
+    }
+    
+    const user = authSystem.getCurrentUser();
+    if (!user) return;
+    
     // Eliminar botones existentes para evitar duplicados
     const existingReportBtn = document.getElementById('reportErrorBtn');
     const existingViewReportsBtn = document.getElementById('viewReportsBtn');
     if (existingReportBtn) existingReportBtn.remove();
     if (existingViewReportsBtn) existingViewReportsBtn.remove();
     
+    // Eliminar contenedor existente
+    const existingContainer = document.querySelector('.report-buttons-container');
+    if (existingContainer) existingContainer.remove();
+    
     // Crear contenedor para botones de reportes
     const reportContainer = document.createElement('div');
     reportContainer.className = 'report-buttons-container';
-    reportContainer.style.display = 'flex';
+    reportContainer.style.display = 'inline-flex';
     reportContainer.style.gap = '8px';
+    reportContainer.style.marginLeft = '10px';
     
-    // Botón "Reportar un error" (visible para todos los usuarios logueados)
-    const reportBtn = document.createElement('button');
-    reportBtn.id = 'reportErrorBtn';
-    reportBtn.className = 'report-error-btn';
-    reportBtn.innerHTML = '🐛 Reportar un error';
-    reportBtn.onclick = () => this.showReportModal();
-    reportContainer.appendChild(reportBtn);
-    
-    // Botón "Ver reportes" (solo para advanced y admin)
-    const user = authSystem.getCurrentUser();
-    if (user && (user.role === 'advanced' || user.role === 'admin')) {
-      const viewReportsBtn = document.createElement('button');
-      viewReportsBtn.id = 'viewReportsBtn';
-      viewReportsBtn.className = 'view-reports-btn';
-      viewReportsBtn.innerHTML = '📋 Ver reportes';
-      viewReportsBtn.onclick = () => {
-        window.location.href = '/reports.html';
-      };
-      reportContainer.appendChild(viewReportsBtn);
+    // ============================================
+    // BOTÓN "REPORTAR UN ERROR"
+    // SOLO para usuarios ESTÁNDAR (role = 'user')
+    // ============================================
+    if (user.role === 'user') {
+        const reportBtn = document.createElement('button');
+        reportBtn.id = 'reportErrorBtn';
+        reportBtn.className = 'report-error-btn';
+        reportBtn.innerHTML = '🐛 Reportar un error';
+        reportBtn.style.cssText = `
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        `;
+        reportBtn.onmouseover = () => {
+            reportBtn.style.transform = 'translateY(-2px)';
+            reportBtn.style.boxShadow = '0 4px 12px rgba(243, 156, 18, 0.4)';
+        };
+        reportBtn.onmouseout = () => {
+            reportBtn.style.transform = 'translateY(0)';
+            reportBtn.style.boxShadow = 'none';
+        };
+        reportBtn.onclick = (e) => {
+            e.preventDefault();
+            this.showReportModal();
+        };
+        reportContainer.appendChild(reportBtn);
     }
     
-    // Insertar después del botón de Mi perfil
+    // ============================================
+    // BOTÓN "VER REPORTES"
+    // SOLO para usuarios AVANZADOS y ADMINISTRADORES
+    // ============================================
+    if (user.role === 'advanced' || user.role === 'admin') {
+        const viewReportsBtn = document.createElement('button');
+        viewReportsBtn.id = 'viewReportsBtn';
+        viewReportsBtn.className = 'view-reports-btn';
+        viewReportsBtn.innerHTML = '📋 Ver reportes';
+        viewReportsBtn.style.cssText = `
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        `;
+        viewReportsBtn.onmouseover = () => {
+            viewReportsBtn.style.transform = 'translateY(-2px)';
+            viewReportsBtn.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.4)';
+        };
+        viewReportsBtn.onmouseout = () => {
+            viewReportsBtn.style.transform = 'translateY(0)';
+            viewReportsBtn.style.boxShadow = 'none';
+        };
+        viewReportsBtn.onclick = (e) => {
+            e.preventDefault();
+            window.location.href = '/reports.html';
+        };
+        reportContainer.appendChild(viewReportsBtn);
+    }
+    
+    // Si no hay botones que mostrar, no agregar el contenedor
+    if (reportContainer.children.length === 0) return;
+    
+    // Buscar dónde insertar el contenedor
     const updateProfileBtn = document.getElementById('updateProfileBtn');
     if (updateProfileBtn && updateProfileBtn.parentNode) {
-      updateProfileBtn.parentNode.insertBefore(reportContainer, updateProfileBtn.nextSibling);
+        updateProfileBtn.parentNode.insertBefore(reportContainer, updateProfileBtn.nextSibling);
     } else {
-      userActions.appendChild(reportContainer);
+        userActions.appendChild(reportContainer);
     }
-  }
-  
-  // Mostrar modal para reportar error
-  showReportModal() {
+}
+
+showReportModal() {
     // Verificar si ya existe un modal
     const existingModal = document.getElementById('reportErrorModal');
     if (existingModal) {
-      existingModal.remove();
+        existingModal.remove();
     }
     
     const user = authSystem.getCurrentUser();
     
     const modalHTML = `
-      <div id="reportErrorModal" class="modal-overlay" style="display: flex;">
-        <div class="modal-container" style="max-width: 500px;">
-          <div class="modal-header">
-            <h2>🐛 Reportar un error</h2>
-            <button class="close-modal" onclick="document.getElementById('reportErrorModal').remove()">&times;</button>
-          </div>
-          <form id="reportErrorForm" class="modal-form">
-            <div id="reportModalMessage" class="message" style="display: none;"></div>
-            
-            <div class="form-group">
-              <label for="reportTitle">Título del problema *</label>
-              <input type="text" id="reportTitle" name="title" required maxlength="100" 
-                     placeholder="Ej: No puedo inscribirme a una clase">
-              <small class="field-info">Breve descripción del problema</small>
+        <div id="reportErrorModal" class="modal-overlay" style="display: flex;">
+            <div class="modal-container" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>🐛 Reportar un error</h2>
+                    <button class="close-modal" onclick="document.getElementById('reportErrorModal').remove()">&times;</button>
+                </div>
+                <form id="reportErrorForm" class="modal-form">
+                    <div id="reportModalMessage" class="message" style="display: none;"></div>
+                    
+                    <div class="form-group">
+                        <label for="reportTitle">Título del problema *</label>
+                        <input type="text" id="reportTitle" name="title" required maxlength="100" 
+                               placeholder="Ej: No puedo inscribirme a una clase">
+                        <small class="field-info">Breve descripción del problema</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reportDescription">Descripción detallada *</label>
+                        <textarea id="reportDescription" name="description" rows="5" required maxlength="2000"
+                                  placeholder="Describe detalladamente qué estaba haciendo cuando ocurrió el error..."></textarea>
+                        <small class="field-info">Máximo 2000 caracteres</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reportSteps">Pasos para reproducir (opcional)</label>
+                        <textarea id="reportSteps" name="steps" rows="3" maxlength="1000"
+                                  placeholder="1. Hice clic en...&#10;2. Luego seleccioné...&#10;3. Apareció el error..."></textarea>
+                    </div>
+                    
+                    <!-- ⚠️ Campo oculto: los logs se incluyen SIEMPRE de forma obligatoria -->
+                    <input type="hidden" id="includeLogs" value="true">
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="submit-btn">📤 Enviar reporte</button>
+                        <button type="button" class="cancel-btn" onclick="document.getElementById('reportErrorModal').remove()">❌ Cancelar</button>
+                    </div>
+                </form>
             </div>
-            
-            <div class="form-group">
-              <label for="reportDescription">Descripción detallada *</label>
-              <textarea id="reportDescription" name="description" rows="5" required maxlength="2000"
-                        placeholder="Describe detalladamente qué estaba haciendo cuando ocurrió el error..."></textarea>
-              <small class="field-info">Máximo 2000 caracteres</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="reportSteps">Pasos para reproducir (opcional)</label>
-              <textarea id="reportSteps" name="steps" rows="3" maxlength="1000"
-                        placeholder="1. Hice clic en...&#10;2. Luego seleccioné...&#10;3. Apareció el error..."></textarea>
-            </div>
-            
-            <div class="form-group">
-              <label>
-                <input type="checkbox" id="includeLogs" checked>
-                Incluir logs recientes del navegador (recomendado)
-              </label>
-              <small class="field-info">Esto ayudará a los administradores a identificar el problema más rápido</small>
-            </div>
-            
-            <div class="form-actions">
-              <button type="submit" class="submit-btn">📤 Enviar reporte</button>
-              <button type="button" class="cancel-btn" onclick="document.getElementById('reportErrorModal').remove()">❌ Cancelar</button>
-            </div>
-          </form>
         </div>
-      </div>
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
@@ -565,39 +629,43 @@ class ProfileUpdater {
     
     // Cerrar modal al hacer clic fuera
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
+        if (e.target === modal) {
+            modal.remove();
+        }
     });
     
     form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await this.submitReport();
+        e.preventDefault();
+        await this.submitReport();
     });
-  }
-  
-  // Enviar reporte al servidor
-  async submitReport() {
+}
+
+async submitReport() {
     const title = document.getElementById('reportTitle').value.trim();
     const description = document.getElementById('reportDescription').value.trim();
     const steps = document.getElementById('reportSteps').value.trim();
-    const includeLogs = document.getElementById('includeLogs').checked;
+    
+    // Los logs SIEMPRE se incluyen (obligatorio)
+    const includeLogs = true;
     
     if (!title || !description) {
-      this.showReportModalMessage('❌ Título y descripción son obligatorios', 'error');
-      return;
+        this.showReportModalMessage('❌ Título y descripción son obligatorios', 'error');
+        return;
     }
     
     const user = authSystem.getCurrentUser();
     if (!user) {
-      this.showReportModalMessage('❌ Debes iniciar sesión para reportar un error', 'error');
-      return;
+        this.showReportModalMessage('❌ Debes iniciar sesión para reportar un error', 'error');
+        return;
     }
     
-    // Obtener logs recientes si se solicita
+    // Obtener logs recientes (SIEMPRE)
     let logs = [];
-    if (includeLogs && window.browserLogger) {
-      logs = window.browserLogger.getCurrentLogs();
+    if (window.browserLogger) {
+        logs = window.browserLogger.getCurrentLogs();
+        console.log(`📊 Incluyendo ${logs.length} logs en el reporte`);
+    } else {
+        console.warn('⚠️ Browser logger no disponible, logs no incluidos');
     }
     
     // Mostrar loading
@@ -607,43 +675,43 @@ class ProfileUpdater {
     submitBtn.disabled = true;
     
     try {
-      const response = await fetch('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': user._id
-        },
-        body: JSON.stringify({
-          title: title,
-          description: description,
-          steps: steps || null,
-          logs: logs,
-          includeLogs: includeLogs,
-          url: window.location.href,
-          userAgent: navigator.userAgent
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        this.showReportModalMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
-        setTimeout(() => {
-          const modal = document.getElementById('reportErrorModal');
-          if (modal) modal.remove();
-        }, 2000);
-      } else {
-        throw new Error(result.message || 'Error al enviar el reporte');
-      }
-      
+        const response = await fetch('/api/reports', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'user-id': user._id
+            },
+            body: JSON.stringify({
+                title: title,
+                description: description,
+                steps: steps || null,
+                logs: logs,
+                includeLogs: includeLogs,
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            this.showReportModalMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
+            setTimeout(() => {
+                const modal = document.getElementById('reportErrorModal');
+                if (modal) modal.remove();
+            }, 2000);
+        } else {
+            throw new Error(result.message || 'Error al enviar el reporte');
+        }
+        
     } catch (error) {
-      console.error('Error enviando reporte:', error);
-      this.showReportModalMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
+        console.error('Error enviando reporte:', error);
+        this.showReportModalMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
     } finally {
-      submitBtn.textContent = originalText;
-      submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     }
-  }
+}
   
   showReportModalMessage(message, type) {
     const msgDiv = document.getElementById('reportModalMessage');
@@ -681,7 +749,7 @@ class ProfileUpdater {
       }
     }
   }
-  
+
 }
 
 document.addEventListener('DOMContentLoaded', function() {
