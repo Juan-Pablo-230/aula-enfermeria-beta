@@ -577,9 +577,7 @@ showReportButtons(userActions) {
         // Fallback: agregar al final de userActions
         userActions.appendChild(reportContainer);
     }
-    
-    console.log(`✅ Botones de reportes añadidos después de "Mi perfil" para rol: ${user.role}`);
-}
+    }
   
   // /js/profile-updater.js - Método showReportModal modificado
 

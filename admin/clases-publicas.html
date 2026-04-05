@@ -1,3 +1,4 @@
+<!-- clases-publicas.html - Versión con selector de área -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -82,6 +83,15 @@
                     </div>
                 </div>
                 
+                <!-- NUEVO: Selector de Área de trabajo -->
+                <div class="form-group">
+                    <label>👥 Orientada al área:</label>
+                    <select id="claseArea" class="form-control">
+                        <option value="todas">🌍 Todas las áreas</option>
+                    </select>
+                    <small class="field-info">Seleccione el área específica a la que va dirigida esta clase, o "Todas las áreas" si es general.</small>
+                </div>
+                
                 <!-- Visibilidad de la clase - Estilo como estado-opciones de gestion-clases -->
                 <div class="form-group">
                     <label>Visibilidad en página principal <span class="required">*</span></label>
@@ -123,6 +133,10 @@
                         <option value="todas">Todas las clases</option>
                         <option value="publicadas">✅ Publicadas</option>
                         <option value="no-publicadas">⏸️ No publicadas</option>
+                    </select>
+                    <!-- NUEVO: Filtro por área -->
+                    <select id="filtroArea" class="filtro-select">
+                        <option value="todas">🌍 Todas las áreas</option>
                     </select>
                     <input type="text" id="buscarClase" placeholder="🔍 Buscar clase..." class="search-input">
                     <button id="refrescarClasesBtn" class="btn btn-primary">🔄 Refrescar</button>

@@ -1,3 +1,4 @@
+<!-- gestion-clases.html - Versión con selector de área -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -118,6 +119,15 @@
                     </div>
                 </div>
                 
+                <!-- NUEVO: Selector de Área de trabajo -->
+                <div class="form-group">
+                    <label>👥 Orientada al área:</label>
+                    <select id="claseArea" class="form-control">
+                        <option value="todas">🌍 Todas las áreas</option>
+                    </select>
+                    <small class="field-info">Seleccione el área específica a la que va dirigida esta clase, o "Todas las áreas" si es general.</small>
+                </div>
+                
                 <!-- Tags (opcional) -->
                 <div class="form-group">
                     <label>Tags (opcional)</label>
@@ -144,6 +154,10 @@
                         <option value="publicadas">📢 Publicadas</option>
                         <option value="activas">✅ Activas</option>
                         <option value="canceladas">❌ Canceladas</option>
+                    </select>
+                    <!-- NUEVO: Filtro por área -->
+                    <select id="filtroArea" class="filtro-select">
+                        <option value="todas">🌍 Todas las áreas</option>
                     </select>
                     <input type="text" id="buscarClase" placeholder="🔍 Buscar clase..." class="search-input">
                     <button id="refrescarClasesBtn" class="btn btn-primary">🔄 Refrescar</button>
