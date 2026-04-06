@@ -5,8 +5,7 @@ const area = {
         "Camilleros",
         "Asistentes",
         "Técnicos en prácticas cardiológicas",
-        "Supervisores",
-        "Coordinadores"
+        "Supervisores / Coordinadores"
     ],
     "Profesionales": [
         "Medicos",
