@@ -48,7 +48,7 @@ class GestionClasesManager {
         // Convertir a array y ordenar alfabéticamente
         this.areasDisponibles = Array.from(areas).sort();
         
-        console.log(`📋 Áreas encontradas:`, this.areasDisponibles);
+        console.log('📋 Áreas encontradas:', this.areasDisponibles);
         
         // Poblar select del formulario
         if (areaSelect) {
@@ -58,10 +58,10 @@ class GestionClasesManager {
             // Limpiar y agregar opción por defecto
             areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
             
-            // Agregar cada área como opción
+            // Agregar cada área como opción - IMPORTANTE: el value debe ser el nombre exacto del área
             this.areasDisponibles.forEach(area => {
                 const option = document.createElement('option');
-                option.value = area;
+                option.value = area;  // ✅ El value es el nombre del área
                 option.textContent = area;
                 areaSelect.appendChild(option);
             });
@@ -71,10 +71,12 @@ class GestionClasesManager {
                 const optionExists = Array.from(areaSelect.options).some(opt => opt.value === currentValue);
                 if (optionExists) {
                     areaSelect.value = currentValue;
+                    console.log('✅ Valor restaurado en select:', currentValue);
                 }
             }
             
-            console.log(`✅ Selector de áreas poblado con ${areaSelect.options.length} opciones`);
+            console.log('✅ Selector de áreas poblado. Opciones:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
+            console.log('✅ Valor actual del select:', areaSelect.value);
         }
         
         // Poblar select de filtro
@@ -310,9 +312,16 @@ escapeHtml(text) {
     const fecha = document.getElementById('claseFecha')?.value;
     const youtube = document.getElementById('claseYoutube')?.value.trim();
     const powerpoint = document.getElementById('clasePowerpoint')?.value.trim();
-    const areaSeleccionada = document.getElementById('claseArea')?.value || 'todas';
     
-    console.log('📌 Área seleccionada para guardar:', areaSeleccionada);
+    // ✅ IMPORTANTE: Obtener el área correctamente
+    const areaSelect = document.getElementById('claseArea');
+    let areaSeleccionada = 'todas';
+    
+    if (areaSelect) {
+        areaSeleccionada = areaSelect.value;
+        console.log('📌 Área SELECCIONADA en el select:', areaSeleccionada);
+        console.log('📌 Todas las opciones del select:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
+    }
     
     if (!nombre) {
         this.mostrarMensaje('❌ El nombre de la clase es obligatorio', 'error');
@@ -349,10 +358,10 @@ escapeHtml(text) {
         estado: estado,
         instructores: instructores,
         tags: tags,
-        area: areaSeleccionada  // ✅ Asegurar que se envía
+        area: areaSeleccionada  // ✅ Usar el valor obtenido del select
     };
     
-    console.log('📤 Datos a enviar al servidor:', JSON.stringify(claseData, null, 2));
+    console.log('📤 DATOS COMPLETOS a enviar al servidor:', JSON.stringify(claseData, null, 2));
     
     try {
         let response;
@@ -372,6 +381,9 @@ escapeHtml(text) {
         console.error('❌ Error detallado:', error);
         this.mostrarMensaje('❌ Error: ' + error.message, 'error');
     }
+
+    console.log('🔍 VALOR DEL ÁREA SELECCIONADA:', areaSeleccionada);
+    console.log('🔍 SELECTOR CLASE AREA VALUE:', document.getElementById('claseArea')?.value);
 }
 
     editarClase(id) {
