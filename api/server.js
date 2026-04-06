@@ -156,63 +156,46 @@ app.get('/api/env-check', (req, res) => {
 app.get('/api/auth/validate-session', async (req, res) => {
     try {
         const userId = req.headers['user-id'];
-        const clientLastPasswordChange = req.headers['last-password-change'];
+        const clientLastUpdate = req.headers['last-password-change'];
+        
+        console.log('🔍 Validando sesión:', { userId, clientLastUpdate });
         
         if (!userId || !ObjectId.isValid(userId)) {
-            return res.json({
-                success: true,
-                data: { sessionValid: false }
-            });
+            return res.json({ success: true, sessionValid: false });
         }
         
         const db = await mongoDB.getDatabaseSafe('formulario');
         
         const usuario = await db.collection('usuarios').findOne(
             { _id: new ObjectId(userId) },
-            { projection: { 
-                fechaActualizacionPassword: 1, 
-                passwordUpdatedAt: 1, 
-                ultimoCambioPassword: 1
-            } }
+            { projection: { passwordLastUpdated: 1 } }
         );
         
         if (!usuario) {
-            return res.json({
-                success: true,
-                data: { sessionValid: false }
-            });
+            return res.json({ success: true, sessionValid: false });
         }
         
-        // Obtener la fecha del último cambio de contraseña
-        const serverLastPasswordChange = usuario.fechaActualizacionPassword || 
-                                         usuario.passwordUpdatedAt || 
-                                         usuario.ultimoCambioPassword || 
-                                         null;
+        const serverLastUpdate = usuario.passwordLastUpdated;
         
-        // Si el cliente no tiene fecha de último cambio o es diferente a la del servidor
-        const passwordChanged = clientLastPasswordChange && serverLastPasswordChange && 
-                                new Date(clientLastPasswordChange).getTime() !== new Date(serverLastPasswordChange).getTime();
-        
-        if (passwordChanged) {
-            console.log('⚠️ Contraseña cambiada - Cerrando sesión automáticamente');
-            return res.json({
-                success: true,
-                data: { sessionValid: false }
-            });
+        // Si el cliente no tiene fecha o es diferente, la sesión es inválida
+        let sessionValid = false;
+        if (clientLastUpdate && serverLastUpdate) {
+            sessionValid = clientLastUpdate === serverLastUpdate;
+        } else if (!clientLastUpdate && !serverLastUpdate) {
+            sessionValid = true;
         }
         
-        // Sesión válida
-        res.json({
-            success: true,
-            data: { sessionValid: true }
+        console.log('📊 Resultado validación:', { sessionValid, serverLastUpdate });
+        
+        res.json({ 
+            success: true, 
+            sessionValid: sessionValid,
+            passwordLastUpdated: serverLastUpdate
         });
         
     } catch (error) {
         console.error('❌ Error validando sesión:', error);
-        res.json({
-            success: true,
-            data: { sessionValid: true } // Por defecto asumir válida para no bloquear
-        });
+        res.json({ success: true, sessionValid: true });
     }
 });
 
@@ -265,10 +248,7 @@ app.post('/api/auth/login', async (req, res) => {
         const { password: _, ...usuarioSinPassword } = usuario;
         
         // Obtener la fecha del último cambio de contraseña
-        const lastPasswordChange = usuario.fechaActualizacionPassword || 
-                                   usuario.passwordUpdatedAt || 
-                                   usuario.ultimoCambioPassword || 
-                                   null;
+        const passwordLastUpdated = usuario.passwordLastUpdated || null;
         
         res.json({ 
             success: true, 
@@ -276,7 +256,7 @@ app.post('/api/auth/login', async (req, res) => {
             data: {
                 ...usuarioSinPassword,
                 needsMigration: needsMigration,
-                lastPasswordChange: lastPasswordChange
+                passwordLastUpdated: passwordLastUpdated
             }
         });
 
@@ -346,9 +326,7 @@ app.post('/api/auth/register', async (req, res) => {
             password: hashedPassword,
             role,
             fechaRegistro: ahora,
-            fechaActualizacionPassword: ahora,
-            passwordUpdatedAt: ahora,
-            ultimoCambioPassword: ahora
+            passwordLastUpdated: ahora
         };
         
         const result = await db.collection('usuarios').insertOne(nuevoUsuario);
@@ -743,6 +721,7 @@ app.post('/api/clases-historicas', async (req, res) => {
         let estadoFinal = estado || 'activa';
         const activaBool = estadoFinal === 'activa' || estadoFinal === 'publicada';
         
+        // ✅ Asegurar que el área se guarda
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD (histórica):', areaFinal);
         
@@ -824,6 +803,7 @@ app.put('/api/clases-historicas/:id', async (req, res) => {
         let estadoFinal = estado || 'activa';
         const activaBool = estadoFinal === 'activa' || estadoFinal === 'publicada';
         
+        // ✅ Asegurar que el área se actualiza
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD (histórica):', areaFinal);
         
@@ -1115,9 +1095,7 @@ app.post('/api/admin/usuarios', async (req, res) => {
             password: hashedPassword,
             role,
             fechaRegistro: ahora,
-            fechaActualizacionPassword: ahora,
-            passwordUpdatedAt: ahora,
-            ultimoCambioPassword: ahora
+            passwordLastUpdated: ahora
         };
         
         const result = await db.collection('usuarios').insertOne(nuevoUsuario);
@@ -1212,9 +1190,7 @@ app.put('/api/admin/usuarios/:id/password', async (req, res) => {
             { _id: new ObjectId(id) },
             { $set: { 
                 password: hashedPassword,
-                fechaActualizacionPassword: ahora,
-                passwordUpdatedAt: ahora,
-                ultimoCambioPassword: ahora,
+                passwordLastUpdated: ahora,
                 fechaActualizacion: ahora
             } }
         );
@@ -1491,6 +1467,7 @@ app.post('/api/clases-publicas', async (req, res) => {
             fecha = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
+        // ✅ Asegurar que el área se guarda correctamente
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD:', areaFinal);
         
@@ -1573,6 +1550,7 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
             fecha = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
+        // ✅ Asegurar que el área se actualiza correctamente
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD:', areaFinal);
         
@@ -1779,9 +1757,7 @@ app.put('/api/usuarios/perfil', async (req, res) => {
             }
             // Usar scrypt para nueva contraseña
             updateData.password = hashPasswordScrypt(password);
-            updateData.fechaActualizacionPassword = new Date();
-            updateData.passwordUpdatedAt = new Date();
-            updateData.ultimoCambioPassword = new Date();
+            updateData.passwordLastUpdated = new Date();
         }
         
         await db.collection('usuarios').updateOne(
@@ -1899,9 +1875,7 @@ app.post('/api/usuarios/migrar', async (req, res) => {
             }
             
             updateData.password = hashPasswordScrypt(passwordToHash);
-            updateData.fechaActualizacionPassword = new Date();
-            updateData.passwordUpdatedAt = new Date();
-            updateData.ultimoCambioPassword = new Date();
+            updateData.passwordLastUpdated = new Date();
             console.log('✅ Contraseña migrada a scrypt');
         }
         
@@ -3114,26 +3088,13 @@ app.get('/api/init-db', async (req, res) => {
             { $set: { area: "Personal general del Sanatorio" } }
         );
         console.log(`✅ Campo area inicializado en usuarios existentes: ${resultadoArea.modifiedCount} actualizados`);
-
-        // Migración: agregar campos de fecha de cambio de contraseña a usuarios existentes
-        const ahora = new Date();
-        const resultadoPasswordDate = await usuarios.updateMany(
-            { 
-                $or: [
-                    { fechaActualizacionPassword: { $exists: false } },
-                    { passwordUpdatedAt: { $exists: false } },
-                    { ultimoCambioPassword: { $exists: false } }
-                ]
-            },
-            { 
-                $set: { 
-                    fechaActualizacionPassword: ahora,
-                    passwordUpdatedAt: ahora,
-                    ultimoCambioPassword: ahora
-                } 
-            }
+        
+        // Migración: agregar campo passwordLastUpdated a usuarios existentes
+        const resultadoPassword = await usuarios.updateMany(
+            { passwordLastUpdated: { $exists: false } },
+            { $set: { passwordLastUpdated: new Date() } }
         );
-        console.log(`✅ Campos de fecha de contraseña inicializados: ${resultadoPasswordDate.modifiedCount} usuarios actualizados`);
+        console.log(`✅ Campo passwordLastUpdated inicializado: ${resultadoPassword.modifiedCount} usuarios actualizados`);
 
         res.json({ 
             success: true, 
@@ -3141,7 +3102,7 @@ app.get('/api/init-db', async (req, res) => {
             collections: collections,
             migraciones: {
                 area: resultadoArea.modifiedCount,
-                passwordDate: resultadoPasswordDate.modifiedCount
+                passwordLastUpdated: resultadoPassword.modifiedCount
             }
         });
         

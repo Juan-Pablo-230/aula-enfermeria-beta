@@ -60,13 +60,16 @@ class AuthSystem {
         if (savedUser) {
             this.currentUser = JSON.parse(savedUser);
             console.log('Usuario encontrado en localStorage:', this.currentUser);
+            console.log('📅 passwordLastUpdated guardado:', this.currentUser.passwordLastUpdated);
             
             // ✅ Verificar sesión UNA sola vez al cargar la página
-            await this.validateSessionOnce();
+            setTimeout(() => {
+                this.validateSessionOnce();
+            }, 500);
             
             setTimeout(() => {
                 this.checkMigrationNeeded();
-            }, 500);
+            }, 1000);
         } else {
             console.log('No hay usuario en localStorage');
         }
@@ -75,36 +78,51 @@ class AuthSystem {
     // ✅ Validar sesión UNA sola vez - Cierre automático silencioso
     async validateSessionOnce() {
         if (!this.isLoggedIn() || !this.currentUser) {
+            console.log('❌ No hay usuario logueado para validar');
             return;
         }
         
+        console.log('🔍 Validando sesión para:', this.currentUser.apellidoNombre);
+        console.log('📅 passwordLastUpdated:', this.currentUser.passwordLastUpdated);
+        
         try {
-            const lastPasswordChange = this.currentUser.lastPasswordChange || null;
-            
             const response = await fetch('/api/auth/validate-session', {
                 method: 'GET',
                 headers: {
                     'user-id': this.currentUser._id,
-                    'last-password-change': lastPasswordChange || ''
+                    'last-password-change': this.currentUser.passwordLastUpdated || ''
                 }
             });
             
-            if (response.ok) {
-                const result = await response.json();
-                
-                // Si la sesión es inválida, cerrar sesión automáticamente (sin alerta)
-                if (!result.success || !result.data?.sessionValid) {
-                    console.log('🔒 Sesión inválida detectada - Cerrando sesión automáticamente');
-                    this.logout();
-                    window.location.reload();
-                } else {
-                    console.log('✅ Sesión válida');
-                }
+            if (!response.ok) {
+                console.log('⚠️ Error en validación, status:', response.status);
+                return;
             }
             
+            const result = await response.json();
+            console.log('📡 Respuesta validación:', result);
+            
+            // Si la sesión es inválida, cerrar automáticamente
+            if (!result.sessionValid) {
+                console.log('🔒 Sesión inválida - Contraseña cambiada en otro dispositivo');
+                this.logout();
+                window.location.reload();
+                return;
+            }
+            
+            // Actualizar la fecha local si es diferente
+            if (result.passwordLastUpdated && 
+                result.passwordLastUpdated !== this.currentUser.passwordLastUpdated) {
+                console.log('🔄 Actualizando passwordLastUpdated local');
+                this.currentUser.passwordLastUpdated = result.passwordLastUpdated;
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            }
+            
+            console.log('✅ Sesión válida');
+            
         } catch (error) {
-            // Error de red - no hacer nada, mantener sesión
             console.log('⚠️ No se pudo validar la sesión:', error.message);
+            // No hacer nada, mantener la sesión
         }
     }
 
@@ -215,12 +233,7 @@ class AuthSystem {
             localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
             
             console.log('✅ Login exitoso MongoDB:', this.currentUser.apellidoNombre);
-            console.log('📊 Estado de migración:', {
-                needsPasswordChange: this.currentUser.needsPasswordChange,
-                passwordAlreadyUpdated: this.currentUser.passwordAlreadyUpdated,
-                area: this.currentUser.area,
-                lastPasswordChange: this.currentUser.lastPasswordChange
-            });
+            console.log('📅 passwordLastUpdated:', this.currentUser.passwordLastUpdated);
             
             setTimeout(() => {
                 this.checkMigrationNeeded();
