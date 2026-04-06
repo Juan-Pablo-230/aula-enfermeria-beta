@@ -312,7 +312,7 @@ escapeHtml(text) {
     const powerpoint = document.getElementById('clasePowerpoint')?.value.trim();
     const areaSeleccionada = document.getElementById('claseArea')?.value || 'todas';
     
-    console.log(`📌 Área seleccionada para guardar: "${areaSeleccionada}"`);
+    console.log('📌 Área seleccionada para guardar:', areaSeleccionada);
     
     if (!nombre) {
         this.mostrarMensaje('❌ El nombre de la clase es obligatorio', 'error');
@@ -326,8 +326,6 @@ escapeHtml(text) {
     
     const hora = document.getElementById('claseHora')?.value || '10:00';
     const fechaCompleta = `${fecha}T${hora}:00`;
-    
-    console.log('📤 Enviando fecha al servidor:', fechaCompleta);
     
     const instructores = document.getElementById('claseInstructores')?.value
         ? document.getElementById('claseInstructores').value.split(',').map(i => i.trim()).filter(i => i)
@@ -351,10 +349,10 @@ escapeHtml(text) {
         estado: estado,
         instructores: instructores,
         tags: tags,
-        area: areaSeleccionada  // Guardar el área seleccionada
+        area: areaSeleccionada  // ✅ Asegurar que se envía
     };
     
-    console.log('📤 Enviando datos al servidor:', JSON.stringify(claseData, null, 2));
+    console.log('📤 Datos a enviar al servidor:', JSON.stringify(claseData, null, 2));
     
     try {
         let response;
