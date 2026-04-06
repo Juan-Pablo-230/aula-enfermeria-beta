@@ -76,55 +76,64 @@ class AuthSystem {
     }
 
     // ✅ Validar sesión UNA sola vez - Cierre automático silencioso
-    async validateSessionOnce() {
-        if (!this.isLoggedIn() || !this.currentUser) {
-            console.log('❌ No hay usuario logueado para validar');
+async validateSessionOnce() {
+    if (!this.isLoggedIn() || !this.currentUser) {
+        console.log('❌ No hay usuario logueado para validar');
+        return;
+    }
+    
+    console.log('🔍 Validando sesión para:', this.currentUser.apellidoNombre);
+    console.log('📅 passwordLastUpdated:', this.currentUser.passwordLastUpdated);
+    
+    try {
+        const response = await fetch('/api/auth/validate-session', {
+            method: 'GET',
+            headers: {
+                'user-id': this.currentUser._id,
+                'last-password-change': this.currentUser.passwordLastUpdated || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.log('⚠️ Error en validación, status:', response.status);
             return;
         }
         
-        console.log('🔍 Validando sesión para:', this.currentUser.apellidoNombre);
-        console.log('📅 passwordLastUpdated:', this.currentUser.passwordLastUpdated);
+        const result = await response.json();
+        console.log('📡 Respuesta validación:', result);
         
-        try {
-            const response = await fetch('/api/auth/validate-session', {
-                method: 'GET',
-                headers: {
-                    'user-id': this.currentUser._id,
-                    'last-password-change': this.currentUser.passwordLastUpdated || ''
-                }
-            });
-            
-            if (!response.ok) {
-                console.log('⚠️ Error en validación, status:', response.status);
-                return;
-            }
-            
-            const result = await response.json();
-            console.log('📡 Respuesta validación:', result);
-            
-            // Si la sesión es inválida, cerrar automáticamente
-            if (!result.sessionValid) {
-                console.log('🔒 Sesión inválida - Contraseña cambiada en otro dispositivo');
-                this.logout();
-                window.location.reload();
-                return;
-            }
-            
-            // Actualizar la fecha local si es diferente
-            if (result.passwordLastUpdated && 
-                result.passwordLastUpdated !== this.currentUser.passwordLastUpdated) {
-                console.log('🔄 Actualizando passwordLastUpdated local');
-                this.currentUser.passwordLastUpdated = result.passwordLastUpdated;
-                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-            }
-            
-            console.log('✅ Sesión válida');
-            
-        } catch (error) {
-            console.log('⚠️ No se pudo validar la sesión:', error.message);
-            // No hacer nada, mantener la sesión
+        // Si el servidor dice que necesita actualización de fecha
+        if (result.needsUpdate && result.passwordLastUpdated) {
+            console.log('🔄 Actualizando passwordLastUpdated del cliente');
+            this.currentUser.passwordLastUpdated = result.passwordLastUpdated;
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            console.log('✅ Fecha actualizada, sesión válida');
+            return;
         }
+        
+        // Si la sesión es inválida, cerrar automáticamente
+        if (!result.sessionValid) {
+            console.log('🔒 Sesión inválida - Contraseña cambiada en otro dispositivo');
+            this.logout();
+            window.location.reload();
+            return;
+        }
+        
+        // Actualizar la fecha local si es diferente (por si acaso)
+        if (result.passwordLastUpdated && 
+            result.passwordLastUpdated !== this.currentUser.passwordLastUpdated) {
+            console.log('🔄 Actualizando passwordLastUpdated local (diferente)');
+            this.currentUser.passwordLastUpdated = result.passwordLastUpdated;
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        }
+        
+        console.log('✅ Sesión válida');
+        
+    } catch (error) {
+        console.log('⚠️ No se pudo validar la sesión:', error.message);
+        // No hacer nada, mantener la sesión
     }
+}
 
     async checkMigrationNeeded() {
         if (this.migrationModalActive) return;
@@ -219,33 +228,40 @@ class AuthSystem {
     }
 
     async login(identifier, password) {
-        try {
-            const result = await this.makeRequest('/auth/login', {
-                identifier: identifier,
-                password: password
-            });
-            
-            if (!result.success) {
-                throw new Error(result.message || 'Error de conexión con el servidor');
-            }
-            
-            this.currentUser = result.data;
-            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-            
-            console.log('✅ Login exitoso MongoDB:', this.currentUser.apellidoNombre);
-            console.log('📅 passwordLastUpdated:', this.currentUser.passwordLastUpdated);
-            
-            setTimeout(() => {
-                this.checkMigrationNeeded();
-            }, 500);
-            
-            return this.currentUser;
-            
-        } catch (error) {
-            console.error('❌ Error en login:', error);
-            throw error;
+    try {
+        const result = await this.makeRequest('/auth/login', {
+            identifier: identifier,
+            password: password
+        });
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Error de conexión con el servidor');
         }
+        
+        this.currentUser = result.data;
+        
+        // Asegurar que passwordLastUpdated existe
+        if (!this.currentUser.passwordLastUpdated) {
+            console.log('⚠️ Usuario sin passwordLastUpdated, asignando fecha actual');
+            this.currentUser.passwordLastUpdated = new Date().toISOString();
+        }
+        
+        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        
+        console.log('✅ Login exitoso MongoDB:', this.currentUser.apellidoNombre);
+        console.log('📅 passwordLastUpdated guardado:', this.currentUser.passwordLastUpdated);
+        
+        setTimeout(() => {
+            this.checkMigrationNeeded();
+        }, 500);
+        
+        return this.currentUser;
+        
+    } catch (error) {
+        console.error('❌ Error en login:', error);
+        throw error;
     }
+}
 
     async showMigrationModal() {
         if (this.migrationModalActive) {

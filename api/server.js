@@ -177,18 +177,44 @@ app.get('/api/auth/validate-session', async (req, res) => {
         
         const serverLastUpdate = usuario.passwordLastUpdated;
         
-        // Si el cliente no tiene fecha o es diferente, la sesión es inválida
-        let sessionValid = false;
-        if (clientLastUpdate && serverLastUpdate) {
-            sessionValid = clientLastUpdate === serverLastUpdate;
-        } else if (!clientLastUpdate && !serverLastUpdate) {
-            sessionValid = true;
+        console.log('📊 Comparando fechas:', {
+            client: clientLastUpdate,
+            server: serverLastUpdate,
+            clientType: typeof clientLastUpdate,
+            serverType: typeof serverLastUpdate
+        });
+        
+        // Si el cliente NO tiene fecha (null, undefined, o string vacío)
+        if (!clientLastUpdate || clientLastUpdate === '' || clientLastUpdate === 'null') {
+            // Si el servidor tiene fecha, se la enviamos al cliente para que la actualice
+            if (serverLastUpdate) {
+                console.log('📤 Cliente sin fecha, enviando fecha del servidor');
+                return res.json({
+                    success: true,
+                    sessionValid: true,
+                    passwordLastUpdated: serverLastUpdate,
+                    needsUpdate: true
+                });
+            }
+            // Si ambos no tienen fecha, es válido
+            return res.json({ success: true, sessionValid: true });
         }
         
-        console.log('📊 Resultado validación:', { sessionValid, serverLastUpdate });
+        // Si el cliente tiene fecha pero el servidor no (caso raro)
+        if (!serverLastUpdate) {
+            console.log('⚠️ Servidor sin fecha, cliente tiene fecha - Asumiendo válido');
+            return res.json({ success: true, sessionValid: true });
+        }
         
-        res.json({ 
-            success: true, 
+        // Comparar fechas como strings ISO
+        const clientDateStr = new Date(clientLastUpdate).toISOString();
+        const serverDateStr = new Date(serverLastUpdate).toISOString();
+        const sessionValid = clientDateStr === serverDateStr;
+        
+        console.log('📊 Comparación final:', { clientDateStr, serverDateStr, sessionValid });
+        
+        res.json({
+            success: true,
             sessionValid: sessionValid,
             passwordLastUpdated: serverLastUpdate
         });
@@ -1202,9 +1228,11 @@ app.put('/api/admin/usuarios/:id/password', async (req, res) => {
             });
         }
         
+        // Devolver la nueva fecha para que el cliente la actualice
         res.json({ 
             success: true, 
-            message: 'Contraseña cambiada correctamente' 
+            message: 'Contraseña cambiada correctamente',
+            passwordLastUpdated: ahora.toISOString()
         });
         
     } catch (error) {
