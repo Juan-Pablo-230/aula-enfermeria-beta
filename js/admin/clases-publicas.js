@@ -316,55 +316,68 @@ escapeHtml(text) {
     }
 
     editarClase(id) {
-        const clase = this.data.find(c => c._id === id);
-        if (!clase) return;
+    const clase = this.data.find(c => c._id === id);
+    if (!clase) return;
 
-        this.editandoId = id;
+    this.editandoId = id;
+    
+    document.getElementById('claseNombre').value = clase.nombre || '';
+    document.getElementById('claseDescripcion').value = clase.descripcion || '';
+    
+    if (clase.fechaClase) {
+        const fecha = new Date(clase.fechaClase);
+        document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
+        document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
+    }
+    
+    document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
+    document.getElementById('claseLugar').value = clase.lugar || '';
+    document.getElementById('claseEnlaceFormulario').value = clase.enlaceFormulario || '';
+    
+    // CORREGIDO: Cargar el área seleccionada
+    const areaSelect = document.getElementById('claseArea');
+    if (areaSelect) {
+        const areaValue = clase.area || 'todas';
+        console.log(`📌 Cargando área: "${areaValue}" para la clase: ${clase.nombre}`);
         
-        document.getElementById('claseNombre').value = clase.nombre || '';
-        document.getElementById('claseDescripcion').value = clase.descripcion || '';
-        
-        if (clase.fechaClase) {
-            const fecha = new Date(clase.fechaClase);
-            document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
-            document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
-        }
-        
-        document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
-        document.getElementById('claseLugar').value = clase.lugar || '';
-        document.getElementById('claseEnlaceFormulario').value = clase.enlaceFormulario || '';
-        
-        // Cargar el área seleccionada
-        const areaSelect = document.getElementById('claseArea');
-        if (areaSelect) {
-            const areaValue = clase.area || 'todas';
-            if (areaValue === 'todas') {
-                areaSelect.value = 'todas';
-            } else {
-                // Buscar la opción por valor exacto
-                const optionExists = Array.from(areaSelect.options).some(opt => opt.value === areaValue);
-                if (optionExists) {
-                    areaSelect.value = areaValue;
-                } else {
-                    areaSelect.value = 'todas';
-                }
+        // Buscar si la opción existe en el select
+        let optionExists = false;
+        for (let i = 0; i < areaSelect.options.length; i++) {
+            if (areaSelect.options[i].value === areaValue) {
+                optionExists = true;
+                break;
             }
         }
         
-        const radioPublicada = document.querySelector('input[name="visibilidad"][value="true"]');
-        const radioNoPublicada = document.querySelector('input[name="visibilidad"][value="false"]');
-        if (clase.publicada) {
-            radioPublicada.checked = true;
+        if (optionExists) {
+            areaSelect.value = areaValue;
         } else {
-            radioNoPublicada.checked = true;
+            // Si no existe, agregar la opción dinámicamente
+            const newOption = document.createElement('option');
+            newOption.value = areaValue;
+            newOption.textContent = areaValue;
+            areaSelect.appendChild(newOption);
+            areaSelect.value = areaValue;
+            console.log(`⚠️ Opción "${areaValue}" no existía, fue agregada`);
         }
         
-        document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + clase.nombre;
-        document.getElementById('cancelEditBtn').style.display = 'inline-block';
-        document.getElementById('submitClaseBtn').textContent = '✏️ Actualizar Clase';
-        
-        document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
+        console.log(`✅ Área seleccionada: ${areaSelect.value}`);
     }
+    
+    const radioPublicada = document.querySelector('input[name="visibilidad"][value="true"]');
+    const radioNoPublicada = document.querySelector('input[name="visibilidad"][value="false"]');
+    if (clase.publicada) {
+        radioPublicada.checked = true;
+    } else {
+        radioNoPublicada.checked = true;
+    }
+    
+    document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + clase.nombre;
+    document.getElementById('cancelEditBtn').style.display = 'inline-block';
+    document.getElementById('submitClaseBtn').textContent = '✏️ Actualizar Clase';
+    
+    document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
+}
 
     cancelarEdicion() {
         this.editandoId = null;
