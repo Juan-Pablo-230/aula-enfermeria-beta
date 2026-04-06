@@ -580,98 +580,149 @@
         }
 
         async function cargarClasesPublicas(forzar = false) {
-            const gridContainer = document.getElementById('dynamic-classes-grid');
-            if (!gridContainer) return;
+    const gridContainer = document.getElementById('dynamic-classes-grid');
+    if (!gridContainer) return;
 
-            if (clasesCargadas && !forzar) {
-                console.log('ℹ️ Clases ya cargadas previamente, omitiendo...');
-                return;
-            }
+    if (clasesCargadas && !forzar) {
+        console.log('ℹ️ Clases ya cargadas previamente, omitiendo...');
+        return;
+    }
 
-            if (timeoutCarga) clearTimeout(timeoutCarga);
+    if (timeoutCarga) clearTimeout(timeoutCarga);
 
-            console.log('🔄 Iniciando carga de clases...');
-            gridContainer.innerHTML = '<div class="loading-classes">Cargando clases disponibles...</div>';
+    console.log('🔄 Iniciando carga de clases...');
+    gridContainer.innerHTML = '<div class="loading-classes">Cargando clases disponibles...</div>';
 
-            try {
-                const response = await fetch('/api/clases-publicas/publicadas');
-                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-                const result = await response.json();
-                if (!result.success || !result.data) throw new Error(result.message || 'Error al cargar las clases');
+    try {
+        const response = await fetch('/api/clases-publicas/publicadas');
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        const result = await response.json();
+        if (!result.success || !result.data) throw new Error(result.message || 'Error al cargar las clases');
 
-                let clases = result.data;
-                const ahora = result.serverTime;
+        let clases = result.data;
+        const ahora = result.serverTime;
 
-                console.log(`📊 Clases encontradas (sin filtrar): ${clases.length}`);
-                console.log(`🕒 Hora del servidor: ${new Date(ahora).toLocaleString()}`);
+        console.log(`📊 Clases encontradas (sin filtrar): ${clases.length}`);
+        console.log(`🕒 Hora del servidor: ${new Date(ahora).toLocaleString()}`);
 
-                const clasesVisibles = clases.filter(clase => {
-                    const { cierre } = obtenerTimestampsClase(clase);
-                    if (!cierre) return true;
-                    return ahora < cierre;
-                });
+        // ========== NUEVO: FILTRAR POR ÁREA DEL USUARIO ==========
+        const user = authSystem.isLoggedIn() ? authSystem.getCurrentUser() : null;
+        const userArea = user?.area || null;
+        
+        console.log(`👤 Usuario: ${user?.apellidoNombre || 'Invitado'}, Área: ${userArea || 'No definida'}`);
 
-                console.log(`📊 Clases visibles después de filtrar: ${clasesVisibles.length}`);
+        // Filtrar clases por fecha (no expiradas)
+        let clasesVisibles = clases.filter(clase => {
+            const { cierre } = obtenerTimestampsClase(clase);
+            if (!cierre) return true;
+            return ahora < cierre;
+        });
 
-                if (clasesVisibles.length === 0) {
-                    gridContainer.innerHTML = '<div class="no-classes-message">No hay clases disponibles en este momento.</div>';
-                    clasesCargadas = true;
-                    await mostrarImagenMalvinas();
-                    return;
+        // ========== NUEVO: FILTRAR POR ÁREA DEL USUARIO ==========
+        if (userArea) {
+            console.log(`🔍 Filtrando clases para el área: "${userArea}"`);
+            
+            clasesVisibles = clasesVisibles.filter(clase => {
+                // Si la clase no tiene área definida o es 'todas', se muestra (clase general)
+                if (!clase.area || clase.area === 'todas') {
+                    console.log(`✅ Clase general: ${clase.nombre}`);
+                    return true;
                 }
-
-                clasesVisibles.sort((a, b) => {
-                    const { apertura: aApertura } = obtenerTimestampsClase(a);
-                    const { apertura: bApertura } = obtenerTimestampsClase(b);
-                    return (aApertura || 0) - (bApertura || 0);
-                });
-
-                let htmlString = '';
-                clasesVisibles.forEach(clase => {
-                    let fechaFormateada = 'Fecha no disponible';
-                    let horaInicio = 'Hora no disponible';
-                    
-                    if (clase.fechaClase) {
-                        const fecha = new Date(clase.fechaClase);
-                        fechaFormateada = fecha.toLocaleDateString('es-AR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                        });
-                        horaInicio = fecha.toLocaleTimeString('es-AR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false
-                        });
-                    }
-
-                    let instructoresTexto = 'Instructor no especificado';
-                    if (clase.instructores && clase.instructores.length > 0) {
-                        instructoresTexto = clase.instructores.join('<br>');
-                    }
-
-                    htmlString += `
-                        <div class="class-card" onclick="abrirModalClase('${clase._id}')">
-                            <h3>${clase.nombre}</h3>
-                            <p>${instructoresTexto}</p>
-                            ${clase.lugar ? `<p><small class="class-lugar"> ${clase.lugar}</small></p>` : ''}
-                            <div class="class-datetime">
-                                <span class="class-date">📅 ${fechaFormateada}</span>
-                                <span class="class-time">⏰ ${horaInicio} hs</span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                gridContainer.innerHTML = htmlString;
-                clasesCargadas = true;
-                await mostrarImagenMalvinas();
-
-            } catch (error) {
-                console.error('❌ Error cargando clases:', error);
-                gridContainer.innerHTML = '<div class="error-message">Error al cargar las clases. Por favor, recargue la página.</div>';
-            }
+                // Si el área de la clase coincide con el área del usuario
+                const coincide = clase.area === userArea;
+                if (coincide) {
+                    console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
+                } else {
+                    console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
+                }
+                return coincide;
+            });
+        } else {
+            console.log('👤 Usuario sin área definida o invitado - Mostrando todas las clases');
         }
+
+        console.log(`📊 Clases visibles después de filtrar por área: ${clasesVisibles.length}`);
+
+        if (clasesVisibles.length === 0) {
+            gridContainer.innerHTML = '<div class="no-classes-message">No hay clases disponibles para tu área de trabajo en este momento.</div>';
+            clasesCargadas = true;
+            await mostrarImagenMalvinas();
+            return;
+        }
+
+        clasesVisibles.sort((a, b) => {
+            const { apertura: aApertura } = obtenerTimestampsClase(a);
+            const { apertura: bApertura } = obtenerTimestampsClase(b);
+            return (aApertura || 0) - (bApertura || 0);
+        });
+
+        let htmlString = '';
+        clasesVisibles.forEach(clase => {
+            let fechaFormateada = 'Fecha no disponible';
+            let horaInicio = 'Hora no disponible';
+            
+            if (clase.fechaClase) {
+                const fecha = new Date(clase.fechaClase);
+                fechaFormateada = fecha.toLocaleDateString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+                horaInicio = fecha.toLocaleTimeString('es-AR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+
+            let instructoresTexto = 'Instructor no especificado';
+            if (clase.instructores && clase.instructores.length > 0) {
+                instructoresTexto = clase.instructores.join('<br>');
+            }
+
+            // Mostrar el área de la clase (opcional, para debug)
+            const areaBadge = (clase.area && clase.area !== 'todas') 
+                ? `<span class="class-area-badge" style="display: inline-block; background: #4a90e2; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-top: 5px;">👥 ${clase.area}</span>`
+                : '';
+
+            htmlString += `
+                <div class="class-card" onclick="abrirModalClase('${clase._id}')">
+                    <h3>${clase.nombre}</h3>
+                    <p>${instructoresTexto}</p>
+                    ${clase.lugar ? `<p><small class="class-lugar"> ${clase.lugar}</small></p>` : ''}
+                    <div class="class-datetime">
+                        <span class="class-date">📅 ${fechaFormateada}</span>
+                        <span class="class-time">⏰ ${horaInicio} hs</span>
+                    </div>
+                    ${areaBadge}
+                </div>
+            `;
+        });
+
+        gridContainer.innerHTML = htmlString;
+        clasesCargadas = true;
+        await mostrarImagenMalvinas();
+
+    } catch (error) {
+        console.error('❌ Error cargando clases:', error);
+        gridContainer.innerHTML = '<div class="error-message">Error al cargar las clases. Por favor, recargue la página.</div>';
+    }
+}
+
+// Después de la función cargarClasesPublicas, agregar:
+
+document.addEventListener('userLoggedIn', function() {
+    console.log('👤 Evento userLoggedIn detectado - Recargando clases con filtro por área');
+    clasesCargadas = false; // Forzar recarga
+    setTimeout(() => cargarClasesPublicas(true), 500);
+});
+
+// También cuando se cierra sesión
+document.addEventListener('userLoggedOut', function() {
+    console.log('👤 Evento userLoggedOut detectado - Recargando clases');
+    clasesCargadas = false;
+    setTimeout(() => cargarClasesPublicas(true), 500);
+});
 
         function verificarClasesExpiradas() {
             cargarClasesPublicas(true);
