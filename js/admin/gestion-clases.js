@@ -1,4 +1,4 @@
-// gestion-clases.js - Versión con área de trabajo
+// gestion-clases.js - Versión con área de trabajo y logs
 console.log('🎯 Módulo de Gestión de Clases cargado (con área)');
 
 class GestionClasesManager {
@@ -16,106 +16,76 @@ class GestionClasesManager {
     }
 
     async cargarAreas() {
-    console.log('📥 Cargando áreas disponibles...');
-    const areaSelect = document.getElementById('claseArea');
-    const filtroArea = document.getElementById('filtroArea');
-    
-    if (!areaSelect && !filtroArea) return;
-    
-    // Esperar a que window.area esté disponible
-    const maxIntentos = 20;
-    let intentos = 0;
-    
-    while ((!window.area || Object.keys(window.area).length === 0) && intentos < maxIntentos) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        intentos++;
-    }
-    
-    if (window.area && typeof window.area === 'object') {
-        const areas = new Set();
+        console.log('📥 Cargando áreas disponibles...');
+        const areaSelect = document.getElementById('claseArea');
+        const filtroArea = document.getElementById('filtroArea');
         
-        // Recorrer todas las categorías y áreas
-        for (const categoria in window.area) {
-            if (Array.isArray(window.area[categoria])) {
-                window.area[categoria].forEach(areaName => {
-                    if (areaName && typeof areaName === 'string') {
-                        areas.add(areaName);
-                    }
-                });
-            }
+        if (!areaSelect && !filtroArea) return;
+        
+        const maxIntentos = 20;
+        let intentos = 0;
+        
+        while ((!window.area || Object.keys(window.area).length === 0) && intentos < maxIntentos) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            intentos++;
         }
         
-        // Convertir a array y ordenar alfabéticamente
-        this.areasDisponibles = Array.from(areas).sort();
-        
-        console.log('📋 Áreas encontradas:', this.areasDisponibles);
-        
-        // Poblar select del formulario
-        if (areaSelect) {
-            // Guardar el valor actual si existe
-            const currentValue = areaSelect.value;
+        if (window.area && typeof window.area === 'object') {
+            const areas = new Set();
             
-            // Limpiar y agregar opción por defecto
-            areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
-            
-            // Agregar cada área como opción - IMPORTANTE: el value debe ser el nombre exacto del área
-            this.areasDisponibles.forEach(area => {
-                const option = document.createElement('option');
-                option.value = area;  // ✅ El value es el nombre del área
-                option.textContent = area;
-                areaSelect.appendChild(option);
-            });
-            
-            // Restaurar el valor si existía y es válido
-            if (currentValue && currentValue !== 'todas') {
-                const optionExists = Array.from(areaSelect.options).some(opt => opt.value === currentValue);
-                if (optionExists) {
-                    areaSelect.value = currentValue;
-                    console.log('✅ Valor restaurado en select:', currentValue);
+            for (const categoria in window.area) {
+                if (Array.isArray(window.area[categoria])) {
+                    window.area[categoria].forEach(areaName => {
+                        if (areaName && typeof areaName === 'string') {
+                            areas.add(areaName);
+                        }
+                    });
                 }
             }
             
-            console.log('✅ Selector de áreas poblado. Opciones:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
-            console.log('✅ Valor actual del select:', areaSelect.value);
-        }
-        
-        // Poblar select de filtro
-        if (filtroArea) {
-            filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
-            this.areasDisponibles.forEach(area => {
-                const option = document.createElement('option');
-                option.value = area;
-                option.textContent = area;
-                filtroArea.appendChild(option);
-            });
-            console.log(`✅ Filtro de áreas poblado con ${filtroArea.options.length} opciones`);
-        }
-        
-    } else {
-        console.warn('⚠️ window.area no disponible después de esperar');
-        if (areaSelect) {
-            areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
-        }
-        if (filtroArea) {
-            filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
+            this.areasDisponibles = Array.from(areas).sort();
+            console.log('📋 Áreas encontradas:', this.areasDisponibles);
+            
+            if (areaSelect) {
+                const currentValue = areaSelect.value;
+                areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
+                
+                this.areasDisponibles.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area;
+                    option.textContent = area;
+                    areaSelect.appendChild(option);
+                });
+                
+                if (currentValue && currentValue !== 'todas') {
+                    const optionExists = Array.from(areaSelect.options).some(opt => opt.value === currentValue);
+                    if (optionExists) areaSelect.value = currentValue;
+                }
+                
+                console.log('✅ Selector de áreas poblado. Opciones:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
+            }
+            
+            if (filtroArea) {
+                filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
+                this.areasDisponibles.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area;
+                    option.textContent = area;
+                    filtroArea.appendChild(option);
+                });
+            }
+        } else {
+            console.warn('⚠️ window.area no disponible');
+            if (areaSelect) areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
+            if (filtroArea) filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
         }
     }
-}
 
     setupEventListeners() {
         document.getElementById('claseForm')?.addEventListener('submit', (e) => this.guardarClase(e));
-        
-        document.getElementById('limpiarFormBtn')?.addEventListener('click', () => {
-            this.cancelarEdicion();
-        });
-        
-        document.getElementById('cancelEditBtn')?.addEventListener('click', () => {
-            this.cancelarEdicion();
-        });
-        
-        document.getElementById('refrescarClasesBtn')?.addEventListener('click', () => {
-            this.cargarDatos();
-        });
+        document.getElementById('limpiarFormBtn')?.addEventListener('click', () => this.cancelarEdicion());
+        document.getElementById('cancelEditBtn')?.addEventListener('click', () => this.cancelarEdicion());
+        document.getElementById('refrescarClasesBtn')?.addEventListener('click', () => this.cargarDatos());
         
         document.getElementById('buscarClase')?.addEventListener('input', (e) => {
             this.mostrarLista(e.target.value, 
@@ -150,320 +120,257 @@ class GestionClasesManager {
     }
 
     mostrarLista(filtroTexto = '', filtroEstado = 'todos', filtroArea = 'todas') {
-    const container = document.getElementById('clasesList');
-    if (!container) return;
+        const container = document.getElementById('clasesList');
+        if (!container) return;
 
-    let clasesFiltradas = this.data;
-    
-    // Filtrar por texto (búsqueda)
-    if (filtroTexto) {
-        const termino = filtroTexto.toLowerCase();
-        clasesFiltradas = clasesFiltradas.filter(c => 
-            c.nombre?.toLowerCase().includes(termino) ||
-            c.descripcion?.toLowerCase().includes(termino) ||
-            (c.instructores && c.instructores.some(i => i.toLowerCase().includes(termino)))
-        );
-    }
-    
-    // Filtrar por estado
-    if (filtroEstado === 'publicadas') {
-        clasesFiltradas = clasesFiltradas.filter(c => c.estado === 'publicada');
-    } else if (filtroEstado === 'activas') {
-        clasesFiltradas = clasesFiltradas.filter(c => c.estado === 'activa');
-    } else if (filtroEstado === 'canceladas') {
-        clasesFiltradas = clasesFiltradas.filter(c => c.estado === 'cancelada');
-    }
-    
-    // CORREGIDO: Filtrar por área
-    if (filtroArea && filtroArea !== 'todas') {
-        console.log(`🔍 Filtrando por área: "${filtroArea}"`);
-        console.log('📊 Clases antes del filtro:', clasesFiltradas.length);
+        let clasesFiltradas = this.data;
         
-        clasesFiltradas = clasesFiltradas.filter(c => {
-            // Si la clase tiene área 'todas' o null/undefined, también se muestra (es general)
-            if (!c.area || c.area === 'todas') {
-                return true;
-            }
-            // Si el área de la clase coincide con el filtro
-            return c.area === filtroArea;
-        });
+        if (filtroTexto) {
+            const termino = filtroTexto.toLowerCase();
+            clasesFiltradas = clasesFiltradas.filter(c => 
+                c.nombre?.toLowerCase().includes(termino) ||
+                c.descripcion?.toLowerCase().includes(termino) ||
+                (c.instructores && c.instructores.some(i => i.toLowerCase().includes(termino)))
+            );
+        }
         
-        console.log('📊 Clases después del filtro:', clasesFiltradas.length);
-    }
-
-    if (clasesFiltradas.length === 0) {
-        container.innerHTML = `
-            <div class="empty-message">
-                No hay clases para mostrar
-            </div>
-        `;
-        return;
-    }
-
-    clasesFiltradas.sort((a, b) => new Date(b.fechaClase) - new Date(a.fechaClase));
-
-    container.innerHTML = clasesFiltradas.map(clase => {
-        const estado = clase.estado || (clase.activa ? 'activa' : 'inactiva');
-        const tieneYoutube = clase.enlaces?.youtube ? true : false;
-        const tienePowerpoint = clase.enlaces?.powerpoint ? true : false;
+        if (filtroEstado === 'publicadas') {
+            clasesFiltradas = clasesFiltradas.filter(c => c.estado === 'publicada');
+        } else if (filtroEstado === 'activas') {
+            clasesFiltradas = clasesFiltradas.filter(c => c.estado === 'activa');
+        } else if (filtroEstado === 'canceladas') {
+            clasesFiltradas = clasesFiltradas.filter(c => c.estado === 'cancelada');
+        }
         
-        let fechaFormateada = 'N/A';
-        if (clase.fechaClase) {
-            const fecha = new Date(clase.fechaClase);
-            fechaFormateada = fecha.toLocaleString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
+        if (filtroArea && filtroArea !== 'todas') {
+            console.log(`🔍 Filtrando por área: "${filtroArea}"`);
+            clasesFiltradas = clasesFiltradas.filter(c => {
+                if (!c.area || c.area === 'todas') return true;
+                return c.area === filtroArea;
             });
         }
-        
-        let estadoIcono = '';
-        let estadoTexto = '';
-        let estadoClass = '';
-        
-        if (estado === 'publicada') {
-            estadoIcono = '📢';
-            estadoTexto = 'Publicada';
-            estadoClass = 'publicada';
-        } else if (estado === 'activa') {
-            estadoIcono = '✅';
-            estadoTexto = 'Activa';
-            estadoClass = 'activa';
-        } else if (estado === 'cancelada') {
-            estadoIcono = '❌';
-            estadoTexto = 'Cancelada';
-            estadoClass = 'cancelada';
-        } else {
-            estadoIcono = clase.activa ? '✅' : '❌';
-            estadoTexto = clase.activa ? 'Activa' : 'Inactiva';
-            estadoClass = clase.activa ? 'activa' : 'inactiva';
-        }
-        
-        // Mostrar el área correctamente
-        let areaInfo = '';
-        if (!clase.area || clase.area === 'todas') {
-            areaInfo = '<div class="clase-area">🌍 Área: Todas las áreas</div>';
-        } else {
-            areaInfo = `<div class="clase-area">👥 Área: ${clase.area}</div>`;
-        }
-        
-        return `
-        <div class="clase-card ${estadoClass}">
-            <div class="clase-header">
-                <span class="clase-titulo">${this.escapeHtml(clase.nombre)}</span>
-                <span class="clase-estado ${estadoClass}">
-                    ${estadoIcono} ${estadoTexto}
-                </span>
-            </div>
-            
-            ${clase.descripcion ? `<p class="clase-descripcion">${this.escapeHtml(clase.descripcion)}</p>` : ''}
-            
-            <div class="clase-detalles">
-                <span>📅 ${fechaFormateada}</span>
-                ${clase.instructores?.length ? `<span>👥 ${this.escapeHtml(clase.instructores.join(', '))}</span>` : ''}
-            </div>
-            
-            ${areaInfo}
-            
-            <div class="clase-enlaces">
-                ${tieneYoutube ? `
-                    <a href="${clase.enlaces.youtube}" target="_blank" class="material-link youtube" title="Ver en YouTube">
-                        ▶️ YouTube
-                    </a>
-                ` : ''}
-                ${tienePowerpoint ? `
-                    <a href="${clase.enlaces.powerpoint}" target="_blank" class="material-link powerpoint" title="Ver presentación">
-                        📊 Presentación
-                    </a>
-                ` : ''}
-                ${!tieneYoutube && !tienePowerpoint ? 
-                    '<span class="sin-enlaces">Sin material disponible</span>' : ''}
-            </div>
-            
-            ${clase.tags?.length ? `
-                <div class="clase-tags">
-                    ${clase.tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')}
-                </div>
-            ` : ''}
-            
-            <div class="clase-acciones">
-                <button class="btn-small btn-edit" onclick="gestionClasesManager.editarClase('${clase._id}')">✏️ Editar</button>
-                <button class="btn-small btn-danger" onclick="gestionClasesManager.eliminarClase('${clase._id}')">🗑️ Eliminar</button>
-            </div>
-        </div>
-    `}).join('');
-}
 
-// Agregar método auxiliar para escapar HTML
-escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+        if (clasesFiltradas.length === 0) {
+            container.innerHTML = `<div class="empty-message">No hay clases para mostrar</div>`;
+            return;
+        }
+
+        clasesFiltradas.sort((a, b) => new Date(b.fechaClase) - new Date(a.fechaClase));
+
+        container.innerHTML = clasesFiltradas.map(clase => {
+            const estado = clase.estado || (clase.activa ? 'activa' : 'inactiva');
+            const tieneYoutube = clase.enlaces?.youtube ? true : false;
+            const tienePowerpoint = clase.enlaces?.powerpoint ? true : false;
+            
+            let fechaFormateada = 'N/A';
+            if (clase.fechaClase) {
+                const fecha = new Date(clase.fechaClase);
+                fechaFormateada = fecha.toLocaleString('es-AR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                });
+            }
+            
+            let estadoIcono = '', estadoTexto = '', estadoClass = '';
+            if (estado === 'publicada') {
+                estadoIcono = '📢'; estadoTexto = 'Publicada'; estadoClass = 'publicada';
+            } else if (estado === 'activa') {
+                estadoIcono = '✅'; estadoTexto = 'Activa'; estadoClass = 'activa';
+            } else if (estado === 'cancelada') {
+                estadoIcono = '❌'; estadoTexto = 'Cancelada'; estadoClass = 'cancelada';
+            } else {
+                estadoIcono = clase.activa ? '✅' : '❌';
+                estadoTexto = clase.activa ? 'Activa' : 'Inactiva';
+                estadoClass = clase.activa ? 'activa' : 'inactiva';
+            }
+            
+            let areaInfo = '';
+            if (!clase.area || clase.area === 'todas') {
+                areaInfo = '<div class="clase-area">🌍 Área: Todas las áreas</div>';
+            } else {
+                areaInfo = `<div class="clase-area">👥 Área: ${this.escapeHtml(clase.area)}</div>`;
+            }
+            
+            return `
+                <div class="clase-card ${estadoClass}">
+                    <div class="clase-header">
+                        <span class="clase-titulo">${this.escapeHtml(clase.nombre)}</span>
+                        <span class="clase-estado ${estadoClass}">${estadoIcono} ${estadoTexto}</span>
+                    </div>
+                    ${clase.descripcion ? `<p class="clase-descripcion">${this.escapeHtml(clase.descripcion)}</p>` : ''}
+                    <div class="clase-detalles">
+                        <span>📅 ${fechaFormateada}</span>
+                        ${clase.instructores?.length ? `<span>👥 ${this.escapeHtml(clase.instructores.join(', '))}</span>` : ''}
+                    </div>
+                    ${areaInfo}
+                    <div class="clase-enlaces">
+                        ${tieneYoutube ? `<a href="${clase.enlaces.youtube}" target="_blank" class="material-link youtube">▶️ YouTube</a>` : ''}
+                        ${tienePowerpoint ? `<a href="${clase.enlaces.powerpoint}" target="_blank" class="material-link powerpoint">📊 Presentación</a>` : ''}
+                        ${!tieneYoutube && !tienePowerpoint ? '<span class="sin-enlaces">Sin material disponible</span>' : ''}
+                    </div>
+                    ${clase.tags?.length ? `<div class="clase-tags">${clase.tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
+                    <div class="clase-acciones">
+                        <button class="btn-small btn-edit" onclick="gestionClasesManager.editarClase('${clase._id}')">✏️ Editar</button>
+                        <button class="btn-small btn-danger" onclick="gestionClasesManager.eliminarClase('${clase._id}')">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
     async guardarClase(event) {
-    event.preventDefault();
-    
-    const nombre = document.getElementById('claseNombre')?.value.trim();
-    const fecha = document.getElementById('claseFecha')?.value;
-    const youtube = document.getElementById('claseYoutube')?.value.trim();
-    const powerpoint = document.getElementById('clasePowerpoint')?.value.trim();
-    
-    // ✅ IMPORTANTE: Obtener el área correctamente
-    const areaSelect = document.getElementById('claseArea');
-    let areaSeleccionada = 'todas';
-    
-    if (areaSelect) {
-        areaSeleccionada = areaSelect.value;
-        console.log('📌 Área SELECCIONADA en el select:', areaSeleccionada);
-        console.log('📌 Todas las opciones del select:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
-    }
-    
-    if (!nombre) {
-        this.mostrarMensaje('❌ El nombre de la clase es obligatorio', 'error');
-        return;
-    }
-    
-    if (!fecha) {
-        this.mostrarMensaje('❌ La fecha de la clase es obligatoria', 'error');
-        return;
-    }
-    
-    const hora = document.getElementById('claseHora')?.value || '10:00';
-    const fechaCompleta = `${fecha}T${hora}:00`;
-    
-    const instructores = document.getElementById('claseInstructores')?.value
-        ? document.getElementById('claseInstructores').value.split(',').map(i => i.trim()).filter(i => i)
-        : [];
-    
-    const tags = document.getElementById('claseTags')?.value
-        ? document.getElementById('claseTags').value.split(',').map(t => t.trim()).filter(t => t)
-        : [];
-    
-    const estadoRadio = document.querySelector('input[name="claseEstado"]:checked');
-    const estado = estadoRadio ? estadoRadio.value : 'publicada';
-    
-    const claseData = {
-        nombre: nombre,
-        descripcion: document.getElementById('claseDescripcion')?.value || '',
-        fechaClase: fechaCompleta,
-        enlaces: {
-            youtube: youtube || '',
-            powerpoint: powerpoint || ''
-        },
-        estado: estado,
-        instructores: instructores,
-        tags: tags,
-        area: areaSeleccionada  // ✅ Usar el valor obtenido del select
-    };
-    
-    console.log('📤 DATOS COMPLETOS a enviar al servidor:', JSON.stringify(claseData, null, 2));
-    
-    try {
-        let response;
-        if (this.editandoId) {
-            response = await authSystem.makeRequest(`/clases-historicas/${this.editandoId}`, claseData, 'PUT');
-            this.mostrarMensaje('✅ Clase actualizada correctamente', 'success');
+        event.preventDefault();
+        
+        // ========== DIAGNÓSTICO ==========
+        console.log('🔍 ========== DIAGNÓSTICO DE ÁREA (Gestión de Clases) ==========');
+        
+        const areaSelect = document.getElementById('claseArea');
+        let areaSeleccionada = 'todas';
+        
+        if (areaSelect) {
+            console.log('📌 Select de área encontrado');
+            console.log('📌 Valor ACTUAL del select:', areaSelect.value);
+            console.log('📌 Todas las opciones:');
+            Array.from(areaSelect.options).forEach(opt => {
+                console.log(`   - value: "${opt.value}", text: "${opt.text}"`);
+            });
+            areaSeleccionada = areaSelect.value;
         } else {
-            response = await authSystem.makeRequest('/clases-historicas', claseData);
-            this.mostrarMensaje('✅ Clase creada correctamente', 'success');
+            console.error('❌ Select de área NO ENCONTRADO!');
         }
         
-        console.log('✅ Respuesta del servidor:', response);
+        console.log('📌 Área seleccionada para guardar:', areaSeleccionada);
+        // ========== FIN DIAGNÓSTICO ==========
         
-        this.cancelarEdicion();
-        await this.cargarDatos();
-    } catch (error) {
-        console.error('❌ Error detallado:', error);
-        this.mostrarMensaje('❌ Error: ' + error.message, 'error');
+        const nombre = document.getElementById('claseNombre')?.value.trim();
+        const fecha = document.getElementById('claseFecha')?.value;
+        const youtube = document.getElementById('claseYoutube')?.value.trim();
+        const powerpoint = document.getElementById('clasePowerpoint')?.value.trim();
+        
+        if (!nombre) {
+            this.mostrarMensaje('❌ El nombre de la clase es obligatorio', 'error');
+            return;
+        }
+        
+        if (!fecha) {
+            this.mostrarMensaje('❌ La fecha de la clase es obligatoria', 'error');
+            return;
+        }
+        
+        const hora = document.getElementById('claseHora')?.value || '10:00';
+        const fechaCompleta = `${fecha}T${hora}:00`;
+        
+        const instructores = document.getElementById('claseInstructores')?.value
+            ? document.getElementById('claseInstructores').value.split(',').map(i => i.trim()).filter(i => i)
+            : [];
+        
+        const tags = document.getElementById('claseTags')?.value
+            ? document.getElementById('claseTags').value.split(',').map(t => t.trim()).filter(t => t)
+            : [];
+        
+        const estadoRadio = document.querySelector('input[name="claseEstado"]:checked');
+        const estado = estadoRadio ? estadoRadio.value : 'publicada';
+        
+        const claseData = {
+            nombre: nombre,
+            descripcion: document.getElementById('claseDescripcion')?.value || '',
+            fechaClase: fechaCompleta,
+            enlaces: {
+                youtube: youtube || '',
+                powerpoint: powerpoint || ''
+            },
+            estado: estado,
+            instructores: instructores,
+            tags: tags,
+            area: areaSeleccionada
+        };
+        
+        console.log('📤 ENVIANDO AL SERVIDOR:', JSON.stringify(claseData, null, 2));
+        
+        try {
+            let response;
+            if (this.editandoId) {
+                response = await authSystem.makeRequest(`/clases-historicas/${this.editandoId}`, claseData, 'PUT');
+                this.mostrarMensaje('✅ Clase actualizada correctamente', 'success');
+            } else {
+                response = await authSystem.makeRequest('/clases-historicas', claseData);
+                this.mostrarMensaje('✅ Clase creada correctamente', 'success');
+            }
+            
+            console.log('✅ Respuesta del servidor:', response);
+            
+            this.cancelarEdicion();
+            await this.cargarDatos();
+        } catch (error) {
+            console.error('❌ Error detallado:', error);
+            this.mostrarMensaje('❌ Error: ' + error.message, 'error');
+        }
     }
-
-    console.log('🔍 VALOR DEL ÁREA SELECCIONADA:', areaSeleccionada);
-    console.log('🔍 SELECTOR CLASE AREA VALUE:', document.getElementById('claseArea')?.value);
-}
 
     editarClase(id) {
-    const clase = this.data.find(c => c._id === id);
-    if (!clase) return;
+        const clase = this.data.find(c => c._id === id);
+        if (!clase) return;
 
-    this.editandoId = id;
-    
-    document.getElementById('claseNombre').value = clase.nombre || '';
-    document.getElementById('claseDescripcion').value = clase.descripcion || '';
-    
-    if (clase.fechaClase) {
-        const fecha = new Date(clase.fechaClase);
-        document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
-        document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
-    }
-    
-    document.getElementById('claseYoutube').value = clase.enlaces?.youtube || '';
-    document.getElementById('clasePowerpoint').value = clase.enlaces?.powerpoint || '';
-    document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
-    document.getElementById('claseTags').value = clase.tags?.join(', ') || '';
-    
-    // CORREGIDO: Cargar el área seleccionada
-    const areaSelect = document.getElementById('claseArea');
-    if (areaSelect) {
-        const areaValue = clase.area || 'todas';
-        console.log(`📌 Cargando área: "${areaValue}" para la clase: ${clase.nombre}`);
+        this.editandoId = id;
         
-        // Buscar si la opción existe en el select
-        let optionExists = false;
-        for (let i = 0; i < areaSelect.options.length; i++) {
-            if (areaSelect.options[i].value === areaValue) {
-                optionExists = true;
-                break;
+        document.getElementById('claseNombre').value = clase.nombre || '';
+        document.getElementById('claseDescripcion').value = clase.descripcion || '';
+        
+        if (clase.fechaClase) {
+            const fecha = new Date(clase.fechaClase);
+            document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
+            document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
+        }
+        
+        document.getElementById('claseYoutube').value = clase.enlaces?.youtube || '';
+        document.getElementById('clasePowerpoint').value = clase.enlaces?.powerpoint || '';
+        document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
+        document.getElementById('claseTags').value = clase.tags?.join(', ') || '';
+        
+        const areaSelect = document.getElementById('claseArea');
+        if (areaSelect) {
+            const areaValue = clase.area || 'todas';
+            console.log(`📌 Cargando área: "${areaValue}" para la clase: ${clase.nombre}`);
+            
+            let optionExists = false;
+            for (let i = 0; i < areaSelect.options.length; i++) {
+                if (areaSelect.options[i].value === areaValue) {
+                    optionExists = true;
+                    break;
+                }
             }
+            
+            if (optionExists) {
+                areaSelect.value = areaValue;
+            } else {
+                const newOption = document.createElement('option');
+                newOption.value = areaValue;
+                newOption.textContent = areaValue;
+                areaSelect.appendChild(newOption);
+                areaSelect.value = areaValue;
+                console.log(`⚠️ Opción "${areaValue}" no existía, fue agregada`);
+            }
+            
+            console.log(`✅ Área seleccionada: ${areaSelect.value}`);
         }
         
-        if (optionExists) {
-            areaSelect.value = areaValue;
+        document.querySelectorAll('input[name="claseEstado"]').forEach(radio => radio.checked = false);
+        
+        let estadoValor = clase.estado || (clase.activa ? 'activa' : 'inactiva');
+        const radioToCheck = document.querySelector(`input[name="claseEstado"][value="${estadoValor}"]`);
+        if (radioToCheck) {
+            radioToCheck.checked = true;
         } else {
-            // Si no existe, agregar la opción dinámicamente
-            const newOption = document.createElement('option');
-            newOption.value = areaValue;
-            newOption.textContent = areaValue;
-            areaSelect.appendChild(newOption);
-            areaSelect.value = areaValue;
-            console.log(`⚠️ Opción "${areaValue}" no existía, fue agregada`);
+            const radioPublicada = document.querySelector('input[name="claseEstado"][value="publicada"]');
+            if (radioPublicada) radioPublicada.checked = true;
         }
         
-        console.log(`✅ Área seleccionada: ${areaSelect.value}`);
+        document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + clase.nombre;
+        document.getElementById('cancelEditBtn').style.display = 'inline-block';
+        document.getElementById('submitClaseBtn').textContent = '✏️ Actualizar Clase';
+        
+        document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
     }
-    
-    // Resetear todos los radios
-    document.querySelectorAll('input[name="claseEstado"]').forEach(radio => {
-        radio.checked = false;
-    });
-    
-    let estadoValor;
-    if (clase.estado) {
-        estadoValor = clase.estado;
-    } else {
-        estadoValor = clase.activa ? 'activa' : 'inactiva';
-    }
-    
-    const radioToCheck = document.querySelector(`input[name="claseEstado"][value="${estadoValor}"]`);
-    if (radioToCheck) {
-        radioToCheck.checked = true;
-        console.log('✅ Estado cargado:', estadoValor);
-    } else {
-        console.warn('⚠️ No se encontró radio button para estado:', estadoValor);
-        const radioPublicada = document.querySelector('input[name="claseEstado"][value="publicada"]');
-        if (radioPublicada) radioPublicada.checked = true;
-    }
-    
-    document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + clase.nombre;
-    document.getElementById('cancelEditBtn').style.display = 'inline-block';
-    document.getElementById('submitClaseBtn').textContent = '✏️ Actualizar Clase';
-    
-    document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
-}
 
     cancelarEdicion() {
         this.editandoId = null;
@@ -481,14 +388,10 @@ escapeHtml(text) {
         if (areaSelect) areaSelect.value = 'todas';
         
         const radioPublicada = document.querySelector('input[name="claseEstado"][value="publicada"]');
-        if (radioPublicada) {
-            radioPublicada.checked = true;
-        }
+        if (radioPublicada) radioPublicada.checked = true;
         
         document.querySelectorAll('input[name="claseEstado"]').forEach(radio => {
-            if (radio.value !== 'publicada') {
-                radio.checked = false;
-            }
+            if (radio.value !== 'publicada') radio.checked = false;
         });
         
         this.ocultarMensaje();
@@ -496,7 +399,6 @@ escapeHtml(text) {
 
     async eliminarClase(id) {
         if (!confirm('¿Está seguro de eliminar esta clase?')) return;
-
         try {
             await authSystem.makeRequest(`/clases-historicas/${id}`, null, 'DELETE');
             this.mostrarMensaje('✅ Clase eliminada correctamente', 'success');
@@ -523,10 +425,7 @@ escapeHtml(text) {
         msg.textContent = texto;
         msg.className = `message ${tipo}`;
         msg.style.display = 'block';
-        
-        setTimeout(() => {
-            msg.style.display = 'none';
-        }, 3000);
+        setTimeout(() => msg.style.display = 'none', 3000);
     }
 
     ocultarMensaje() {
@@ -536,12 +435,15 @@ escapeHtml(text) {
     mostrarError() {
         const container = document.getElementById('clasesList');
         if (container) {
-            container.innerHTML = `
-                <div class="error-message">
-                    ⚠️ Error al cargar las clases
-                </div>
-            `;
+            container.innerHTML = `<div class="error-message">⚠️ Error al cargar las clases</div>`;
         }
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

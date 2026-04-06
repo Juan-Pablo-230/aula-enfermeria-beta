@@ -605,24 +605,27 @@
         console.log(`📊 Clases encontradas (sin filtrar): ${clases.length}`);
         console.log(`🕒 Hora del servidor: ${new Date(ahora).toLocaleString()}`);
 
-        // ========== NUEVO: FILTRAR POR ÁREA DEL USUARIO ==========
-        const user = authSystem.isLoggedIn() ? authSystem.getCurrentUser() : null;
-        const userArea = user?.area || null;
-        
-        console.log(`👤 Usuario: ${user?.apellidoNombre || 'Invitado'}, Área: ${userArea || 'No definida'}`);
-
-        // Filtrar clases por fecha (no expiradas)
-        let clasesVisibles = clases.filter(clase => {
+        // Filtrar clases no expiradas
+        const clasesVisiblesPorFecha = clases.filter(clase => {
             const { cierre } = obtenerTimestampsClase(clase);
             if (!cierre) return true;
             return ahora < cierre;
         });
 
-        // ========== NUEVO: FILTRAR POR ÁREA DEL USUARIO ==========
-        if (userArea) {
+        console.log(`📊 Clases visibles por fecha: ${clasesVisiblesPorFecha.length}`);
+
+        // ========== FILTRAR POR ÁREA DEL USUARIO ==========
+        const user = authSystem.isLoggedIn() ? authSystem.getCurrentUser() : null;
+        const userArea = user?.area || null;
+        
+        console.log(`👤 Usuario: ${user?.apellidoNombre || 'Invitado'}, Área: ${userArea || 'No definida'}`);
+
+        let clasesVisibles = clasesVisiblesPorFecha;
+
+        if (userArea && userArea !== '') {
             console.log(`🔍 Filtrando clases para el área: "${userArea}"`);
             
-            clasesVisibles = clasesVisibles.filter(clase => {
+            clasesVisibles = clasesVisiblesPorFecha.filter(clase => {
                 // Si la clase no tiene área definida o es 'todas', se muestra (clase general)
                 if (!clase.area || clase.area === 'todas') {
                     console.log(`✅ Clase general: ${clase.nombre}`);
@@ -644,7 +647,11 @@
         console.log(`📊 Clases visibles después de filtrar por área: ${clasesVisibles.length}`);
 
         if (clasesVisibles.length === 0) {
-            gridContainer.innerHTML = '<div class="no-classes-message">No hay clases disponibles para tu área de trabajo en este momento.</div>';
+            if (userArea) {
+                gridContainer.innerHTML = `<div class="no-classes-message">No hay clases disponibles para el área "${userArea}" en este momento.</div>`;
+            } else {
+                gridContainer.innerHTML = '<div class="no-classes-message">No hay clases disponibles en este momento.</div>';
+            }
             clasesCargadas = true;
             await mostrarImagenMalvinas();
             return;
@@ -680,16 +687,16 @@
                 instructoresTexto = clase.instructores.join('<br>');
             }
 
-            // Mostrar el área de la clase (opcional, para debug)
+            // Mostrar badge del área (opcional)
             const areaBadge = (clase.area && clase.area !== 'todas') 
                 ? `<span class="class-area-badge" style="display: inline-block; background: #4a90e2; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-top: 5px;">👥 ${clase.area}</span>`
                 : '';
 
             htmlString += `
                 <div class="class-card" onclick="abrirModalClase('${clase._id}')">
-                    <h3>${clase.nombre}</h3>
+                    <h3>${escapeHtml(clase.nombre)}</h3>
                     <p>${instructoresTexto}</p>
-                    ${clase.lugar ? `<p><small class="class-lugar"> ${clase.lugar}</small></p>` : ''}
+                    ${clase.lugar ? `<p><small class="class-lugar"> ${escapeHtml(clase.lugar)}</small></p>` : ''}
                     <div class="class-datetime">
                         <span class="class-date">📅 ${fechaFormateada}</span>
                         <span class="class-time">⏰ ${horaInicio} hs</span>
@@ -707,6 +714,14 @@
         console.error('❌ Error cargando clases:', error);
         gridContainer.innerHTML = '<div class="error-message">Error al cargar las clases. Por favor, recargue la página.</div>';
     }
+}
+
+// Función auxiliar para escapar HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Después de la función cargarClasesPublicas, agregar:

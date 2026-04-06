@@ -1,4 +1,4 @@
-// clases-publicas.js - Versión con área de trabajo
+// clases-publicas.js - Versión con área de trabajo y logs
 console.log('📚 Módulo de Clases Públicas cargado (con área)');
 
 class ClasesPublicasManager {
@@ -22,18 +22,16 @@ class ClasesPublicasManager {
         
         if (!areaSelect && !filtroArea) return;
         
-        // Esperar a que window.area esté disponible
         const maxIntentos = 20;
         let intentos = 0;
         
-        while (!window.area && intentos < maxIntentos) {
+        while ((!window.area || Object.keys(window.area).length === 0) && intentos < maxIntentos) {
             await new Promise(resolve => setTimeout(resolve, 100));
             intentos++;
         }
         
         if (window.area && typeof window.area === 'object') {
             const areas = new Set();
-            areas.add('Todas las áreas'); // Opción general
             
             for (const categoria in window.area) {
                 if (Array.isArray(window.area[categoria])) {
@@ -46,58 +44,48 @@ class ClasesPublicasManager {
             }
             
             this.areasDisponibles = Array.from(areas).sort();
+            console.log('📋 Áreas encontradas:', this.areasDisponibles);
             
-            // Poblar select del formulario
             if (areaSelect) {
+                const currentValue = areaSelect.value;
                 areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
+                
                 this.areasDisponibles.forEach(area => {
-                    if (area !== 'Todas las áreas') {
-                        const option = document.createElement('option');
-                        option.value = area;
-                        option.textContent = area;
-                        areaSelect.appendChild(option);
-                    }
+                    const option = document.createElement('option');
+                    option.value = area;
+                    option.textContent = area;
+                    areaSelect.appendChild(option);
                 });
-                console.log(`✅ ${this.areasDisponibles.length} áreas cargadas en el selector`);
+                
+                if (currentValue && currentValue !== 'todas') {
+                    const optionExists = Array.from(areaSelect.options).some(opt => opt.value === currentValue);
+                    if (optionExists) areaSelect.value = currentValue;
+                }
+                
+                console.log('✅ Selector de áreas poblado. Opciones:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
             }
             
-            // Poblar select de filtro
             if (filtroArea) {
                 filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
                 this.areasDisponibles.forEach(area => {
-                    if (area !== 'Todas las áreas') {
-                        const option = document.createElement('option');
-                        option.value = area;
-                        option.textContent = area;
-                        filtroArea.appendChild(option);
-                    }
+                    const option = document.createElement('option');
+                    option.value = area;
+                    option.textContent = area;
+                    filtroArea.appendChild(option);
                 });
             }
         } else {
             console.warn('⚠️ window.area no disponible');
-            if (areaSelect) {
-                areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
-            }
-            if (filtroArea) {
-                filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
-            }
+            if (areaSelect) areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
+            if (filtroArea) filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
         }
     }
 
     setupEventListeners() {
         document.getElementById('claseForm')?.addEventListener('submit', (e) => this.guardarClase(e));
-        
-        document.getElementById('limpiarFormBtn')?.addEventListener('click', () => {
-            this.cancelarEdicion();
-        });
-        
-        document.getElementById('cancelEditBtn')?.addEventListener('click', () => {
-            this.cancelarEdicion();
-        });
-        
-        document.getElementById('refrescarClasesBtn')?.addEventListener('click', () => {
-            this.cargarDatos();
-        });
+        document.getElementById('limpiarFormBtn')?.addEventListener('click', () => this.cancelarEdicion());
+        document.getElementById('cancelEditBtn')?.addEventListener('click', () => this.cancelarEdicion());
+        document.getElementById('refrescarClasesBtn')?.addEventListener('click', () => this.cargarDatos());
         
         document.getElementById('buscarClase')?.addEventListener('input', (e) => {
             this.mostrarLista(e.target.value, 
@@ -111,7 +99,6 @@ class ClasesPublicasManager {
                 document.getElementById('filtroArea')?.value || 'todas');
         });
         
-        // NUEVO: Event listener para el filtro por área
         document.getElementById('filtroArea')?.addEventListener('change', (e) => {
             this.mostrarLista(document.getElementById('buscarClase')?.value || '',
                 document.getElementById('filtroVisibilidad')?.value || 'todas',
@@ -133,139 +120,118 @@ class ClasesPublicasManager {
     }
 
     mostrarLista(filtroTexto = '', filtroVisibilidad = 'todas', filtroArea = 'todas') {
-    const container = document.getElementById('clasesList');
-    if (!container) return;
+        const container = document.getElementById('clasesList');
+        if (!container) return;
 
-    let clasesFiltradas = this.data;
-    
-    // Filtrar por texto
-    if (filtroTexto) {
-        const termino = filtroTexto.toLowerCase();
-        clasesFiltradas = clasesFiltradas.filter(c => 
-            c.nombre?.toLowerCase().includes(termino) ||
-            c.descripcion?.toLowerCase().includes(termino) ||
-            (c.instructores && c.instructores.some(i => i.toLowerCase().includes(termino)))
-        );
-    }
-    
-    // Filtrar por visibilidad
-    if (filtroVisibilidad === 'publicadas') {
-        clasesFiltradas = clasesFiltradas.filter(c => c.publicada === true);
-    } else if (filtroVisibilidad === 'no-publicadas') {
-        clasesFiltradas = clasesFiltradas.filter(c => c.publicada === false);
-    }
-    
-    // CORREGIDO: Filtrar por área
-    if (filtroArea && filtroArea !== 'todas') {
-        console.log(`🔍 Filtrando por área: "${filtroArea}"`);
-        console.log('📊 Clases antes del filtro:', clasesFiltradas.length);
+        let clasesFiltradas = this.data;
         
-        clasesFiltradas = clasesFiltradas.filter(c => {
-            // Si la clase tiene área 'todas' o null/undefined, también se muestra (es general)
-            if (!c.area || c.area === 'todas') {
-                return true;
-            }
-            // Si el área de la clase coincide con el filtro
-            return c.area === filtroArea;
-        });
+        if (filtroTexto) {
+            const termino = filtroTexto.toLowerCase();
+            clasesFiltradas = clasesFiltradas.filter(c => 
+                c.nombre?.toLowerCase().includes(termino) ||
+                c.descripcion?.toLowerCase().includes(termino) ||
+                (c.instructores && c.instructores.some(i => i.toLowerCase().includes(termino)))
+            );
+        }
         
-        console.log('📊 Clases después del filtro:', clasesFiltradas.length);
-    }
-
-    if (clasesFiltradas.length === 0) {
-        container.innerHTML = `
-            <div class="empty-message">
-                No hay clases públicas para mostrar
-            </div>
-        `;
-        return;
-    }
-
-    clasesFiltradas.sort((a, b) => new Date(b.fechaClase) - new Date(a.fechaClase));
-
-    container.innerHTML = clasesFiltradas.map(clase => {
-        let fechaFormateada = 'N/A';
-        if (clase.fechaClase) {
-            const fecha = new Date(clase.fechaClase);
-            fechaFormateada = fecha.toLocaleString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
+        if (filtroVisibilidad === 'publicadas') {
+            clasesFiltradas = clasesFiltradas.filter(c => c.publicada === true);
+        } else if (filtroVisibilidad === 'no-publicadas') {
+            clasesFiltradas = clasesFiltradas.filter(c => c.publicada === false);
+        }
+        
+        if (filtroArea && filtroArea !== 'todas') {
+            console.log(`🔍 Filtrando por área: "${filtroArea}"`);
+            clasesFiltradas = clasesFiltradas.filter(c => {
+                if (!c.area || c.area === 'todas') return true;
+                return c.area === filtroArea;
             });
         }
-        
-        const estadoIcono = clase.publicada ? '✅' : '⏸️';
-        const estadoTexto = clase.publicada ? 'Publicada' : 'No publicada';
-        const estadoClass = clase.publicada ? 'publicada' : 'no-publicada';
-        
-        // Mostrar el área correctamente
-        let areaInfo = '';
-        if (!clase.area || clase.area === 'todas') {
-            areaInfo = '<div class="clase-area">🌍 Área: Todas las áreas</div>';
-        } else {
-            areaInfo = `<div class="clase-area">👥 Área: ${this.escapeHtml(clase.area)}</div>`;
-        }
-        
-        return `
-            <div class="clase-card ${estadoClass}">
-                <div class="clase-header">
-                    <span class="clase-titulo">${this.escapeHtml(clase.nombre)}</span>
-                    <span class="clase-estado ${estadoClass}">
-                        ${estadoIcono} ${estadoTexto}
-                    </span>
-                </div>
-                
-                ${clase.descripcion ? `<p class="clase-descripcion">${this.escapeHtml(clase.descripcion)}</p>` : ''}
-                
-                <div class="clase-detalles">
-                    <span>📅 ${fechaFormateada}</span>
-                    ${clase.instructores?.length ? `<span>👥 ${this.escapeHtml(clase.instructores.join(', '))}</span>` : ''}
-                    ${clase.lugar ? `<span>📍 ${this.escapeHtml(clase.lugar)}</span>` : ''}
-                </div>
-                
-                ${areaInfo}
-                
-                <div class="clase-enlaces">
-                    ${clase.enlaceFormulario ? `
-                        <a href="${clase.enlaceFormulario}" target="_blank" class="material-link" style="background: var(--accent-color); color: white;">
-                            📝 Formulario
-                        </a>
-                    ` : ''}
-                    ${!clase.enlaceFormulario ? 
-                        '<span class="sin-enlaces">Sin formulario asociado</span>' : ''}
-                </div>
-                
-                <div class="clase-acciones">
-                    <button class="btn-small btn-edit" onclick="clasesPublicasManager.editarClase('${clase._id}')">✏️ Editar</button>
-                    <button class="btn-small btn-danger" onclick="clasesPublicasManager.eliminarClase('${clase._id}')">🗑️ Eliminar</button>
-                    ${clase.publicada ? 
-                        `<button class="btn-small btn-warning" onclick="clasesPublicasManager.cambiarVisibilidad('${clase._id}', false)">⏸️ Ocultar</button>` :
-                        `<button class="btn-small btn-success" onclick="clasesPublicasManager.cambiarVisibilidad('${clase._id}', true)">✅ Publicar</button>`
-                    }
-                </div>
-            </div>
-        `;
-    }).join('');
-}
 
-// Agregar método auxiliar para escapar HTML
-escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+        if (clasesFiltradas.length === 0) {
+            container.innerHTML = `<div class="empty-message">No hay clases públicas para mostrar</div>`;
+            return;
+        }
+
+        clasesFiltradas.sort((a, b) => new Date(b.fechaClase) - new Date(a.fechaClase));
+
+        container.innerHTML = clasesFiltradas.map(clase => {
+            let fechaFormateada = 'N/A';
+            if (clase.fechaClase) {
+                const fecha = new Date(clase.fechaClase);
+                fechaFormateada = fecha.toLocaleString('es-AR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                });
+            }
+            
+            const estadoIcono = clase.publicada ? '✅' : '⏸️';
+            const estadoTexto = clase.publicada ? 'Publicada' : 'No publicada';
+            const estadoClass = clase.publicada ? 'publicada' : 'no-publicada';
+            
+            let areaInfo = '';
+            if (!clase.area || clase.area === 'todas') {
+                areaInfo = '<div class="clase-area">🌍 Área: Todas las áreas</div>';
+            } else {
+                areaInfo = `<div class="clase-area">👥 Área: ${this.escapeHtml(clase.area)}</div>`;
+            }
+            
+            return `
+                <div class="clase-card ${estadoClass}">
+                    <div class="clase-header">
+                        <span class="clase-titulo">${this.escapeHtml(clase.nombre)}</span>
+                        <span class="clase-estado ${estadoClass}">${estadoIcono} ${estadoTexto}</span>
+                    </div>
+                    ${clase.descripcion ? `<p class="clase-descripcion">${this.escapeHtml(clase.descripcion)}</p>` : ''}
+                    <div class="clase-detalles">
+                        <span>📅 ${fechaFormateada}</span>
+                        ${clase.instructores?.length ? `<span>👥 ${this.escapeHtml(clase.instructores.join(', '))}</span>` : ''}
+                        ${clase.lugar ? `<span>📍 ${this.escapeHtml(clase.lugar)}</span>` : ''}
+                    </div>
+                    ${areaInfo}
+                    <div class="clase-enlaces">
+                        ${clase.enlaceFormulario ? `<a href="${clase.enlaceFormulario}" target="_blank" class="material-link">📝 Formulario</a>` : '<span class="sin-enlaces">Sin formulario asociado</span>'}
+                    </div>
+                    <div class="clase-acciones">
+                        <button class="btn-small btn-edit" onclick="clasesPublicasManager.editarClase('${clase._id}')">✏️ Editar</button>
+                        <button class="btn-small btn-danger" onclick="clasesPublicasManager.eliminarClase('${clase._id}')">🗑️ Eliminar</button>
+                        ${clase.publicada ? 
+                            `<button class="btn-small btn-warning" onclick="clasesPublicasManager.cambiarVisibilidad('${clase._id}', false)">⏸️ Ocultar</button>` :
+                            `<button class="btn-small btn-success" onclick="clasesPublicasManager.cambiarVisibilidad('${clase._id}', true)">✅ Publicar</button>`
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
     async guardarClase(event) {
         event.preventDefault();
         
+        // ========== DIAGNÓSTICO ==========
+        console.log('🔍 ========== DIAGNÓSTICO DE ÁREA (Clases Públicas) ==========');
+        
+        const areaSelect = document.getElementById('claseArea');
+        let areaSeleccionada = 'todas';
+        
+        if (areaSelect) {
+            console.log('📌 Select de área encontrado');
+            console.log('📌 Valor ACTUAL del select:', areaSelect.value);
+            console.log('📌 Todas las opciones:');
+            Array.from(areaSelect.options).forEach(opt => {
+                console.log(`   - value: "${opt.value}", text: "${opt.text}"`);
+            });
+            areaSeleccionada = areaSelect.value;
+        } else {
+            console.error('❌ Select de área NO ENCONTRADO!');
+        }
+        
+        console.log('📌 Área seleccionada para guardar:', areaSeleccionada);
+        // ========== FIN DIAGNÓSTICO ==========
+        
         const nombre = document.getElementById('claseNombre')?.value.trim();
         const fecha = document.getElementById('claseFecha')?.value;
         const publicada = document.querySelector('input[name="visibilidad"]:checked')?.value === 'true';
-        const areaSeleccionada = document.getElementById('claseArea')?.value || 'todas';
         
         if (!nombre) {
             this.mostrarMensaje('❌ El nombre de la clase es obligatorio', 'error');
@@ -295,7 +261,7 @@ escapeHtml(text) {
             area: areaSeleccionada
         };
         
-        console.log('📤 Enviando datos al servidor:', claseData);
+        console.log('📤 ENVIANDO AL SERVIDOR:', JSON.stringify(claseData, null, 2));
         
         try {
             let response;
@@ -307,6 +273,8 @@ escapeHtml(text) {
                 this.mostrarMensaje('✅ Clase creada correctamente', 'success');
             }
             
+            console.log('✅ Respuesta del servidor:', response);
+            
             this.cancelarEdicion();
             await this.cargarDatos();
         } catch (error) {
@@ -316,68 +284,65 @@ escapeHtml(text) {
     }
 
     editarClase(id) {
-    const clase = this.data.find(c => c._id === id);
-    if (!clase) return;
+        const clase = this.data.find(c => c._id === id);
+        if (!clase) return;
 
-    this.editandoId = id;
-    
-    document.getElementById('claseNombre').value = clase.nombre || '';
-    document.getElementById('claseDescripcion').value = clase.descripcion || '';
-    
-    if (clase.fechaClase) {
-        const fecha = new Date(clase.fechaClase);
-        document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
-        document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
-    }
-    
-    document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
-    document.getElementById('claseLugar').value = clase.lugar || '';
-    document.getElementById('claseEnlaceFormulario').value = clase.enlaceFormulario || '';
-    
-    // CORREGIDO: Cargar el área seleccionada
-    const areaSelect = document.getElementById('claseArea');
-    if (areaSelect) {
-        const areaValue = clase.area || 'todas';
-        console.log(`📌 Cargando área: "${areaValue}" para la clase: ${clase.nombre}`);
+        this.editandoId = id;
         
-        // Buscar si la opción existe en el select
-        let optionExists = false;
-        for (let i = 0; i < areaSelect.options.length; i++) {
-            if (areaSelect.options[i].value === areaValue) {
-                optionExists = true;
-                break;
+        document.getElementById('claseNombre').value = clase.nombre || '';
+        document.getElementById('claseDescripcion').value = clase.descripcion || '';
+        
+        if (clase.fechaClase) {
+            const fecha = new Date(clase.fechaClase);
+            document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
+            document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
+        }
+        
+        document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
+        document.getElementById('claseLugar').value = clase.lugar || '';
+        document.getElementById('claseEnlaceFormulario').value = clase.enlaceFormulario || '';
+        
+        const areaSelect = document.getElementById('claseArea');
+        if (areaSelect) {
+            const areaValue = clase.area || 'todas';
+            console.log(`📌 Cargando área: "${areaValue}" para la clase: ${clase.nombre}`);
+            
+            let optionExists = false;
+            for (let i = 0; i < areaSelect.options.length; i++) {
+                if (areaSelect.options[i].value === areaValue) {
+                    optionExists = true;
+                    break;
+                }
             }
+            
+            if (optionExists) {
+                areaSelect.value = areaValue;
+            } else {
+                const newOption = document.createElement('option');
+                newOption.value = areaValue;
+                newOption.textContent = areaValue;
+                areaSelect.appendChild(newOption);
+                areaSelect.value = areaValue;
+                console.log(`⚠️ Opción "${areaValue}" no existía, fue agregada`);
+            }
+            
+            console.log(`✅ Área seleccionada: ${areaSelect.value}`);
         }
         
-        if (optionExists) {
-            areaSelect.value = areaValue;
+        const radioPublicada = document.querySelector('input[name="visibilidad"][value="true"]');
+        const radioNoPublicada = document.querySelector('input[name="visibilidad"][value="false"]');
+        if (clase.publicada) {
+            radioPublicada.checked = true;
         } else {
-            // Si no existe, agregar la opción dinámicamente
-            const newOption = document.createElement('option');
-            newOption.value = areaValue;
-            newOption.textContent = areaValue;
-            areaSelect.appendChild(newOption);
-            areaSelect.value = areaValue;
-            console.log(`⚠️ Opción "${areaValue}" no existía, fue agregada`);
+            radioNoPublicada.checked = true;
         }
         
-        console.log(`✅ Área seleccionada: ${areaSelect.value}`);
+        document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + clase.nombre;
+        document.getElementById('cancelEditBtn').style.display = 'inline-block';
+        document.getElementById('submitClaseBtn').textContent = '✏️ Actualizar Clase';
+        
+        document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
     }
-    
-    const radioPublicada = document.querySelector('input[name="visibilidad"][value="true"]');
-    const radioNoPublicada = document.querySelector('input[name="visibilidad"][value="false"]');
-    if (clase.publicada) {
-        radioPublicada.checked = true;
-    } else {
-        radioNoPublicada.checked = true;
-    }
-    
-    document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + clase.nombre;
-    document.getElementById('cancelEditBtn').style.display = 'inline-block';
-    document.getElementById('submitClaseBtn').textContent = '✏️ Actualizar Clase';
-    
-    document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
-}
 
     cancelarEdicion() {
         this.editandoId = null;
@@ -391,7 +356,6 @@ escapeHtml(text) {
         document.getElementById('claseForm').reset();
         document.getElementById('claseHora').value = '10:00';
         
-        // Resetear área a 'todas'
         const areaSelect = document.getElementById('claseArea');
         if (areaSelect) areaSelect.value = 'todas';
         
@@ -401,7 +365,6 @@ escapeHtml(text) {
 
     async eliminarClase(id) {
         if (!confirm('¿Está seguro de eliminar esta clase?')) return;
-
         try {
             await authSystem.makeRequest(`/clases-publicas/${id}`, null, 'DELETE');
             this.mostrarMensaje('✅ Clase eliminada correctamente', 'success');
@@ -412,9 +375,6 @@ escapeHtml(text) {
     }
 
     async cambiarVisibilidad(id, publicada) {
-        const clase = this.data.find(c => c._id === id);
-        if (!clase) return;
-
         try {
             await authSystem.makeRequest(`/clases-publicas/${id}/visibilidad`, { publicada }, 'PUT');
             this.mostrarMensaje(`✅ Clase ${publicada ? 'publicada' : 'ocultada'} correctamente`, 'success');
@@ -441,10 +401,7 @@ escapeHtml(text) {
         msg.textContent = texto;
         msg.className = `message ${tipo}`;
         msg.style.display = 'block';
-        
-        setTimeout(() => {
-            msg.style.display = 'none';
-        }, 3000);
+        setTimeout(() => msg.style.display = 'none', 3000);
     }
 
     ocultarMensaje() {
@@ -454,12 +411,15 @@ escapeHtml(text) {
     mostrarError() {
         const container = document.getElementById('clasesList');
         if (container) {
-            container.innerHTML = `
-                <div class="error-message">
-                    ⚠️ Error al cargar las clases públicas
-                </div>
-            `;
+            container.innerHTML = `<div class="error-message">⚠️ Error al cargar las clases públicas</div>`;
         }
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
