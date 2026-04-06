@@ -18,7 +18,7 @@ if (versionBeta == true) {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.0-BETA';
+        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.1.2';
         
     }
 }
@@ -39,7 +39,7 @@ else {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://aula-enfermeria-beta.vercel.app/index.html" style="color: #667eea; text-decoration: none;">Ir a la versión BETA del sistema.</a>' + '<br>' + '<span style="color: #2d5a5a; font-weight: bold;">Versión:</span> 3.0.0';
+        footer.innerHTML = '<a href="https://aula-enfermeria-beta.vercel.app/index.html" style="color: #667eea; text-decoration: none;">Ir a la versión BETA del sistema.</a>' + '<br>' + '<span style="color: #2d5a5a; font-weight: bold;">Versión:</span> 3.1';
     }
 }
 
@@ -60,11 +60,51 @@ class AuthSystem {
         if (savedUser) {
             this.currentUser = JSON.parse(savedUser);
             console.log('Usuario encontrado en localStorage:', this.currentUser);
+            
+            // ✅ Verificar sesión UNA sola vez al cargar la página
+            await this.validateSessionOnce();
+            
             setTimeout(() => {
                 this.checkMigrationNeeded();
             }, 500);
         } else {
             console.log('No hay usuario en localStorage');
+        }
+    }
+
+    // ✅ Validar sesión UNA sola vez - Cierre automático silencioso
+    async validateSessionOnce() {
+        if (!this.isLoggedIn() || !this.currentUser) {
+            return;
+        }
+        
+        try {
+            const lastPasswordChange = this.currentUser.lastPasswordChange || null;
+            
+            const response = await fetch('/api/auth/validate-session', {
+                method: 'GET',
+                headers: {
+                    'user-id': this.currentUser._id,
+                    'last-password-change': lastPasswordChange || ''
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                // Si la sesión es inválida, cerrar sesión automáticamente (sin alerta)
+                if (!result.success || !result.data?.sessionValid) {
+                    console.log('🔒 Sesión inválida detectada - Cerrando sesión automáticamente');
+                    this.logout();
+                    window.location.reload();
+                } else {
+                    console.log('✅ Sesión válida');
+                }
+            }
+            
+        } catch (error) {
+            // Error de red - no hacer nada, mantener sesión
+            console.log('⚠️ No se pudo validar la sesión:', error.message);
         }
     }
 
@@ -178,7 +218,8 @@ class AuthSystem {
             console.log('📊 Estado de migración:', {
                 needsPasswordChange: this.currentUser.needsPasswordChange,
                 passwordAlreadyUpdated: this.currentUser.passwordAlreadyUpdated,
-                area: this.currentUser.area
+                area: this.currentUser.area,
+                lastPasswordChange: this.currentUser.lastPasswordChange
             });
             
             setTimeout(() => {
