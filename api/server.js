@@ -111,6 +111,7 @@ app.get('/api/debug/routes', (req, res) => {
             '/api/auth/login (POST)',
             '/api/auth/register (POST)',
             '/api/auth/check-legajo/:legajo',
+            '/api/auth/validate-session (GET)',
             '/api/inscripciones',
             '/api/inscripciones/verificar/:usuarioId/:clase',
             '/api/material/solicitudes',
@@ -148,6 +149,71 @@ app.get('/api/env-check', (req, res) => {
         MONGODB_URI_LOGS: process.env.MONGODB_URI_LOGS ? 'DEFINED' : 'NOT DEFINED',
         NODE_ENV: process.env.NODE_ENV || 'development'
     });
+});
+
+// ==================== ENDPOINT DE VALIDACIÓN DE SESIÓN ====================
+// GET - Validar que la sesión del usuario sigue siendo válida
+app.get('/api/auth/validate-session', async (req, res) => {
+    try {
+        const userId = req.headers['user-id'];
+        const clientLastPasswordChange = req.headers['last-password-change'];
+        
+        if (!userId || !ObjectId.isValid(userId)) {
+            return res.json({
+                success: true,
+                data: { sessionValid: false }
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne(
+            { _id: new ObjectId(userId) },
+            { projection: { 
+                fechaActualizacionPassword: 1, 
+                passwordUpdatedAt: 1, 
+                ultimoCambioPassword: 1
+            } }
+        );
+        
+        if (!usuario) {
+            return res.json({
+                success: true,
+                data: { sessionValid: false }
+            });
+        }
+        
+        // Obtener la fecha del último cambio de contraseña
+        const serverLastPasswordChange = usuario.fechaActualizacionPassword || 
+                                         usuario.passwordUpdatedAt || 
+                                         usuario.ultimoCambioPassword || 
+                                         null;
+        
+        // Si el cliente no tiene fecha de último cambio o es diferente a la del servidor
+        const passwordChanged = clientLastPasswordChange && serverLastPasswordChange && 
+                                new Date(clientLastPasswordChange).getTime() !== new Date(serverLastPasswordChange).getTime();
+        
+        if (passwordChanged) {
+            console.log('⚠️ Contraseña cambiada - Cerrando sesión automáticamente');
+            return res.json({
+                success: true,
+                data: { sessionValid: false }
+            });
+        }
+        
+        // Sesión válida
+        res.json({
+            success: true,
+            data: { sessionValid: true }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error validando sesión:', error);
+        res.json({
+            success: true,
+            data: { sessionValid: true } // Por defecto asumir válida para no bloquear
+        });
+    }
 });
 
 // ==================== RUTAS DE AUTENTICACIÓN ====================
@@ -198,12 +264,19 @@ app.post('/api/auth/login', async (req, res) => {
         // Remover password de la respuesta
         const { password: _, ...usuarioSinPassword } = usuario;
         
+        // Obtener la fecha del último cambio de contraseña
+        const lastPasswordChange = usuario.fechaActualizacionPassword || 
+                                   usuario.passwordUpdatedAt || 
+                                   usuario.ultimoCambioPassword || 
+                                   null;
+        
         res.json({ 
             success: true, 
             message: 'Login exitoso', 
             data: {
                 ...usuarioSinPassword,
-                needsMigration: needsMigration  // Indicar si necesita migración
+                needsMigration: needsMigration,
+                lastPasswordChange: lastPasswordChange
             }
         });
 
@@ -261,6 +334,7 @@ app.post('/api/auth/register', async (req, res) => {
         
         // Usar scrypt para hashear
         const hashedPassword = hashPasswordScrypt(password);
+        const ahora = new Date();
         
         // Crear nuevo usuario
         const nuevoUsuario = {
@@ -271,7 +345,10 @@ app.post('/api/auth/register', async (req, res) => {
             email,
             password: hashedPassword,
             role,
-            fechaRegistro: new Date()
+            fechaRegistro: ahora,
+            fechaActualizacionPassword: ahora,
+            passwordUpdatedAt: ahora,
+            ultimoCambioPassword: ahora
         };
         
         const result = await db.collection('usuarios').insertOne(nuevoUsuario);
@@ -666,7 +743,6 @@ app.post('/api/clases-historicas', async (req, res) => {
         let estadoFinal = estado || 'activa';
         const activaBool = estadoFinal === 'activa' || estadoFinal === 'publicada';
         
-        // ✅ Asegurar que el área se guarda
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD (histórica):', areaFinal);
         
@@ -748,7 +824,6 @@ app.put('/api/clases-historicas/:id', async (req, res) => {
         let estadoFinal = estado || 'activa';
         const activaBool = estadoFinal === 'activa' || estadoFinal === 'publicada';
         
-        // ✅ Asegurar que el área se actualiza
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD (histórica):', areaFinal);
         
@@ -1029,6 +1104,7 @@ app.post('/api/admin/usuarios', async (req, res) => {
         
         // Usar scrypt
         const hashedPassword = hashPasswordScrypt(password);
+        const ahora = new Date();
         
         const nuevoUsuario = {
             apellidoNombre,
@@ -1038,7 +1114,10 @@ app.post('/api/admin/usuarios', async (req, res) => {
             email,
             password: hashedPassword,
             role,
-            fechaRegistro: new Date()
+            fechaRegistro: ahora,
+            fechaActualizacionPassword: ahora,
+            passwordUpdatedAt: ahora,
+            ultimoCambioPassword: ahora
         };
         
         const result = await db.collection('usuarios').insertOne(nuevoUsuario);
@@ -1127,12 +1206,16 @@ app.put('/api/admin/usuarios/:id/password', async (req, res) => {
         
         // Usar scrypt
         const hashedPassword = hashPasswordScrypt(newPassword);
+        const ahora = new Date();
         
         const result = await db.collection('usuarios').updateOne(
             { _id: new ObjectId(id) },
             { $set: { 
                 password: hashedPassword,
-                fechaActualizacion: new Date()
+                fechaActualizacionPassword: ahora,
+                passwordUpdatedAt: ahora,
+                ultimoCambioPassword: ahora,
+                fechaActualizacion: ahora
             } }
         );
         
@@ -1408,7 +1491,6 @@ app.post('/api/clases-publicas', async (req, res) => {
             fecha = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
-        // ✅ Asegurar que el área se guarda correctamente
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD:', areaFinal);
         
@@ -1491,7 +1573,6 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
             fecha = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
-        // ✅ Asegurar que el área se actualiza correctamente
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD:', areaFinal);
         
@@ -1698,6 +1779,9 @@ app.put('/api/usuarios/perfil', async (req, res) => {
             }
             // Usar scrypt para nueva contraseña
             updateData.password = hashPasswordScrypt(password);
+            updateData.fechaActualizacionPassword = new Date();
+            updateData.passwordUpdatedAt = new Date();
+            updateData.ultimoCambioPassword = new Date();
         }
         
         await db.collection('usuarios').updateOne(
@@ -1815,6 +1899,9 @@ app.post('/api/usuarios/migrar', async (req, res) => {
             }
             
             updateData.password = hashPasswordScrypt(passwordToHash);
+            updateData.fechaActualizacionPassword = new Date();
+            updateData.passwordUpdatedAt = new Date();
+            updateData.ultimoCambioPassword = new Date();
             console.log('✅ Contraseña migrada a scrypt');
         }
         
@@ -2716,7 +2803,7 @@ app.post('/api/reports', async (req, res) => {
             url: url || 'unknown',
             userAgent: userAgent || 'unknown',
             ip: ip,
-            estado: 'pendiente',  // pendiente, en_revision, resuelto, cerrado
+            estado: 'pendiente',
             fechaCreacion: new Date(),
             fechaActualizacion: new Date()
         };
@@ -2861,7 +2948,7 @@ app.get('/api/reports/:id', async (req, res) => {
                     _id: reporte.usuarioId 
                 });
                 if (userLogs && userLogs.logs) {
-                    browserLogs = userLogs.logs.slice(-100); // Últimos 100 logs
+                    browserLogs = userLogs.logs.slice(-100);
                 }
             } catch (e) {
                 console.warn('No se pudieron obtener logs del navegador:', e.message);
@@ -3028,12 +3115,33 @@ app.get('/api/init-db', async (req, res) => {
         );
         console.log(`✅ Campo area inicializado en usuarios existentes: ${resultadoArea.modifiedCount} actualizados`);
 
+        // Migración: agregar campos de fecha de cambio de contraseña a usuarios existentes
+        const ahora = new Date();
+        const resultadoPasswordDate = await usuarios.updateMany(
+            { 
+                $or: [
+                    { fechaActualizacionPassword: { $exists: false } },
+                    { passwordUpdatedAt: { $exists: false } },
+                    { ultimoCambioPassword: { $exists: false } }
+                ]
+            },
+            { 
+                $set: { 
+                    fechaActualizacionPassword: ahora,
+                    passwordUpdatedAt: ahora,
+                    ultimoCambioPassword: ahora
+                } 
+            }
+        );
+        console.log(`✅ Campos de fecha de contraseña inicializados: ${resultadoPasswordDate.modifiedCount} usuarios actualizados`);
+
         res.json({ 
             success: true, 
             message: 'Base de datos inicializada correctamente',
             collections: collections,
             migraciones: {
-                area: resultadoArea.modifiedCount
+                area: resultadoArea.modifiedCount,
+                passwordDate: resultadoPasswordDate.modifiedCount
             }
         });
         
