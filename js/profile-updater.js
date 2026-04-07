@@ -573,8 +573,12 @@ if (logoutBtn) {
             window.location.href = '/reports.html';
         };
         
-        // Agregar al final de userActions
-        userActions.appendChild(viewReportsBtn);
+        const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    userActions.insertBefore(viewReportsBtn, logoutBtn);
+} else {
+    userActions.appendChild(viewReportsBtn);
+}
     }
 }
   
