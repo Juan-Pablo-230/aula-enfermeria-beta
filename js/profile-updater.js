@@ -458,9 +458,7 @@ showUserInfo() {
         }
     }
 
-    // /js/profile-updater.js - Método showReportButtons con posición corregida
-
-showReportButtons(userActions) {
+    showReportButtons(userActions) {
     // Esperar a que authSystem esté listo
     if (!authSystem || !authSystem.getCurrentUser()) {
         console.log('⏳ Esperando authSystem para mostrar botones de reportes');
@@ -488,6 +486,10 @@ showReportButtons(userActions) {
     // Si no hay botones que mostrar, salir
     if (!showReportBtn && !showViewReportsBtn) return;
     
+    // Obtener el botón "Mi perfil" para insertar después de él
+    const updateProfileBtn = document.getElementById('updateProfileBtn');
+    if (!updateProfileBtn) return;
+    
     // Crear contenedor para botones de reportes
     const reportContainer = document.createElement('div');
     reportContainer.className = 'report-buttons-container';
@@ -499,22 +501,10 @@ showReportButtons(userActions) {
     if (showReportBtn) {
         const reportBtn = document.createElement('button');
         reportBtn.id = 'reportErrorBtn';
-        reportBtn.className = 'report-error-btn';
+        reportBtn.className = 'report-error-btn';  // Usar la clase CSS
         reportBtn.innerHTML = '🐛 Reportar un error';
-        reportBtn.style.cssText = `
-            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        `;
+        reportBtn.title = 'Reportar un problema técnico';
+        
         reportBtn.onmouseover = () => {
             reportBtn.style.transform = 'translateY(-2px)';
             reportBtn.style.boxShadow = '0 4px 12px rgba(243, 156, 18, 0.4)';
@@ -534,22 +524,10 @@ showReportButtons(userActions) {
     if (showViewReportsBtn) {
         const viewReportsBtn = document.createElement('button');
         viewReportsBtn.id = 'viewReportsBtn';
-        viewReportsBtn.className = 'view-reports-btn';
+        viewReportsBtn.className = 'view-reports-btn';  // Usar la clase CSS
         viewReportsBtn.innerHTML = '📋 Ver reportes';
-        viewReportsBtn.style.cssText = `
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        `;
+        viewReportsBtn.title = 'Ver todos los reportes de errores';
+        
         viewReportsBtn.onmouseover = () => {
             viewReportsBtn.style.transform = 'translateY(-2px)';
             viewReportsBtn.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.4)';
@@ -565,19 +543,17 @@ showReportButtons(userActions) {
         reportContainer.appendChild(viewReportsBtn);
     }
     
-    // ============================================
-    // IMPORTANTE: Insertar DESPUÉS del botón "Mi perfil"
-    // y ANTES del botón "Calendario Educativo"
-    // ============================================
-    const updateProfileBtn = document.getElementById('updateProfileBtn');
-    if (updateProfileBtn && updateProfileBtn.parentNode) {
+    // Insertar el contenedor después del botón "Mi perfil" (dentro de userActions)
+    // Buscar el elemento correcto donde insertar
+    const parentElement = updateProfileBtn.parentNode;
+    if (parentElement) {
         // Insertar el contenedor después del botón "Mi perfil"
-        updateProfileBtn.parentNode.insertBefore(reportContainer, updateProfileBtn.nextSibling);
+        parentElement.insertBefore(reportContainer, updateProfileBtn.nextSibling);
     } else {
         // Fallback: agregar al final de userActions
         userActions.appendChild(reportContainer);
     }
-    }
+}
   
   // /js/profile-updater.js - Método showReportModal modificado
 

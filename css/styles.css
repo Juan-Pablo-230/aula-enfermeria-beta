@@ -1159,6 +1159,91 @@ body {
     transform: translateY(0);
 }
 
+/* ===== BOTONES DE REPORTES ===== */
+.report-buttons-container {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 10px;
+}
+
+/* Botón Reportar error (color naranja) */
+.report-error-btn {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.report-error-btn:hover {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Botón Ver reportes (color azul) */
+.view-reports-btn {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.view-reports-btn:hover {
+    background: linear-gradient(135deg, #2980b9 0%, #1a6fa0 100%);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .report-buttons-container {
+        display: flex;
+        flex-wrap: wrap;
+        margin-left: 0;
+        margin-top: 8px;
+        justify-content: center;
+    }
+    
+    .report-error-btn, 
+    .view-reports-btn {
+        padding: 10px 14px;
+        font-size: 0.9em;
+        flex: 1;
+        min-width: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .report-error-btn, 
+    .view-reports-btn {
+        padding: 8px 12px;
+        font-size: 0.85em;
+        min-width: 120px;
+    }
+}
+
 /* Ajustes responsivos para móviles */
 @media (max-width: 768px) {
     .report-buttons-container {
