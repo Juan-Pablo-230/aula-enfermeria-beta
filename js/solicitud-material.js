@@ -161,46 +161,75 @@ class MaterialHistorico {
     }
 
     async cargarClasesHistoricas() {
-        try {
-            console.log('📥 Cargando clases desde MongoDB.');
-            
-            const user = getCurrentUserSafe();
-            if (!user) {
-                throw new Error('Usuario no disponible');
-            }
-
-            const response = await fetch(`${this.apiBaseUrl}/clases-historicas`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'user-id': user._id
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.success && result.data) {
-                this.clasesHistoricas = result.data.filter(clase => 
-                    clase.estado === 'publicada' || 
-                    (clase.activa === true && !clase.estado)
-                );
-                
-                console.log(`✅ ${this.clasesHistoricas.length} clases publicadas cargadas`);
-                
-                this.procesarAnosDisponibles();
-                this.llenarSelectorAnos();
-            } else {
-                throw new Error('Se recibió una respuesta inválida del servidor');
-            }
-            
-        } catch (error) {
-            console.error('❌ Error cargando clases:', error);
-            this.mostrarMensaje('Error al cargar clases. Verifique su conexión.', 'error');
+    try {
+        console.log('📥 Cargando clases desde MongoDB.');
+        
+        const user = getCurrentUserSafe();
+        if (!user) {
+            throw new Error('Usuario no disponible');
         }
+
+        const response = await fetch(`${this.apiBaseUrl}/clases-historicas`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'user-id': user._id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            // Obtener todas las clases publicadas/activas
+            let todasClases = result.data.filter(clase => 
+                clase.estado === 'publicada' || 
+                (clase.activa === true && !clase.estado)
+            );
+            
+            // ========== NUEVO: FILTRAR POR ÁREA DEL USUARIO ==========
+            const userArea = user.area || null;
+            
+            console.log(`👤 Usuario: ${user.apellidoNombre}, Área: ${userArea || 'No definida'}`);
+            
+            if (userArea && userArea !== '') {
+                console.log(`🔍 Filtrando clases históricas para el área: "${userArea}"`);
+                
+                this.clasesHistoricas = todasClases.filter(clase => {
+                    // Si la clase no tiene área definida o es 'todas', se muestra (clase general)
+                    if (!clase.area || clase.area === 'todas') {
+                        console.log(`✅ Clase general: ${clase.nombre}`);
+                        return true;
+                    }
+                    // Si el área de la clase coincide con el área del usuario
+                    const coincide = clase.area === userArea;
+                    if (coincide) {
+                        console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
+                    } else {
+                        console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
+                    }
+                    return coincide;
+                });
+            } else {
+                console.log('👤 Usuario sin área definida - Mostrando todas las clases históricas');
+                this.clasesHistoricas = todasClases;
+            }
+            
+            console.log(`✅ ${this.clasesHistoricas.length} clases publicadas cargadas (filtradas por área)`);
+            
+            this.procesarAnosDisponibles();
+            this.llenarSelectorAnos();
+        } else {
+            throw new Error('Se recibió una respuesta inválida del servidor');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando clases:', error);
+        this.mostrarMensaje('Error al cargar clases. Verifique su conexión.', 'error');
     }
+}
 
     procesarAnosDisponibles() {
         const anos = new Set();
@@ -313,42 +342,44 @@ class MaterialHistorico {
     }
 
     filtrarClasesPorMes() {
-        const selectClase = document.getElementById('claseSeleccionada');
-        const form = document.getElementById('materialHistoricoForm');
-        const sinClasesMensaje = document.getElementById('sinClasesMensaje');
-        const buscadorContainer = document.getElementById('buscadorClasesContainer');
-        
-        if (!this.anoSeleccionado || !this.mesSeleccionado) {
-            if (form) form.style.display = 'none';
-            if (sinClasesMensaje) sinClasesMensaje.style.display = 'none';
-            if (buscadorContainer) buscadorContainer.style.display = 'none';
-            return;
-        }
-        
-        this.clasesFiltradas = this.clasesHistoricas.filter(clase => {
-            if (!clase.fechaClase) return false;
-            const fecha = new Date(clase.fechaClase);
-            const pasaAno = this.anoSeleccionado === 'todos' || fecha.getFullYear() === parseInt(this.anoSeleccionado);
-            const pasaMes = this.mesSeleccionado === 'todos' || fecha.getMonth() === parseInt(this.mesSeleccionado);
-            return pasaAno && pasaMes;
-        });
-        
-        console.log(`🔍 ${this.clasesFiltradas.length} clases encontradas`);
-        
-        if (this.clasesFiltradas.length === 0) {
-            if (form) form.style.display = 'none';
-            if (buscadorContainer) buscadorContainer.style.display = 'none';
-            if (sinClasesMensaje) sinClasesMensaje.style.display = 'block';
-            return;
-        }
-        
+    const selectClase = document.getElementById('claseSeleccionada');
+    const form = document.getElementById('materialHistoricoForm');
+    const sinClasesMensaje = document.getElementById('sinClasesMensaje');
+    const buscadorContainer = document.getElementById('buscadorClasesContainer');
+    
+    if (!this.anoSeleccionado || !this.mesSeleccionado) {
+        if (form) form.style.display = 'none';
         if (sinClasesMensaje) sinClasesMensaje.style.display = 'none';
-        if (form) form.style.display = 'block';
-        if (buscadorContainer) buscadorContainer.style.display = 'block';
-        
-        this.llenarSelectClases();
-        this.configurarBuscadorClases();
+        if (buscadorContainer) buscadorContainer.style.display = 'none';
+        return;
     }
+    
+    // Ya tenemos this.clasesHistoricas pre-filtradas por área
+    // Ahora aplicamos filtro adicional por año y mes
+    this.clasesFiltradas = this.clasesHistoricas.filter(clase => {
+        if (!clase.fechaClase) return false;
+        const fecha = new Date(clase.fechaClase);
+        const pasaAno = this.anoSeleccionado === 'todos' || fecha.getFullYear() === parseInt(this.anoSeleccionado);
+        const pasaMes = this.mesSeleccionado === 'todos' || fecha.getMonth() === parseInt(this.mesSeleccionado);
+        return pasaAno && pasaMes;
+    });
+    
+    console.log(`🔍 ${this.clasesFiltradas.length} clases encontradas (filtradas por año/mes sobre área restringida)`);
+    
+    if (this.clasesFiltradas.length === 0) {
+        if (form) form.style.display = 'none';
+        if (buscadorContainer) buscadorContainer.style.display = 'none';
+        if (sinClasesMensaje) sinClasesMensaje.style.display = 'block';
+        return;
+    }
+    
+    if (sinClasesMensaje) sinClasesMensaje.style.display = 'none';
+    if (form) form.style.display = 'block';
+    if (buscadorContainer) buscadorContainer.style.display = 'block';
+    
+    this.llenarSelectClases();
+    this.configurarBuscadorClases();
+}
 
     configurarBuscadorClases() {
         const buscador = document.getElementById('buscadorClases');
