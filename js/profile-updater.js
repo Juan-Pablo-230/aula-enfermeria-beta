@@ -525,8 +525,14 @@ showReportButtons(userActions) {
             this.showReportModal();
         };
         
-        // Agregar al final de userActions (después del botón de calendario)
-        userActions.appendChild(reportBtn);
+        const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    // Insertar ANTES del botón de cerrar sesión
+    userActions.insertBefore(reportBtn, logoutBtn);
+} else {
+    userActions.appendChild(reportBtn);
+}
+
     }
     
     // Botón "Ver reportes" (solo para advanced y admin)
