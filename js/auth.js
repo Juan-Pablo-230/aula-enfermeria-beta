@@ -18,7 +18,7 @@ if (versionBeta == true) {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.1.2';
+        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.2.1';
         
     }
 }
@@ -39,7 +39,7 @@ else {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://aula-enfermeria-beta.vercel.app/index.html" style="color: #667eea; text-decoration: none;">Ir a la versión BETA del sistema.</a>' + '<br>' + '<span style="color: #2d5a5a; font-weight: bold;">Versión:</span> 3.1';
+        footer.innerHTML = '<a href="https://aula-enfermeria-beta.vercel.app/index.html" style="color: #667eea; text-decoration: none;">Ir a la versión BETA del sistema.</a>' + '<br>' + '<span style="color: #2d5a5a; font-weight: bold;">Versión:</span> 3.2';
     }
 }
 

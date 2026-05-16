@@ -1,4 +1,3 @@
-<!-- clases-publicas.html - Versión con selector de área -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -65,6 +64,14 @@
                     </div>
                 </div>
                 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha y hora de cierre de inscripción *</label>
+                        <input type="datetime-local" id="claseFechaCierre" required class="form-control">
+                        <small class="field-info">Los usuarios NO podrán inscribirse después de esta fecha/hora</small>
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label>Descripción</label>
                     <textarea id="claseDescripcion" rows="2" class="form-control" placeholder="Breve descripción de la clase..."></textarea>
@@ -83,7 +90,7 @@
                     </div>
                 </div>
                 
-                <!-- NUEVO: Selector de Área de trabajo -->
+                <!-- Selector de Área de trabajo -->
                 <div class="form-group">
                     <label>👥 Orientada al área:</label>
                     <select id="claseArea" class="form-control">
@@ -92,7 +99,7 @@
                     <small class="field-info">Seleccione el área específica a la que va dirigida esta clase, o "Todas las áreas" si es general.</small>
                 </div>
                 
-                <!-- Visibilidad de la clase - Estilo como estado-opciones de gestion-clases -->
+                <!-- Visibilidad de la clase -->
                 <div class="form-group">
                     <label>Visibilidad en página principal <span class="required">*</span></label>
                     <div class="visibilidad-opciones">
@@ -134,7 +141,6 @@
                         <option value="publicadas">✅ Publicadas</option>
                         <option value="no-publicadas">⏸️ No publicadas</option>
                     </select>
-                    <!-- NUEVO: Filtro por área -->
                     <select id="filtroArea" class="filtro-select">
                         <option value="todas">🌍 Todas las áreas</option>
                     </select>

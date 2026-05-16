@@ -1,5 +1,4 @@
-// clases-publicas.js - Versión con área de trabajo y logs
-console.log('📚 Módulo de Clases Públicas cargado (con área)');
+console.log('📚 Módulo de Clases Públicas cargado (con área y cierre manual)');
 
 class ClasesPublicasManager {
     constructor() {
@@ -165,6 +164,15 @@ class ClasesPublicasManager {
                 });
             }
             
+            let cierreFormateado = 'No definido';
+            if (clase.fechaCierre) {
+                const fechaCierre = new Date(clase.fechaCierre);
+                cierreFormateado = fechaCierre.toLocaleString('es-AR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                });
+            }
+            
             const estadoIcono = clase.publicada ? '✅' : '⏸️';
             const estadoTexto = clase.publicada ? 'Publicada' : 'No publicada';
             const estadoClass = clase.publicada ? 'publicada' : 'no-publicada';
@@ -185,6 +193,7 @@ class ClasesPublicasManager {
                     ${clase.descripcion ? `<p class="clase-descripcion">${this.escapeHtml(clase.descripcion)}</p>` : ''}
                     <div class="clase-detalles">
                         <span>📅 ${fechaFormateada}</span>
+                        <span>🔒 Cierre: ${cierreFormateado}</span>
                         ${clase.instructores?.length ? `<span>👥 ${this.escapeHtml(clase.instructores.join(', '))}</span>` : ''}
                         ${clase.lugar ? `<span>📍 ${this.escapeHtml(clase.lugar)}</span>` : ''}
                     </div>
@@ -231,6 +240,7 @@ class ClasesPublicasManager {
         
         const nombre = document.getElementById('claseNombre')?.value.trim();
         const fecha = document.getElementById('claseFecha')?.value;
+        const fechaCierre = document.getElementById('claseFechaCierre')?.value;
         const publicada = document.querySelector('input[name="visibilidad"]:checked')?.value === 'true';
         
         if (!nombre) {
@@ -243,8 +253,21 @@ class ClasesPublicasManager {
             return;
         }
         
+        if (!fechaCierre) {
+            this.mostrarMensaje('❌ La fecha y hora de cierre es obligatoria', 'error');
+            return;
+        }
+        
         const hora = document.getElementById('claseHora')?.value || '10:00';
         const fechaCompleta = `${fecha}T${hora}:00`;
+        
+        // Validar que fechaCierre sea posterior a fechaClase
+        const fechaClaseObj = new Date(fechaCompleta);
+        const fechaCierreObj = new Date(fechaCierre);
+        if (fechaCierreObj <= fechaClaseObj) {
+            this.mostrarMensaje('❌ La fecha de cierre debe ser posterior a la fecha/hora de la clase', 'error');
+            return;
+        }
         
         const instructores = document.getElementById('claseInstructores')?.value
             ? document.getElementById('claseInstructores').value.split(',').map(i => i.trim()).filter(i => i)
@@ -254,6 +277,7 @@ class ClasesPublicasManager {
             nombre: nombre,
             descripcion: document.getElementById('claseDescripcion')?.value || '',
             fechaClase: fechaCompleta,
+            fechaCierre: fechaCierre,
             instructores: instructores,
             lugar: document.getElementById('claseLugar')?.value || '',
             enlaceFormulario: document.getElementById('claseEnlaceFormulario')?.value || '',
@@ -296,6 +320,27 @@ class ClasesPublicasManager {
             const fecha = new Date(clase.fechaClase);
             document.getElementById('claseFecha').value = fecha.toISOString().split('T')[0];
             document.getElementById('claseHora').value = fecha.toTimeString().slice(0, 5);
+        }
+        
+        // Cargar fecha de cierre
+        if (clase.fechaCierre) {
+            const fechaCierre = new Date(clase.fechaCierre);
+            const year = fechaCierre.getFullYear();
+            const month = String(fechaCierre.getMonth() + 1).padStart(2, '0');
+            const day = String(fechaCierre.getDate()).padStart(2, '0');
+            const hours = String(fechaCierre.getHours()).padStart(2, '0');
+            const minutes = String(fechaCierre.getMinutes()).padStart(2, '0');
+            document.getElementById('claseFechaCierre').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        } else {
+            // Si no tiene fechaCierre, establecer un valor por defecto (1 hora después de la clase)
+            const fechaClase = new Date(clase.fechaClase);
+            const defaultCierre = new Date(fechaClase.getTime() + 60 * 60 * 1000);
+            const year = defaultCierre.getFullYear();
+            const month = String(defaultCierre.getMonth() + 1).padStart(2, '0');
+            const day = String(defaultCierre.getDate()).padStart(2, '0');
+            const hours = String(defaultCierre.getHours()).padStart(2, '0');
+            const minutes = String(defaultCierre.getMinutes()).padStart(2, '0');
+            document.getElementById('claseFechaCierre').value = `${year}-${month}-${day}T${hours}:${minutes}`;
         }
         
         document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
@@ -355,6 +400,16 @@ class ClasesPublicasManager {
     limpiarFormulario() {
         document.getElementById('claseForm').reset();
         document.getElementById('claseHora').value = '10:00';
+        
+        // Establecer fecha de cierre por defecto (1 hora después de la fecha actual)
+        const ahora = new Date();
+        const defaultCierre = new Date(ahora.getTime() + 60 * 60 * 1000);
+        const year = defaultCierre.getFullYear();
+        const month = String(defaultCierre.getMonth() + 1).padStart(2, '0');
+        const day = String(defaultCierre.getDate()).padStart(2, '0');
+        const hours = String(defaultCierre.getHours()).padStart(2, '0');
+        const minutes = String(defaultCierre.getMinutes()).padStart(2, '0');
+        document.getElementById('claseFechaCierre').value = `${year}-${month}-${day}T${hours}:${minutes}`;
         
         const areaSelect = document.getElementById('claseArea');
         if (areaSelect) areaSelect.value = 'todas';
