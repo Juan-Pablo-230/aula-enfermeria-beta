@@ -1391,7 +1391,7 @@ app.get('/api/clases-publicas/publicadas', async (req, res) => {
         const db = await mongoDB.getDatabaseSafe('formulario');
         const clases = await db.collection('clases-publicas')
             .find({ publicada: true })
-            .sort({ fechaClase: -1 })
+            .sort({ fechaClase: 1 }) // Orden ascendente para mostrar primero las más próximas
             .toArray();
         
         console.log(`✅ ${clases.length} clases publicadas encontradas`);
@@ -1446,13 +1446,13 @@ app.get('/api/clases-publicas/:id', async (req, res) => {
     }
 });
 
-// POST - Crear nueva clase pública (CON ÁREA Y FECHA CIERRE)
+// POST - Crear nueva clase pública
 app.post('/api/clases-publicas', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
         
         console.log('📦 ========== POST /api/clases-publicas ==========');
-        console.log('📦 Body COMPLETO recibido:', JSON.stringify(req.body, null, 2));
+        console.log('📦 Body recibido:', JSON.stringify(req.body, null, 2));
         
         if (!userHeader) {
             return res.status(401).json({ success: false, message: 'No autenticado' });
@@ -1476,57 +1476,58 @@ app.post('/api/clases-publicas', async (req, res) => {
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Nombre y fecha son obligatorios' 
+                message: 'Nombre y fecha/hora de la clase son obligatorios' 
             });
         }
         
         if (!fechaCierre) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Fecha de cierre es obligatoria' 
+                message: 'La fecha y hora de cierre es obligatoria' 
             });
         }
         
-        // Procesar fecha de clase
-        let fecha;
+        // Procesar fecha y hora de la clase
+        let fechaClaseDate;
         if (fechaClase.includes('T')) {
             const [fechaPart, horaPart] = fechaClase.split('T');
             const [year, month, day] = fechaPart.split('-').map(Number);
             const [hour, minute] = horaPart.split(':').map(Number);
-            const horaUTC = hour + 3;
-            fecha = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
+            const horaUTC = hour + 3; // Ajuste a UTC-3
+            fechaClaseDate = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
         } else {
             const [year, month, day] = fechaClase.split('-').map(Number);
-            fecha = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
+            fechaClaseDate = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
         // Procesar fecha de cierre
-        let fechaCierreDate = null;
-        if (fechaCierre) {
+        let fechaCierreDate;
+        if (fechaCierre.includes('T')) {
             const [fechaPart, horaPart] = fechaCierre.split('T');
             const [year, month, day] = fechaPart.split('-').map(Number);
             const [hour, minute] = horaPart.split(':').map(Number);
-            const horaUTC = hour + 3;
+            const horaUTC = hour + 3; // Ajuste a UTC-3
             fechaCierreDate = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
+        } else {
+            const [year, month, day] = fechaCierre.split('-').map(Number);
+            fechaCierreDate = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
         // Validar que fechaCierre sea posterior a fechaClase
-        if (fechaCierreDate && fechaCierreDate <= fecha) {
+        if (fechaCierreDate <= fechaClaseDate) {
             return res.status(400).json({
                 success: false,
                 message: 'La fecha de cierre debe ser posterior a la fecha/hora de la clase'
             });
         }
         
-        // Área
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD:', areaFinal);
-        console.log('📌 Fecha cierre a guardar:', fechaCierreDate);
         
         const nuevaClase = {
             nombre,
             descripcion: descripcion || '',
-            fechaClase: fecha,
+            fechaClase: fechaClaseDate,
             fechaCierre: fechaCierreDate,
             instructores: instructores || [],
             lugar: lugar || '',
@@ -1541,7 +1542,8 @@ app.post('/api/clases-publicas', async (req, res) => {
         
         console.log('✅ Clase creada con ID:', result.insertedId);
         console.log('📌 Área guardada:', areaFinal);
-        console.log('📌 Fecha cierre guardada:', fechaCierreDate);
+        console.log('📅 Fecha clase:', fechaClaseDate);
+        console.log('🔒 Fecha cierre:', fechaCierreDate);
         
         res.json({ 
             success: true, 
@@ -1555,14 +1557,14 @@ app.post('/api/clases-publicas', async (req, res) => {
     }
 });
 
-// PUT - Actualizar clase pública (CON ÁREA Y FECHA CIERRE)
+// PUT - Actualizar clase pública
 app.put('/api/clases-publicas/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const userHeader = req.headers['user-id'];
         
         console.log('📦 ========== PUT /api/clases-publicas/:id ==========');
-        console.log('📦 Body COMPLETO recibido:', JSON.stringify(req.body, null, 2));
+        console.log('📦 Body recibido:', JSON.stringify(req.body, null, 2));
         
         if (!userHeader || !ObjectId.isValid(id)) {
             return res.status(401).json({ success: false, message: 'Solicitud inválida' });
@@ -1586,48 +1588,54 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Nombre y fecha son obligatorios' 
+                message: 'Nombre y fecha/hora de la clase son obligatorios' 
             });
         }
         
-        // Procesar fecha de clase
-        let fecha;
+        // Procesar fecha y hora de la clase
+        let fechaClaseDate;
         if (fechaClase.includes('T')) {
             const [fechaPart, horaPart] = fechaClase.split('T');
             const [year, month, day] = fechaPart.split('-').map(Number);
             const [hour, minute] = horaPart.split(':').map(Number);
             const horaUTC = hour + 3;
-            fecha = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
+            fechaClaseDate = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
         } else {
             const [year, month, day] = fechaClase.split('-').map(Number);
-            fecha = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
+            fechaClaseDate = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
         }
         
         // Procesar fecha de cierre
         let fechaCierreDate = null;
         if (fechaCierre) {
-            const [fechaPart, horaPart] = fechaCierre.split('T');
-            const [year, month, day] = fechaPart.split('-').map(Number);
-            const [hour, minute] = horaPart.split(':').map(Number);
-            const horaUTC = hour + 3;
-            fechaCierreDate = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
-        }
-        
-        // Validar que fechaCierre sea posterior a fechaClase si se proporciona
-        if (fechaCierreDate && fechaCierreDate <= fecha) {
-            return res.status(400).json({
-                success: false,
-                message: 'La fecha de cierre debe ser posterior a la fecha/hora de la clase'
-            });
+            if (fechaCierre.includes('T')) {
+                const [fechaPart, horaPart] = fechaCierre.split('T');
+                const [year, month, day] = fechaPart.split('-').map(Number);
+                const [hour, minute] = horaPart.split(':').map(Number);
+                const horaUTC = hour + 3;
+                fechaCierreDate = new Date(Date.UTC(year, month - 1, day, horaUTC, minute, 0));
+            } else {
+                const [year, month, day] = fechaCierre.split('-').map(Number);
+                fechaCierreDate = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
+            }
+            
+            // Validar que fechaCierre sea posterior a fechaClase
+            if (fechaCierreDate <= fechaClaseDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La fecha de cierre debe ser posterior a la fecha/hora de la clase'
+                });
+            }
         }
         
         const areaFinal = area || 'todas';
+        console.log('📌 Área a actualizar en BD:', areaFinal);
         
         const updateData = {
             $set: {
                 nombre,
                 descripcion: descripcion || '',
-                fechaClase: fecha,
+                fechaClase: fechaClaseDate,
                 instructores: instructores || [],
                 lugar: lugar || '',
                 enlaceFormulario: enlaceFormulario || '',
@@ -1639,9 +1647,6 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         
         if (fechaCierreDate) {
             updateData.$set.fechaCierre = fechaCierreDate;
-        } else {
-            // Si no se envía fechaCierre, no la actualizamos (mantenemos la existente)
-            // O podríamos eliminarla, pero mejor mantenerla
         }
         
         const result = await db.collection('clases-publicas').updateOne(

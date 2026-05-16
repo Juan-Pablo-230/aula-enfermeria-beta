@@ -1,3 +1,4 @@
+<!-- clases-publicas.html - Versión con datetime-local para fecha de clase y cierre -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -53,14 +54,9 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Fecha <span class="required">*</span></label>
-                        <input type="date" id="claseFecha" required class="form-control">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Hora</label>
-                        <input type="time" id="claseHora" value="10:00" class="form-control" step="60">
-                        <small class="field-info">Formato 24 horas (ej: 14:30 para 2:30 PM)</small>
+                        <label>Fecha y hora de la clase *</label>
+                        <input type="datetime-local" id="claseFechaHora" required class="form-control">
+                        <small class="field-info">Seleccione la fecha y hora exacta de inicio de la clase</small>
                     </div>
                 </div>
                 
