@@ -1,8 +1,8 @@
 // ============================================
-// clasesYT.js - VERSIÓN FINAL (todo dinámico desde CONFIG)
+// clasesYT.js - VERSIÓN CORREGIDA (sin duplicados)
 // ============================================
 
-console.log('🎥 clasesYT.js - Versión FINAL (todo dinámico)');
+console.log('🎥 clasesYT.js - Versión CORREGIDA (sin duplicados)');
 
 // ============================================
 // CONFIGURACIÓN - ¡ÚNICO LUGAR PARA CAMBIAR!
@@ -19,6 +19,43 @@ const CONFIG = {
 };
 
 // ============================================
+// FUNCIONES DE UTILIDAD (deben estar antes de ser usadas)
+// ============================================
+
+function waitForAuthSystem() {
+    return new Promise((resolve, reject) => {
+        const maxAttempts = 50;
+        let attempts = 0;
+        const check = () => {
+            if (typeof authSystem !== 'undefined' && authSystem) {
+                resolve(authSystem);
+            } else if (attempts++ < maxAttempts) {
+                setTimeout(check, 100);
+            } else {
+                reject(new Error('authSystem no disponible'));
+            }
+        };
+        check();
+    });
+}
+
+function getCurrentUserSafe() {
+    return authSystem?.getCurrentUser ? authSystem.getCurrentUser() : null;
+}
+
+function isLoggedInSafe() {
+    return authSystem?.isLoggedIn ? authSystem.isLoggedIn() : false;
+}
+
+async function makeRequestSafe(endpoint, data = null, method = 'POST') {
+    if (!authSystem || !authSystem.makeRequest) {
+        throw new Error('authSystem no listo');
+    }
+    const fullEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+    return await authSystem.makeRequest(fullEndpoint, data, method);
+}
+
+// ============================================
 // CLASE VideoManager - Maneja el iframe del video
 // ============================================
 class VideoManager {
@@ -29,7 +66,6 @@ class VideoManager {
 
     init() {
         if (this.videoIframe) {
-            // Construir URL del video con el ID de CONFIG
             const videoUrl = `https://www.youtube-nocookie.com/embed/${CONFIG.VIDEO_ID}?si=LwKpMSJkgnySkyoQ&amp;controls=0&autoplay=1`;
             this.videoIframe.src = videoUrl;
             console.log('🎬 Video configurado:', videoUrl);
@@ -51,7 +87,6 @@ class ChatReal {
 
     init() {
         const domain = window.location.hostname;
-        // Usar el mismo VIDEO_ID de CONFIG
         const chatUrl = `https://www.youtube.com/live_chat?v=${CONFIG.VIDEO_ID}&embed_domain=${domain}`;
         
         if (this.chatIframe) {
@@ -85,7 +120,7 @@ class ChatReal {
 }
 
 // ============================================
-// CLASE TimeTracker (con mejoras)
+// CLASE TimeTracker (VERSIÓN CORREGIDA - SIN DUPLICADOS)
 // ============================================
 class TimeTracker {
     constructor() {
@@ -101,14 +136,16 @@ class TimeTracker {
         this.sessionStartTime = Date.now();
         this.sessionActiva = true;
         
-        // Último guardado para evitar duplicados
-        this.ultimoGuardado = 0;
+        // Control de guardado (evita duplicados)
+        this.saveInProgress = false;
+        this.lastSaveTime = 0;
+        this.saveDebounceTimer = null;
         
         // Elementos DOM
         this.displayElement = document.getElementById('tiempoActivo');
         this.messageElement = document.getElementById('statusMessage');
         
-        // Usar los valores de CONFIG en lugar de URLParams
+        // Usar los valores de CONFIG
         this.claseId = `clase_${CONFIG.VIDEO_ID}`;
         this.claseNombre = CONFIG.CLASE_NOMBRE;
         
@@ -142,8 +179,14 @@ class TimeTracker {
         // Actualizar display
         setInterval(() => this.updateDisplay(), CONFIG.DISPLAY_UPDATE_INTERVAL);
         
+        // Guardado periódico
+        setInterval(() => {
+            if (!this.saveInProgress) {
+                this.guardarEnMongoDB(false);
+            }
+        }, CONFIG.SAVE_INTERVAL);
+        
         console.log('✅ TimeTracker listo');
-        console.log(`📊 Totales iniciales - Activo: ${this.tiempoActivoTotal}s, Inactivo: ${this.tiempoInactivoTotal}s`);
     }
 
     async cargarDatosGuardados() {
@@ -153,7 +196,6 @@ class TimeTracker {
             const result = await makeRequestSafe('/tiempo-clase', null, 'GET');
             
             if (result.success && result.data) {
-                // Buscar el registro de esta clase
                 const registro = result.data.find(r => r.claseId === this.claseId);
                 if (registro) {
                     this.tiempoActivoTotal = registro.tiempoActivo || 0;
@@ -214,26 +256,66 @@ class TimeTracker {
             }
         }
         
-        this.guardarEnMongoDB(true);
+        const datos = {
+            claseId: this.claseId,
+            claseNombre: this.claseNombre,
+            tiempoActivo: this.tiempoActivoSesion,
+            tiempoInactivo: this.tiempoInactivoSesion,
+            esFinal: true
+        };
+        
+        // Usar sendBeacon para garantizar el envío incluso al cerrar
+        if (navigator.sendBeacon) {
+            const blob = new Blob([JSON.stringify(datos)], { type: 'application/json' });
+            const user = getCurrentUserSafe();
+            if (user && user._id) {
+                // sendBeacon no soporta headers personalizados, pero el body llega
+                navigator.sendBeacon('/api/tiempo-clase/actualizar', blob);
+                console.log('📤 Envío con sendBeacon para guardado final');
+            }
+        } else {
+            // Fallback a fetch normal
+            this.guardarEnMongoDB(true);
+        }
     }
 
     async guardarEnMongoDB(esFinal = false) {
-        const ahora = Date.now();
-        if (ahora - this.ultimoGuardado < 2000 && this.tiempoActivoSesion === 0 && this.tiempoInactivoSesion === 0) {
+        // Evitar guardados simultáneos
+        if (this.saveInProgress) {
+            console.log('⏳ Guardado en progreso, omitiendo...');
             return;
         }
         
-        this.ultimoGuardado = ahora;
+        const ahora = Date.now();
         
-        if (!isLoggedInSafe()) return;
+        // Debounce: no guardar más de una vez cada 2 segundos si no es final
+        if (!esFinal && (ahora - this.lastSaveTime) < 2000 && this.tiempoActivoSesion === 0 && this.tiempoInactivoSesion === 0) {
+            return;
+        }
+        
+        // Limpiar timer anterior si existe
+        if (this.saveDebounceTimer) {
+            clearTimeout(this.saveDebounceTimer);
+            this.saveDebounceTimer = null;
+        }
+        
+        this.saveInProgress = true;
+        this.lastSaveTime = ahora;
+        
+        if (!isLoggedInSafe()) {
+            this.saveInProgress = false;
+            return;
+        }
         
         if (this.tiempoActivoSesion === 0 && this.tiempoInactivoSesion === 0 && !esFinal) {
+            this.saveInProgress = false;
             return;
         }
         
         console.log(`📤 Guardando en MongoDB:`);
         console.log(`   + Activo: ${this.tiempoActivoSesion}s`);
         console.log(`   + Inactivo: ${this.tiempoInactivoSesion}s`);
+        console.log(`   + Final: ${esFinal}`);
         
         try {
             const result = await makeRequestSafe('/tiempo-clase/actualizar', {
@@ -246,11 +328,17 @@ class TimeTracker {
             
             if (result.success) {
                 console.log('✅ Guardado OK');
-                this.tiempoActivoSesion = 0;
-                this.tiempoInactivoSesion = 0;
+                if (!esFinal) {
+                    this.tiempoActivoSesion = 0;
+                    this.tiempoInactivoSesion = 0;
+                }
+            } else {
+                console.warn('⚠️ Guardado respondió con error:', result.message);
             }
         } catch (error) {
             console.error('❌ Error guardando:', error);
+        } finally {
+            this.saveInProgress = false;
         }
     }
 
@@ -276,7 +364,7 @@ class TimeTracker {
 }
 
 // ============================================
-// FUNCIONES DE UTILIDAD
+// FUNCIONES DE INTERFAZ
 // ============================================
 
 function showLoading(message = 'Cargando...') {
@@ -300,13 +388,10 @@ function updateUserInfo() {
 }
 
 function actualizarTitulo() {
-    // Actualizar el título principal
     const tituloPrincipal = document.getElementById('tituloPrincipal');
     if (tituloPrincipal) {
         tituloPrincipal.innerHTML = `<span class="clase-icon">🎥</span> Clase en Vivo: ${CONFIG.CLASE_NOMBRE}`;
     }
-    
-    // Actualizar el título de la pestaña del navegador
     document.title = `${CONFIG.CLASE_NOMBRE} - Clase en Vivo`;
 }
 
@@ -327,13 +412,9 @@ async function inicializarPagina() {
             showLoading('Cargando clase...');
         }
         
-        // Actualizar títulos con el nombre de la clase
         actualizarTitulo();
-        
-        // Actualizar información del usuario
         updateUserInfo();
         
-        // Inicializar componentes
         window.videoManager = new VideoManager();
         window.chatReal = new ChatReal();
         window.timeTracker = new TimeTracker();

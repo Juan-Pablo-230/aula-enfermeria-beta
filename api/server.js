@@ -2062,6 +2062,7 @@ app.delete('/api/usuarios/cuenta', async (req, res) => {
 });
 
 // ==================== RUTAS PARA TIEMPO EN CLASE ====================
+
 app.post('/api/tiempo-clase/actualizar', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
@@ -2097,74 +2098,99 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
             });
         }
         
+        const ahora = new Date();
+        
+        // USAR findOneAndUpdate con upsert para evitar duplicados
         const filtro = {
             usuarioId: new ObjectId(userHeader),
             claseId: claseId
         };
         
-        const registroExistente = await db.collection('tiempo-en-clases').findOne(filtro);
-        
-        const ahora = new Date();
-        
-        if (registroExistente) {
-            const updateData = {
-                $set: {
-                    usuarioNombre: usuario.apellidoNombre,
-                    legajo: usuario.legajo,
-                    turno: usuario.turno,
-                    claseNombre: claseNombre,
-                    ultimaActualizacion: ahora
-                },
-                $inc: {
-                    tiempoActivo: tiempoActivo,
-                    tiempoInactivo: tiempoInactivo
-                }
-            };
-            
-            if (esFinal) {
-                updateData.$set.finalizado = true;
-                updateData.$set.fechaFinalizacion = ahora;
-            }
-            
-            await db.collection('tiempo-en-clases').updateOne(filtro, updateData);
-            
-            console.log(`✅ Tiempo ACTUALIZADO para ${usuario.apellidoNombre} en ${claseNombre}`);
-            console.log(`   + Activo: ${tiempoActivo}s, + Inactivo: ${tiempoInactivo}s`);
-            
-        } else {
-            const nuevoRegistro = {
-                usuarioId: new ObjectId(userHeader),
+        const updateData = {
+            $set: {
                 usuarioNombre: usuario.apellidoNombre,
                 legajo: usuario.legajo,
                 turno: usuario.turno,
-                claseId: claseId,
                 claseNombre: claseNombre,
+                ultimaActualizacion: ahora
+            },
+            $inc: {
                 tiempoActivo: tiempoActivo,
-                tiempoInactivo: tiempoInactivo,
-                fechaInicio: ahora,
-                ultimaActualizacion: ahora,
-                finalizado: esFinal || false
-            };
-            
-            if (esFinal) {
-                nuevoRegistro.fechaFinalizacion = ahora;
+                tiempoInactivo: tiempoInactivo
+            },
+            $setOnInsert: {
+                fechaInicio: ahora
             }
-            
-            await db.collection('tiempo-en-clases').insertOne(nuevoRegistro);
-            
-            console.log(`✅ Nuevo registro CREADO para ${usuario.apellidoNombre} en ${claseNombre}`);
+        };
+        
+        if (esFinal) {
+            updateData.$set.finalizado = true;
+            updateData.$set.fechaFinalizacion = ahora;
         }
         
-        const registroActualizado = await db.collection('tiempo-en-clases').findOne(filtro);
+        // Usar findOneAndUpdate con upsert: true para crear si no existe
+        const resultado = await db.collection('tiempo-en-clases').findOneAndUpdate(
+            filtro,
+            updateData,
+            { 
+                upsert: true, 
+                returnDocument: 'after' 
+            }
+        );
+        
+        console.log(`✅ Tiempo ACTUALIZADO para ${usuario.apellidoNombre} en ${claseNombre}`);
+        console.log(`   + Activo: ${tiempoActivo}s, + Inactivo: ${tiempoInactivo}s`);
+        console.log(`   Registro ${resultado.value ? 'actualizado' : 'creado'}`);
         
         res.json({ 
             success: true, 
             message: 'Tiempo actualizado correctamente',
-            data: registroActualizado
+            data: resultado.value
         });
         
     } catch (error) {
         console.error('❌ Error actualizando tiempo:', error);
+        
+        // Si hay error de duplicado (índice único), intentar actualizar nuevamente
+        if (error.code === 11000) {
+            console.log('⚠️ Conflicto de duplicado, reintentando...');
+            try {
+                const db = await mongoDB.getDatabaseSafe('formulario');
+                const { claseId, claseNombre, tiempoActivo, tiempoInactivo, esFinal } = req.body;
+                const userHeader = req.headers['user-id'];
+                
+                const ahora = new Date();
+                const usuarioActual = await db.collection('usuarios').findOne({ _id: new ObjectId(userHeader) });
+                
+                const resultado = await db.collection('tiempo-en-clases').updateOne(
+                    {
+                        usuarioId: new ObjectId(userHeader),
+                        claseId: claseId
+                    },
+                    {
+                        $set: {
+                            usuarioNombre: usuarioActual?.apellidoNombre,
+                            legajo: usuarioActual?.legajo,
+                            turno: usuarioActual?.turno,
+                            claseNombre: claseNombre,
+                            ultimaActualizacion: ahora
+                        },
+                        $inc: {
+                            tiempoActivo: tiempoActivo,
+                            tiempoInactivo: tiempoInactivo
+                        }
+                    }
+                );
+                
+                return res.json({ 
+                    success: true, 
+                    message: 'Tiempo actualizado correctamente (reintento)'
+                });
+            } catch (retryError) {
+                console.error('❌ Error en reintento:', retryError);
+            }
+        }
+        
         res.status(500).json({ 
             success: false, 
             message: 'Error interno del servidor',
@@ -2394,6 +2420,64 @@ app.get('/api/tiempo-clase/init', async (req, res) => {
             message: 'Error interno del servidor',
             error: error.message 
         });
+    }
+});
+
+// GET - Verificar y crear índice único en tiempo-en-clases (solo admin)
+app.get('/api/tiempo-clase/ensure-index', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        
+        if (!userHeader) {
+            return res.status(401).json({ success: false, message: 'No autorizado' });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        const usuario = await db.collection('usuarios').findOne({ _id: new ObjectId(userHeader) });
+        
+        if (!usuario || usuario.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Solo administradores' });
+        }
+        
+        const collection = db.collection('tiempo-en-clases');
+        
+        // Verificar si el índice único ya existe
+        const indexes = await collection.indexes();
+        const uniqueIndexExists = indexes.some(idx => idx.name === 'unique_usuario_clase');
+        
+        if (!uniqueIndexExists) {
+            // Eliminar índices existentes que puedan causar conflictos
+            for (const idx of indexes) {
+                if (idx.name !== '_id_' && idx.name !== 'unique_usuario_clase') {
+                    try {
+                        await collection.dropIndex(idx.name);
+                        console.log(`🗑️ Índice eliminado: ${idx.name}`);
+                    } catch (e) {
+                        console.warn(`No se pudo eliminar índice ${idx.name}:`, e.message);
+                    }
+                }
+            }
+            
+            // Crear índice único compuesto
+            await collection.createIndex(
+                { usuarioId: 1, claseId: 1 },
+                { unique: true, name: 'unique_usuario_clase' }
+            );
+            
+            console.log('✅ Índice único creado: usuarioId + claseId');
+        } else {
+            console.log('✅ Índice único ya existe');
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Índice único verificado/creado correctamente',
+            indexes: await collection.indexes()
+        });
+        
+    } catch (error) {
+        console.error('❌ Error creando índice:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
