@@ -522,7 +522,7 @@
 // CONFIGURACIÓN DE FECHAS ESPECIALES
 // ============================================
 const FECHAS_ESPECIALES = {
-    // Formato: "mes-dia" (mes y día sin cero adelante)
+    // Formato: "dia-mes" (día y mes sin cero adelante)
 
     "1-1": {
         imagen: "https://topnavidad.com/wp-content/uploads/Frases-Feliz-Ano-Nuevo-Mejores-frases-para-saludar.jpg",
@@ -643,7 +643,7 @@ async function mostrarImagenMalvinas() {
         console.log(`📅 Fecha del servidor: ${serverDate.toISOString()} - Día: ${dia}, Mes: ${mes}`);
 
         // Construir clave "mes-dia"
-        const clave = `${mes}-${dia}`;
+        const clave = `${dia}-${mes}`;
         console.log(`🔑 Clave generada: "${clave}"`);
 
         // Buscar si existe configuración para esta fecha
