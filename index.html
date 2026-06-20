@@ -519,65 +519,173 @@
         });
 
         // ============================================
-        // FUNCIÓN PARA MOSTRAR IMAGEN DE MALVINAS CON ENLACE CLICKEABLE
-        // SOLO CAMBIA LA RUTA DE LA IMAGEN Y EL ENLACE AQUÍ
-        // ============================================
-        async function mostrarImagenMalvinas() {
-            const container = document.getElementById('malvinasContainer');
-            if (!container) return;
+// CONFIGURACIÓN DE FECHAS ESPECIALES
+// ============================================
+const FECHAS_ESPECIALES = {
+    // Formato: "mes-dia" (mes y día sin cero adelante)
 
-            try {
-                // Obtener fecha del servidor
-                const response = await fetch('/api/health');
-                const data = await response.json();
-                const serverDate = new Date(data.timestamp);
-                const dia = serverDate.getDate();
-                const mes = serverDate.getMonth() + 1;
+    "1-1": {
+        imagen: "https://topnavidad.com/wp-content/uploads/Frases-Feliz-Ano-Nuevo-Mejores-frases-para-saludar.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Año_nuevo",
+        alt: "Año nuevo - 1 de Enero",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
 
-                // Verificar si es 2 de abril
-                if (dia === 2 && mes === 4) {
-                    console.log('🇦🇷 2 de Abril - Mostrando imagen de Malvinas clickeable');
-                    
-                    const rutaImagen = '/img/malvinas.png';           // 👈 Ruta de tu imagen
-                    const enlaceExterno = 'https://es.wikipedia.org/wiki/Islas_Malvinas'; // 👈 URL a donde quieres redirigir
-                    
-                    container.innerHTML = `
-                        <a href="${enlaceExterno}" 
-                           target="_blank" 
-                           rel="noopener noreferrer" 
-                           style="text-decoration: none; display: block;">
-                            <div class="class-card" style="
-                                background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%);
-                                border: 2px solid #2e7d32;
-                                cursor: pointer;
-                                text-align: center;
-                                padding: 0;
-                                overflow: hidden;
-                                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                            "
-                            onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.3)';"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                <img src="${rutaImagen}" 
-                                     alt="Día de las Islas Malvinas - 2 de Abril" 
-                                     style="
-                                        width: 100%;
-                                        height: 100%;
-                                        object-fit: cover;
-                                        display: block;
-                                        pointer-events: none;
-                                     ">
-                            </div>
-                        </a>
-                    `;
-                    container.style.display = 'grid';
-                } else {
-                    container.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error al mostrar imagen de Malvinas:', error);
-                container.style.display = 'none';
-            }
+    "24-3": {
+        imagen: "https://colodontsalta.org/wp-content/uploads/2025/03/dia-de-la-memoria-2025-web.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Día_Nacional_de_la_Memoria_por_la_Verdad_y_la_Justicia",
+        alt: "Día de la memoria por la verdad y la justicia - 24 de Marzo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "26-3": {
+        imagen: "https://imagenes.excelsior.com.mx/files/image_449_252/uploads/2026/04/02/69ceff634dfe7.jpeg",
+        enlace: "https://www.significados.com/viernes-santo/",
+        alt: "Viernes santo - 26 de Marzo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "4-4": {
+        imagen: "https://media.airedesantafe.com.ar/p/6655e1996d24f808047ddfabf0c3e988/adjuntos/268/imagenes/003/618/0003618241/1200x0/smart/10-junio-dia-la-afirmacion-los-derechos-argentinos-las-malvinas-islas-y-sector-antartico.png",
+        alt: "Día de las Islas Malvinas - 2 de Abril",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "1-5": {
+        imagen: "https://noticias-pe.laiglesiadejesucristo.org/media/960x540/1-Mayo-Dia-Trabajador-0.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Día_Internacional_de_los_Trabajadores",
+        alt: "Dia del trabajador - 1 de Mayo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "25-5": {
+        imagen: "https://www.diarioelnorte.com.ar/wp-content/uploads/2022/05/argentina-revolucion-de-mayo-territorio-compressor_1.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Revolución_de_Mayo",
+        alt: "Revolución de Mayo - 25 de Mayo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "17-6": {
+        imagen: "https://www.lanacion.com.ar/resizer/v2/el-general-martin-miguel-de-guemes-y-sus-IAUVMR2M2FE4XMO6E3U5UEVVLM.jpg?auth=7b62bb46a404ea341679a3ce6722a6c6faa86a9adb15f05d795e3f2382dd529f&width=420&height=280&quality=70&smart=true",
+        enlace: "https://es.wikipedia.org/wiki/Martín_Miguel_de_Güemes",
+        alt: "Martín Miguel de Güemes - 17 de Junio",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "20-6": {
+        imagen: "https://www.cultura.gob.ar/media/uploads/manuel_belgrano1.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Manuel_Belgrano",
+        alt: "Manuel Belgrano - 20 de Junio",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "9-7": {
+        imagen: "https://calendarena.com/wp-content/uploads/2024/11/Dia-de-la-Independencia-argentina-1.webp",
+        enlace: "https://es.wikipedia.org/wiki/Día_de_la_Independencia_de_la_República_Argentina",
+        alt: "Día de la Independencia - 9 de Julio",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "12-9": {
+        imagen: "https://s3.amazonaws.com/prod-wp-tunota/wp-content/uploads/2022/09/principal-que-se-celebra-el-12-de-octubre-en-honduras.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Día_de_la_Raza",
+        alt: "Día de la Raza - 12 de Septiembre",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "20-11": {
+        imagen: "https://canal12web.com/wp-content/uploads/2025/11/20-11_soberania-nacional-web.jpg",
+        enlace: "https://www.argentina.gob.ar/noticias/dia-de-la-soberania-nacional",
+        alt: "Día de la Soberanía Nacional - 20 de Noviembre",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "8-12": {
+        imagen: "https://media.airedesantafe.com.ar/p/a0da1e93e622df64b173b0e8713322ca/adjuntos/268/imagenes/003/690/0003690837/1200x0/smart/imagepng.png",
+        enlace: "https://es.wikipedia.org/wiki/8_de_diciembre",
+        alt: "8 de Diciembre - Día de la Virgen Inmaculada Concepción",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "25-12": {
+        imagen: "https://mmedia.eluniversal.com/19716/navidad-origen-y-por-que-se-celebra-el-25-de-diciembre-139934.jpg",
+        enlace: "https://es.wikipedia.org/wiki/25_de_diciembre",
+        alt: "25 de Diciembre - Navidad",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "31-12": {
+        imagen: "https://estaticos-cdn.prensaiberica.es/clip/e19755b7-0b12-416f-b08f-cb872a6e9da1_16-9-discover-aspect-ratio_default_0.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Nochevieja",
+        alt: "31 de Diciembre - Nochevieja",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+};
+
+// ============================================
+// FUNCIÓN PARA MOSTRAR IMAGEN SEGÚN FECHA
+// ============================================
+async function mostrarImagenMalvinas() {
+    const container = document.getElementById('malvinasContainer');
+    if (!container) return;
+
+    try {
+        // Obtener fecha del servidor
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        const serverDate = new Date(data.timestamp);
+        const dia = serverDate.getDate();
+        const mes = serverDate.getMonth() + 1;
+
+        // Construir clave "mes-dia"
+        const clave = `${mes}-${dia}`;
+
+        // Buscar si existe configuración para esta fecha
+        const evento = FECHAS_ESPECIALES[clave];
+
+        if (evento) {
+            console.log(`📅 Evento especial detectado: ${evento.alt}`);
+
+            const { imagen, enlace, alt, estilo } = evento;
+
+            container.innerHTML = `
+                <a href="${enlace}" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   style="text-decoration: none; display: block;">
+                    <div class="class-card" style="
+                        ${estilo}
+                        cursor: pointer;
+                        text-align: center;
+                        padding: 0;
+                        overflow: hidden;
+                        transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    "
+                    onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.3)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <img src="${imagen}" 
+                             alt="${alt}" 
+                             style="
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                display: block;
+                                pointer-events: none;
+                             ">
+                    </div>
+                </a>
+            `;
+            container.style.display = 'grid';
+        } else {
+            // No hay evento para hoy
+            container.style.display = 'none';
         }
+    } catch (error) {
+        console.error('Error al mostrar imagen especial:', error);
+        container.style.display = 'none';
+    }
+}
 
         async function cargarClasesPublicas(forzar = false) {
     const gridContainer = document.getElementById('dynamic-classes-grid');
