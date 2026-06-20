@@ -545,7 +545,7 @@ const FECHAS_ESPECIALES = {
         estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
     },
 
-    "4-4": {
+    "2-4": {
         imagen: "https://media.airedesantafe.com.ar/p/6655e1996d24f808047ddfabf0c3e988/adjuntos/268/imagenes/003/618/0003618241/1200x0/smart/10-junio-dia-la-afirmacion-los-derechos-argentinos-las-malvinas-islas-y-sector-antartico.png",
         alt: "Día de las Islas Malvinas - 2 de Abril",
         estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
@@ -624,38 +624,47 @@ const FECHAS_ESPECIALES = {
 };
 
 // ============================================
-// FUNCIÓN PARA MOSTRAR IMAGEN SEGÚN FECHA
+// FUNCIÓN PARA MOSTRAR IMAGEN SEGÚN FECHA (CON DEBUG)
 // ============================================
 async function mostrarImagenMalvinas() {
     const container = document.getElementById('malvinasContainer');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ No se encontró el contenedor #malvinasContainer');
+        return;
+    }
 
     try {
-        // Obtener fecha del servidor
+        console.log('🕒 Obteniendo fecha del servidor...');
         const response = await fetch('/api/health');
         const data = await response.json();
         const serverDate = new Date(data.timestamp);
         const dia = serverDate.getDate();
         const mes = serverDate.getMonth() + 1;
+        console.log(`📅 Fecha del servidor: ${serverDate.toISOString()} - Día: ${dia}, Mes: ${mes}`);
 
         // Construir clave "mes-dia"
         const clave = `${mes}-${dia}`;
+        console.log(`🔑 Clave generada: "${clave}"`);
 
         // Buscar si existe configuración para esta fecha
         const evento = FECHAS_ESPECIALES[clave];
 
         if (evento) {
-            console.log(`📅 Evento especial detectado: ${evento.alt}`);
-
+            console.log(`✅ Evento especial encontrado: ${evento.alt}`);
             const { imagen, enlace, alt, estilo } = evento;
 
+            // Verificar si la imagen existe (al menos que no sea undefined)
+            if (!imagen) {
+                console.warn('⚠️ La imagen no está definida en la configuración');
+            }
+
             container.innerHTML = `
-                <a href="${enlace}" 
+                <a href="${enlace || '#'}" 
                    target="_blank" 
                    rel="noopener noreferrer" 
                    style="text-decoration: none; display: block;">
                     <div class="class-card" style="
-                        ${estilo}
+                        ${estilo || ''}
                         cursor: pointer;
                         text-align: center;
                         padding: 0;
@@ -665,24 +674,26 @@ async function mostrarImagenMalvinas() {
                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.3)';"
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                         <img src="${imagen}" 
-                             alt="${alt}" 
+                             alt="${alt || 'Imagen especial'}" 
                              style="
                                 width: 100%;
                                 height: 100%;
                                 object-fit: cover;
                                 display: block;
                                 pointer-events: none;
-                             ">
+                             "
+                             onerror="console.error('❌ Error al cargar la imagen:', this.src); this.style.display='none';">
                     </div>
                 </a>
             `;
             container.style.display = 'grid';
+            console.log('✅ Contenedor mostrado con la imagen especial.');
         } else {
-            // No hay evento para hoy
+            console.log(`ℹ️ No hay evento para la fecha ${clave}, ocultando contenedor.`);
             container.style.display = 'none';
         }
     } catch (error) {
-        console.error('Error al mostrar imagen especial:', error);
+        console.error('❌ Error al obtener fecha o mostrar imagen:', error);
         container.style.display = 'none';
     }
 }
