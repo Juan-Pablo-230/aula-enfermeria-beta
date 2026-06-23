@@ -28,12 +28,22 @@
             </div>
         </div>
 
-        <!-- Botón de actualizar -->
-        <div class="filtros-container" style="display: flex; justify-content: flex-end;">
-            <button id="refreshBtn" class="btn btn-primary">
-                🔄 Actualizar Datos
-            </button>
+        <!-- Filtros -->
+<div class="filtros-container">
+    <div class="filtros-wrapper">
+        <label>📅 Filtrar por clase:</label>
+        <select id="filtroClase" class="filtro-select">
+            <option value="todas">Todas las clases</option>
+        </select>
+        
+        <label>👤 Por usuario:</label>
+        <input type="text" id="filtroUsuario" placeholder="Nombre o legajo..." class="filtro-input">
+        
+        <div class="filtros-actions">
+            <button id="refreshBtn" class="btn btn-primary">🔄 Actualizar</button>
         </div>
+    </div>
+</div>
 
         <!-- Tabla de tiempos -->
         <div class="table-container">
