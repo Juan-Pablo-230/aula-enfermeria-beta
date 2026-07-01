@@ -9,8 +9,8 @@ console.log('🎥 clasesYT.js - Versión CORREGIDA (sin duplicados)');
 // ============================================
 const CONFIG = {
     // 🔴 CAMBIA SOLO ESTOS DOS VALORES para cada nueva clase
-    VIDEO_ID: 'abKCliFlpqA',      // ID del video de YouTube
-    CLASE_NOMBRE: 'CAFO - Episodio 02', // Nombre visible de la clase
+    VIDEO_ID: 'cb12KmMMDJA',      // ID del video de YouTube
+    CLASE_NOMBRE: 'Prueba de transmision', // Nombre visible de la clase
     
     // ⚙️ Configuración técnica (no tocar)
     DISPLAY_UPDATE_INTERVAL: 1000,
