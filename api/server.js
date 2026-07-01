@@ -404,30 +404,25 @@ app.get('/api/auth/check-legajo/:legajo', async (req, res) => {
 // ==================== RUTAS DE INSCRIPCIONES ====================
 app.post('/api/inscripciones', async (req, res) => {
     try {
-        const { usuarioId, clase, turno, fecha, claseId } = req.body;
+        const { usuarioId, clase, fecha, claseId } = req.body; // ← Eliminamos turno
+        
+        // Verificar que el usuario existe y obtener su turno (opcional, para validación)
         const db = await mongoDB.getDatabaseSafe('formulario');
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(usuarioId) 
+        });
         
-        // Verificar si ya está inscrito
-        let query = {
-            usuarioId: new ObjectId(usuarioId),
-            clase: clase
-        };
-        
-        const inscripcionExistente = await db.collection('inscripciones').findOne(query);
-        
-        if (inscripcionExistente) {
-            return res.json({ 
-                success: true, 
-                message: 'Ya estás inscrito en esta clase',
-                exists: true
+        if (!usuario) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
             });
         }
         
-        // Crear nueva inscripción
+        // Crear inscripción SIN turno
         const nuevaInscripcion = {
             usuarioId: new ObjectId(usuarioId),
             clase,
-            turno,
             fecha: new Date(fecha || Date.now())
         };
         
@@ -506,7 +501,6 @@ app.get('/api/inscripciones', async (req, res) => {
     try {
         const db = await mongoDB.getDatabaseSafe('formulario');
         
-        // Obtener todas las inscripciones con datos del usuario
         const inscripciones = await db.collection('inscripciones')
             .aggregate([
                 {
@@ -533,6 +527,9 @@ app.get('/api/inscripciones', async (req, res) => {
             if (inscripcion.usuario && inscripcion.usuario.password) {
                 delete inscripcion.usuario.password;
             }
+            
+            // ⭐ El turno ahora se obtiene de inscripcion.usuario.turno
+            // No es necesario guardarlo en la inscripción
             
             return inscripcion;
         });

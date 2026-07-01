@@ -117,7 +117,7 @@ class InscripcionesManager {
                     <td>${insc.usuario?.apellidoNombre || 'N/A'}</td>
                     <td>${insc.usuario?.legajo || 'N/A'}</td>
                     <td>${insc.clase || 'N/A'}</td>
-                    <td>${insc.turno || 'N/A'}</td>
+                    <td>${insc.usuario?.turno || 'N/A'}</td>
                     <td><a href="mailto:${insc.usuario?.email || ''}" class="email-link">${insc.usuario?.email || 'N/A'}</a></td>
                     <td>${fechaFormateada}</td>
                 </tr>

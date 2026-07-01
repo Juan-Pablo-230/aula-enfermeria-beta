@@ -472,7 +472,6 @@
                 const inscripcionData = {
                     usuarioId: user._id,
                     clase: claseSeleccionada.nombre,
-                    turno: user.turno,
                     fecha: new Date().toISOString()
                 };
                 if (claseSeleccionada._id) inscripcionData.claseId = claseSeleccionada._id;
