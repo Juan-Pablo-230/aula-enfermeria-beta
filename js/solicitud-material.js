@@ -472,10 +472,6 @@ class MaterialHistorico {
 
         const solicitud = {
             claseId: claseData.id,
-            claseNombre: claseData.nombre,
-            email: user.email,
-            youtube: claseData.youtube,
-            powerpoint: claseData.powerpoint,
             fechaClase: claseData.fecha,
             fechaSolicitud: new Date().toISOString()
         };
@@ -504,6 +500,10 @@ class MaterialHistorico {
         try {
             const user = getCurrentUserSafe();
             if (!user) return;
+
+            const data = {
+                claseId: solicitud.claseId
+            };
 
             const url = `${window.location.origin}/api/material-historico/solicitudes`;
             console.log('📤 Enviando solicitud a:', url);
@@ -712,56 +712,66 @@ class MaterialHistorico {
     }
 
     mostrarMisSolicitudes() {
-        const tbody = document.querySelector('#tablaMisSolicitudes tbody');
-        if (!tbody) return;
+    const tbody = document.querySelector('#tablaMisSolicitudes tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+
+    if (this.solicitudes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">
+            Todavía no has solicitado material de clases grabadas.
+        </td></tr>`;
+        return;
+    }
+
+    // ✅ Ahora los datos vienen con 'usuario' y 'clase' poblados
+    this.solicitudes.forEach(solicitud => {
+        // Obtener datos de las referencias
+        const usuario = solicitud.usuario || {};
+        const clase = solicitud.clase || {};
         
-        tbody.innerHTML = '';
+        const fechaClase = clase.fechaClase ? 
+            new Date(clase.fechaClase).toLocaleDateString('es-AR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }) : 'Fecha no disponible';
+        
+        const fechaSolicitud = solicitud.fechaSolicitud ? 
+            new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
+                hour12: false
+            }) : 'Fecha no disponible';
+        
+        // ✅ Obtener enlaces de la clase
+        const youtube = clase.enlaces?.youtube || '';
+        const powerpoint = clase.enlaces?.powerpoint || '';
+        
+        const materialHTML = this.generarMaterialHTML({ youtube, powerpoint });
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${clase.nombre || 'N/A'}</td>
+            <td>${fechaClase}</td>
+            <td>${fechaSolicitud}</td>
+            <td class="material-badge">${materialHTML}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
 
-        if (this.solicitudes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">Todavía no has solicitado material de clases grabadas.</td></tr>';
-            return;
-        }
-
-        this.solicitudes.forEach(solicitud => {
-            const row = document.createElement('tr');
-            
-            const fechaClase = solicitud.fechaClase ? 
-                new Date(solicitud.fechaClase).toLocaleDateString('es-AR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', hour12: false
-                }) : 'Fecha no disponible';
-            
-            const fechaSolicitud = solicitud.fechaSolicitud ? 
-                new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
-                    hour12: false
-                }) : 'Fecha no disponible';
-            
-            const materialHTML = this.generarMaterialHTML(solicitud);
-            
-            row.innerHTML = `
-                <td>${solicitud.claseNombre || solicitud.clase || 'N/A'}</td>
-                <td>${fechaClase}</td>
-                <td>${fechaSolicitud}</td>
-                <td class="material-badge">${materialHTML}</td>
-            `;
-            
-            tbody.appendChild(row);
-        });
+    generarMaterialHTML(enlaces) {
+    // ✅ Recibe un objeto con youtube y powerpoint
+    const enlacesArray = [];
+    if (enlaces.youtube) {
+        enlacesArray.push(`<a href="${enlaces.youtube}" target="_blank" title="Ver en YouTube">▶️ YouTube</a>`);
     }
-
-    generarMaterialHTML(solicitud) {
-        const enlaces = [];
-        if (solicitud.youtube) {
-            enlaces.push(`<a href="${solicitud.youtube}" target="_blank" title="Ver en YouTube">▶️ YouTube</a>`);
-        }
-        if (solicitud.powerpoint) {
-            enlaces.push(`<a href="${solicitud.powerpoint}" target="_blank" title="Ver presentación">📊 Presentacion</a>`);
-        }
-        if (enlaces.length === 0) {
-            return '<span style="color: #666;">Material disponible</span>';
-        }
-        return enlaces.join(' | ');
+    if (enlaces.powerpoint) {
+        enlacesArray.push(`<a href="${enlaces.powerpoint}" target="_blank" title="Ver presentación">📊 Presentacion</a>`);
     }
+    if (enlacesArray.length === 0) {
+        return '<span style="color: #666;">Material disponible</span>';
+    }
+    return enlacesArray.join(' | ');
+}
 
     mostrarMensaje(mensaje, tipo) {
         const msgDiv = document.getElementById('statusMessage');

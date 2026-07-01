@@ -908,19 +908,29 @@ app.delete('/api/clases-historicas/:id', async (req, res) => {
 app.post('/api/material-historico/solicitudes', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
+        const { claseId } = req.body;
         
-        console.log('📦 POST /material-historico/solicitudes - Headers user-id:', userHeader);
+        console.log('📦 POST /material-historico/solicitudes');
+        console.log('👤 user-id:', userHeader);
+        console.log('📚 claseId:', claseId);
         
         if (!userHeader) {
             return res.status(401).json({ 
                 success: false, 
-                message: 'No autenticado - Falta user-id en headers' 
+                message: 'No autenticado' 
             });
         }
         
-        const { claseId, claseNombre, email, youtube, powerpoint } = req.body;
+        if (!claseId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El ID de la clase es requerido' 
+            });
+        }
+        
         const db = await mongoDB.getDatabaseSafe('formulario');
         
+        // Verificar usuario
         const usuario = await db.collection('usuarios').findOne({ 
             _id: new ObjectId(userHeader) 
         });
@@ -932,36 +942,47 @@ app.post('/api/material-historico/solicitudes', async (req, res) => {
             });
         }
         
+        // Verificar que la clase existe
+        const clase = await db.collection('clases').findOne({ 
+            _id: new ObjectId(claseId) 
+        });
+        
+        if (!clase) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Clase no encontrada' 
+            });
+        }
+        
+        // Verificar si ya solicitó esta clase
         const solicitudExistente = await db.collection('solicitudMaterial').findOne({
             usuarioId: new ObjectId(userHeader),
-            claseId: claseId
+            claseId: new ObjectId(claseId)
         });
         
         if (solicitudExistente) {
             return res.json({ 
                 success: true, 
                 message: 'Material ya solicitado anteriormente',
-                data: solicitudExistente,
                 exists: true
             });
         }
         
+        // ✅ Guardar SOLO las referencias (sin datos duplicados)
         const nuevaSolicitud = {
             usuarioId: new ObjectId(userHeader),
-            claseId: claseId,
-            claseNombre: claseNombre,
-            email: email,
-            youtube: youtube,
-            powerpoint: powerpoint,
+            claseId: new ObjectId(claseId),
             fechaSolicitud: new Date()
         };
         
-        await db.collection('solicitudMaterial').insertOne(nuevaSolicitud);
+        const result = await db.collection('solicitudMaterial').insertOne(nuevaSolicitud);
+        
+        console.log('✅ Solicitud creada:', result.insertedId);
         
         res.json({ 
             success: true, 
             message: 'Solicitud de material histórico registrada exitosamente',
-            data: nuevaSolicitud
+            data: { ...nuevaSolicitud, _id: result.insertedId }
         });
         
     } catch (error) {
@@ -978,12 +999,12 @@ app.get('/api/material-historico/solicitudes', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
         
-        console.log('📦 GET /material-historico/solicitudes - Headers user-id:', userHeader);
+        console.log('📦 GET /material-historico/solicitudes - user-id:', userHeader);
         
         if (!userHeader) {
             return res.status(401).json({ 
                 success: false, 
-                message: 'No autenticado - Falta user-id en headers' 
+                message: 'No autenticado' 
             });
         }
         
@@ -1002,16 +1023,16 @@ app.get('/api/material-historico/solicitudes', async (req, res) => {
         
         let matchCriteria = { usuarioId: new ObjectId(userHeader) };
         
-        if (usuario.role === 'admin') {
-            console.log('👑 Admin: viendo TODAS las solicitudes de material histórico');
+        // Admin y Advanced ven todas
+        if (usuario.role === 'admin' || usuario.role === 'advanced') {
+            console.log('👑 Admin/Advanced: viendo TODAS las solicitudes');
             matchCriteria = {};
         }
         
+        // ✅ Agregar lookup para obtener datos completos de usuario y clase
         const solicitudes = await db.collection('solicitudMaterial')
             .aggregate([
-                {
-                    $match: matchCriteria
-                },
+                { $match: matchCriteria },
                 {
                     $lookup: {
                         from: 'usuarios',
@@ -1021,11 +1042,20 @@ app.get('/api/material-historico/solicitudes', async (req, res) => {
                     }
                 },
                 { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
+                {
+                    $lookup: {
+                        from: 'clases',
+                        localField: 'claseId',
+                        foreignField: '_id',
+                        as: 'clase'
+                    }
+                },
+                { $unwind: { path: '$clase', preserveNullAndEmptyArrays: true } },
                 { $sort: { fechaSolicitud: -1 } }
             ])
             .toArray();
         
-        console.log(`📊 Encontradas ${solicitudes.length} solicitudes de material histórico`);
+        console.log(`📊 ${solicitudes.length} solicitudes encontradas`);
         
         res.json({ 
             success: true, 
