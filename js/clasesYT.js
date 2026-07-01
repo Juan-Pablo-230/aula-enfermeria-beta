@@ -120,7 +120,7 @@ class ChatReal {
 }
 
 // ============================================
-// CLASE TimeTracker (VERSIÓN CORREGIDA - SIN DUPLICADOS)
+// CLASE TimeTracker (VERSIÓN CORREGIDA)
 // ============================================
 class TimeTracker {
     constructor() {
@@ -179,7 +179,7 @@ class TimeTracker {
         // Actualizar display
         setInterval(() => this.updateDisplay(), CONFIG.DISPLAY_UPDATE_INTERVAL);
         
-        // Guardado periódico
+        // Guardado periódico (cada 30 segundos)
         setInterval(() => {
             if (!this.saveInProgress) {
                 this.guardarEnMongoDB(false);
@@ -193,7 +193,12 @@ class TimeTracker {
         try {
             if (!isLoggedInSafe()) return;
             
+            const user = getCurrentUserSafe();
+            console.log(`👤 Usuario logueado: ${user?.apellidoNombre} (${user?._id})`);
+            
             const result = await makeRequestSafe('/tiempo-clase', null, 'GET');
+            
+            console.log('📥 Respuesta de /tiempo-clase:', result);
             
             if (result.success && result.data) {
                 const registro = result.data.find(r => r.claseId === this.claseId);
@@ -201,10 +206,12 @@ class TimeTracker {
                     this.tiempoActivoTotal = registro.tiempoActivo || 0;
                     this.tiempoInactivoTotal = registro.tiempoInactivo || 0;
                     console.log(`💾 Datos cargados - Activo: ${this.tiempoActivoTotal}s, Inactivo: ${this.tiempoInactivoTotal}s`);
+                } else {
+                    console.log('ℹ️ No hay registros previos para esta clase');
                 }
             }
         } catch (error) {
-            console.log('ℹ️ No hay datos previos');
+            console.error('❌ Error cargando datos guardados:', error);
         }
     }
 
@@ -256,26 +263,29 @@ class TimeTracker {
             }
         }
         
+        // Guardar usando fetch con keepalive (más confiable que sendBeacon)
         const datos = {
             claseId: this.claseId,
             claseNombre: this.claseNombre,
-            tiempoActivo: this.tiempoActivoSesion,
-            tiempoInactivo: this.tiempoInactivoSesion,
+            tiempoActivo: this.tiempoActivoSesion || 0,
+            tiempoInactivo: this.tiempoInactivoSesion || 0,
             esFinal: true
         };
         
-        // Usar sendBeacon para garantizar el envío incluso al cerrar
-        if (navigator.sendBeacon) {
-            const blob = new Blob([JSON.stringify(datos)], { type: 'application/json' });
-            const user = getCurrentUserSafe();
-            if (user && user._id) {
-                // sendBeacon no soporta headers personalizados, pero el body llega
-                navigator.sendBeacon('/api/tiempo-clase/actualizar', blob);
-                console.log('📤 Envío con sendBeacon para guardado final');
-            }
-        } else {
-            // Fallback a fetch normal
-            this.guardarEnMongoDB(true);
+        const user = getCurrentUserSafe();
+        if (user && user._id) {
+            // Usar fetch con keepalive (navegadores modernos lo soportan)
+            fetch('/api/tiempo-clase/actualizar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'user-id': user._id
+                },
+                body: JSON.stringify(datos),
+                keepalive: true
+            }).catch(err => console.error('❌ Error en guardado final:', err));
+            
+            console.log('📤 Enviando guardado final:', datos);
         }
     }
 
@@ -302,7 +312,9 @@ class TimeTracker {
         this.saveInProgress = true;
         this.lastSaveTime = ahora;
         
-        if (!isLoggedInSafe()) {
+        const user = getCurrentUserSafe();
+        if (!user || !user._id) {
+            console.log('⚠️ Usuario no logueado, no se guarda el tiempo');
             this.saveInProgress = false;
             return;
         }
@@ -312,22 +324,30 @@ class TimeTracker {
             return;
         }
         
-        console.log(`📤 Guardando en MongoDB:`);
-        console.log(`   + Activo: ${this.tiempoActivoSesion}s`);
-        console.log(`   + Inactivo: ${this.tiempoInactivoSesion}s`);
-        console.log(`   + Final: ${esFinal}`);
+        // Verificar que tenemos datos para guardar
+        const datos = {
+            claseId: this.claseId,
+            claseNombre: this.claseNombre,
+            tiempoActivo: this.tiempoActivoSesion || 0,
+            tiempoInactivo: this.tiempoInactivoSesion || 0,
+            esFinal: esFinal,
+            usuarioId: user._id,
+            usuarioNombre: user.apellidoNombre,
+            legajo: user.legajo,
+            turno: user.turno,
+            email: user.email
+        };
+        
+        console.log(`📤 Guardando en MongoDB (${esFinal ? 'FINAL' : 'Parcial'}):`);
+        console.log(`   + Usuario: ${user.apellidoNombre} (${user._id})`);
+        console.log(`   + Activo: ${datos.tiempoActivo}s`);
+        console.log(`   + Inactivo: ${datos.tiempoInactivo}s`);
         
         try {
-            const result = await makeRequestSafe('/tiempo-clase/actualizar', {
-                claseId: this.claseId,
-                claseNombre: this.claseNombre,
-                tiempoActivo: this.tiempoActivoSesion,
-                tiempoInactivo: this.tiempoInactivoSesion,
-                esFinal: esFinal
-            });
+            const result = await makeRequestSafe('/tiempo-clase/actualizar', datos);
             
             if (result.success) {
-                console.log('✅ Guardado OK');
+                console.log('✅ Guardado OK:', result.message || '');
                 if (!esFinal) {
                     this.tiempoActivoSesion = 0;
                     this.tiempoInactivoSesion = 0;
@@ -336,7 +356,7 @@ class TimeTracker {
                 console.warn('⚠️ Guardado respondió con error:', result.message);
             }
         } catch (error) {
-            console.error('❌ Error guardando:', error);
+            console.error('❌ Error guardando en MongoDB:', error);
         } finally {
             this.saveInProgress = false;
         }
