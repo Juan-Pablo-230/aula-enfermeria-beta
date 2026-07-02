@@ -2089,12 +2089,11 @@ app.delete('/api/usuarios/cuenta', async (req, res) => {
 });
 
 // ==================== RUTAS PARA TIEMPO EN CLASE ====================
-
 app.post('/api/tiempo-clase/actualizar', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
         
-        console.log('⏱️ POST /api/tiempo-clase/actualizar - Usuario:', userHeader);
+        console.log('⏱️ POST /api/tiempo-clase/actualizar');
         
         if (!userHeader) {
             return res.status(401).json({ 
@@ -2127,7 +2126,7 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         
         const ahora = new Date();
         
-        // USAR findOneAndUpdate con upsert para evitar duplicados
+        // ✅ Guardar SOLO referencias y tiempos
         const filtro = {
             usuarioId: new ObjectId(userHeader),
             claseId: claseId
@@ -2135,10 +2134,10 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         
         const updateData = {
             $set: {
-                usuarioNombre: usuario.apellidoNombre,
-                legajo: usuario.legajo,
-                turno: usuario.turno,
-                claseNombre: claseNombre,
+                // ❌ ELIMINADO: usuarioNombre
+                // ❌ ELIMINADO: legajo
+                // ❌ ELIMINADO: turno
+                // ❌ ELIMINADO: claseNombre
                 ultimaActualizacion: ahora
             },
             $inc: {
@@ -2155,7 +2154,6 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
             updateData.$set.fechaFinalizacion = ahora;
         }
         
-        // Usar findOneAndUpdate con upsert: true para crear si no existe
         const resultado = await db.collection('tiempo-en-clases').findOneAndUpdate(
             filtro,
             updateData,
@@ -2165,9 +2163,7 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
             }
         );
         
-        console.log(`✅ Tiempo ACTUALIZADO para ${usuario.apellidoNombre} en ${claseNombre}`);
-        console.log(`   + Activo: ${tiempoActivo}s, + Inactivo: ${tiempoInactivo}s`);
-        console.log(`   Registro ${resultado.value ? 'actualizado' : 'creado'}`);
+        console.log(`✅ Tiempo actualizado para usuario ${usuario.apellidoNombre}`);
         
         res.json({ 
             success: true, 
@@ -2177,47 +2173,6 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         
     } catch (error) {
         console.error('❌ Error actualizando tiempo:', error);
-        
-        // Si hay error de duplicado (índice único), intentar actualizar nuevamente
-        if (error.code === 11000) {
-            console.log('⚠️ Conflicto de duplicado, reintentando...');
-            try {
-                const db = await mongoDB.getDatabaseSafe('formulario');
-                const { claseId, claseNombre, tiempoActivo, tiempoInactivo, esFinal } = req.body;
-                const userHeader = req.headers['user-id'];
-                
-                const ahora = new Date();
-                const usuarioActual = await db.collection('usuarios').findOne({ _id: new ObjectId(userHeader) });
-                
-                const resultado = await db.collection('tiempo-en-clases').updateOne(
-                    {
-                        usuarioId: new ObjectId(userHeader),
-                        claseId: claseId
-                    },
-                    {
-                        $set: {
-                            usuarioNombre: usuarioActual?.apellidoNombre,
-                            legajo: usuarioActual?.legajo,
-                            turno: usuarioActual?.turno,
-                            claseNombre: claseNombre,
-                            ultimaActualizacion: ahora
-                        },
-                        $inc: {
-                            tiempoActivo: tiempoActivo,
-                            tiempoInactivo: tiempoInactivo
-                        }
-                    }
-                );
-                
-                return res.json({ 
-                    success: true, 
-                    message: 'Tiempo actualizado correctamente (reintento)'
-                });
-            } catch (retryError) {
-                console.error('❌ Error en reintento:', retryError);
-            }
-        }
-        
         res.status(500).json({ 
             success: false, 
             message: 'Error interno del servidor',
@@ -2230,6 +2185,8 @@ app.get('/api/tiempo-clase', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
         const { clase, usuario } = req.query;
+        
+        console.log('📊 GET /api/tiempo-clase - user-id:', userHeader);
         
         if (!userHeader) {
             return res.status(401).json({ 
@@ -2251,23 +2208,41 @@ app.get('/api/tiempo-clase', async (req, res) => {
             });
         }
         
+        // Construir filtro base
         let filtro = {};
         
+        // Si es usuario normal, solo ve sus propios registros
         if (usuarioActual.role !== 'admin' && usuarioActual.role !== 'advanced') {
             filtro.usuarioId = new ObjectId(userHeader);
         }
         
+        // Filtro por clase
         if (clase && clase !== 'todas') {
-            filtro.claseNombre = clase;
+            filtro.claseId = clase;
         }
         
+        // Filtro por usuario específico (solo admin/advanced)
         if (usuario && (usuarioActual.role === 'admin' || usuarioActual.role === 'advanced')) {
-            filtro.usuarioId = new ObjectId(usuario);
+            if (ObjectId.isValid(usuario)) {
+                filtro.usuarioId = new ObjectId(usuario);
+            }
         }
         
+        // ✅ Agregar lookup para obtener datos completos
         const registros = await db.collection('tiempo-en-clases')
-            .find(filtro)
-            .sort({ ultimaActualizacion: -1 })
+            .aggregate([
+                { $match: filtro },
+                {
+                    $lookup: {
+                        from: 'usuarios',
+                        localField: 'usuarioId',
+                        foreignField: '_id',
+                        as: 'usuario'
+                    }
+                },
+                { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
+                { $sort: { ultimaActualizacion: -1 } }
+            ])
             .toArray();
         
         res.json({ 
@@ -2378,6 +2353,7 @@ app.get('/api/tiempo-clase/usuario/:usuarioId', async (req, res) => {
             });
         }
         
+        // Verificar permisos
         if (usuarioActual.role !== 'admin' && usuarioActual.role !== 'advanced' && 
             userHeader !== usuarioId) {
             return res.status(403).json({ 
@@ -2386,11 +2362,24 @@ app.get('/api/tiempo-clase/usuario/:usuarioId', async (req, res) => {
             });
         }
         
+        // ✅ Agregar lookup para obtener datos completos del usuario y las clases
         const registros = await db.collection('tiempo-en-clases')
-            .find({ usuarioId: new ObjectId(usuarioId) })
-            .sort({ ultimaActualizacion: -1 })
+            .aggregate([
+                { $match: { usuarioId: new ObjectId(usuarioId) } },
+                {
+                    $lookup: {
+                        from: 'usuarios',
+                        localField: 'usuarioId',
+                        foreignField: '_id',
+                        as: 'usuario'
+                    }
+                },
+                { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
+                { $sort: { ultimaActualizacion: -1 } }
+            ])
             .toArray();
         
+        // Obtener datos del usuario (sin password)
         const usuario = await db.collection('usuarios').findOne(
             { _id: new ObjectId(usuarioId) },
             { projection: { password: 0 } }

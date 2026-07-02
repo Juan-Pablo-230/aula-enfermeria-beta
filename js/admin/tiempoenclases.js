@@ -49,43 +49,47 @@ class TiempoEnClasesManager {
     }
 
     agruparRegistros() {
-        const grupos = new Map();
+    const grupos = new Map();
+    
+    this.data.forEach(reg => {
+        // ✅ Obtener datos del usuario desde el lookup
+        const usuario = reg.usuario || {};
+        const usuarioId = reg.usuarioId;
         
-        this.data.forEach(reg => {
-            const key = `${reg.usuarioId}_${reg.claseId}`;
-            
-            if (!grupos.has(key)) {
-                grupos.set(key, {
-                    usuarioId: reg.usuarioId,
-                    usuarioNombre: reg.usuarioNombre,
-                    legajo: reg.legajo,
-                    turno: reg.turno,
-                    claseId: reg.claseId,
-                    claseNombre: reg.claseNombre,
-                    tiempoActivo: 0,
-                    tiempoInactivo: 0,
-                    ultimaActualizacion: reg.ultimaActualizacion || reg.fechaRegistro,
-                    cantidadRegistros: 0
-                });
-            }
-            
-            const grupo = grupos.get(key);
-            grupo.tiempoActivo += reg.tiempoActivo || 0;
-            grupo.tiempoInactivo += reg.tiempoInactivo || 0;
-            grupo.cantidadRegistros++;
-            
-            const fechaReg = new Date(reg.ultimaActualizacion || reg.fechaRegistro);
-            const fechaGrupo = new Date(grupo.ultimaActualizacion);
-            if (fechaReg > fechaGrupo) {
-                grupo.ultimaActualizacion = reg.ultimaActualizacion || reg.fechaRegistro;
-            }
-        });
+        const key = `${usuarioId}_${reg.claseId}`;
         
-        this.registrosAgrupados = Array.from(grupos.values())
-            .sort((a, b) => new Date(b.ultimaActualizacion) - new Date(a.ultimaActualizacion));
+        if (!grupos.has(key)) {
+            grupos.set(key, {
+                usuarioId: usuarioId,
+                usuarioNombre: usuario.apellidoNombre || 'N/A',
+                legajo: usuario.legajo || '-',
+                turno: usuario.turno || 'No especificado',
+                claseId: reg.claseId,
+                claseNombre: reg.claseId, // Temporal, se mostrará como ID
+                tiempoActivo: 0,
+                tiempoInactivo: 0,
+                ultimaActualizacion: reg.ultimaActualizacion || reg.fechaInicio,
+                cantidadRegistros: 0
+            });
+        }
         
-        console.log('📊 Muestra de grupos:', this.registrosAgrupados.slice(0, 3));
-    }
+        const grupo = grupos.get(key);
+        grupo.tiempoActivo += reg.tiempoActivo || 0;
+        grupo.tiempoInactivo += reg.tiempoInactivo || 0;
+        grupo.cantidadRegistros++;
+        
+        const fechaReg = new Date(reg.ultimaActualizacion || reg.fechaInicio);
+        const fechaGrupo = new Date(grupo.ultimaActualizacion);
+        if (fechaReg > fechaGrupo) {
+            grupo.ultimaActualizacion = reg.ultimaActualizacion || reg.fechaInicio;
+        }
+    });
+    
+    this.registrosAgrupados = Array.from(grupos.values())
+        .sort((a, b) => new Date(b.ultimaActualizacion) - new Date(a.ultimaActualizacion));
+    
+    console.log('📊 Grupos creados:', this.registrosAgrupados.length);
+}
 
     actualizarFiltrosClase() {
         const selectClase = document.getElementById('filtroClase');
@@ -130,36 +134,39 @@ class TiempoEnClasesManager {
     }
 
     mostrarTabla() {
-        const tbody = document.getElementById('tiemposBody');
-        if (!tbody) return;
+    const tbody = document.getElementById('tiemposBody');
+    if (!tbody) return;
 
-        const datosFiltrados = this.aplicarFiltros();
+    const datosFiltrados = this.aplicarFiltros();
 
-        if (datosFiltrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="empty-message">No hay registros de tiempo con los filtros aplicados</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = datosFiltrados.map((item, index) => {
-            const activo = this.formatearTiempo(item.tiempoActivo);
-            const inactivo = this.formatearTiempo(item.tiempoInactivo);
-            const total = item.tiempoActivo + item.tiempoInactivo;
-            
-            return `
-            <tr>
-                <td>${index + 1}</td>
-                <td>
-                    <strong>${item.usuarioNombre}</strong>
-                    <button class="btn-info btn-small" onclick="tiemposManager.verDetalle('${item.usuarioId}')" title="Ver detalle">📋</button>
-                </td>
-                <td>${item.legajo || '-'}</td>
-                <td>${item.claseNombre}</td>
-                <td><span class="tiempo-badge activo">🟢 ${activo}</span></td>
-                <td><span class="tiempo-badge inactivo">⚪ ${inactivo}</span></td>
-                <td><span class="tiempo-badge total">📊 ${this.formatearTiempo(total)}</span></td>
-            </tr>
-        `}).join('');
+    if (datosFiltrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-message">No hay registros de tiempo con los filtros aplicados</td></tr>`;
+        return;
     }
+
+    tbody.innerHTML = datosFiltrados.map((item, index) => {
+        // ✅ Obtener datos del usuario (viene del lookup)
+        const usuario = item.usuario || {};
+        
+        const activo = this.formatearTiempo(item.tiempoActivo);
+        const inactivo = this.formatearTiempo(item.tiempoInactivo);
+        const total = item.tiempoActivo + item.tiempoInactivo;
+        
+        return `
+        <tr>
+            <td>${index + 1}</td>
+            <td>
+                <strong>${usuario.apellidoNombre || 'N/A'}</strong>
+                <button class="btn-info btn-small" onclick="tiemposManager.verDetalle('${item.usuarioId}')" title="Ver detalle">📋</button>
+            </td>
+            <td>${usuario.legajo || '-'}</td>
+            <td>${item.claseId}</td>
+            <td><span class="tiempo-badge activo">🟢 ${activo}</span></td>
+            <td><span class="tiempo-badge inactivo">⚪ ${inactivo}</span></td>
+            <td><span class="tiempo-badge total">📊 ${this.formatearTiempo(total)}</span></td>
+        </tr>
+    `}).join('');
+}
 
     formatearTiempo(segundos) {
         if (!segundos && segundos !== 0) return '0s';
@@ -196,86 +203,90 @@ class TiempoEnClasesManager {
     }
 
     async verDetalle(usuarioId) {
-        try {
-            const registrosUsuario = this.data.filter(r => r.usuarioId === usuarioId);
-            
-            if (registrosUsuario.length === 0) {
-                alert('No hay registros para este usuario');
-                return;
+    try {
+        // ✅ Ahora los registros ya tienen 'usuario' con los datos
+        const registrosUsuario = this.data.filter(r => r.usuarioId === usuarioId);
+        
+        if (registrosUsuario.length === 0) {
+            alert('No hay registros para este usuario');
+            return;
+        }
+        
+        // Obtener datos del usuario del primer registro (ya viene con lookup)
+        const usuarioInfo = registrosUsuario[0]?.usuario || {};
+        
+        const totalActivo = registrosUsuario.reduce((sum, r) => sum + (r.tiempoActivo || 0), 0);
+        const totalInactivo = registrosUsuario.reduce((sum, r) => sum + (r.tiempoInactivo || 0), 0);
+        
+        // Agrupar por clase
+        const clasesMap = new Map();
+        registrosUsuario.forEach(reg => {
+            const key = reg.claseId;
+            if (!clasesMap.has(key)) {
+                clasesMap.set(key, {
+                    claseId: reg.claseId,
+                    claseNombre: reg.claseId, // Temporal
+                    tiempoActivo: 0,
+                    tiempoInactivo: 0,
+                    registros: []
+                });
             }
-            
-            const usuarioInfo = registrosUsuario[0];
-            
-            const totalActivo = registrosUsuario.reduce((sum, r) => sum + (r.tiempoActivo || 0), 0);
-            const totalInactivo = registrosUsuario.reduce((sum, r) => sum + (r.tiempoInactivo || 0), 0);
-            
-            const clasesMap = new Map();
-            registrosUsuario.forEach(reg => {
-                const key = reg.claseId;
-                if (!clasesMap.has(key)) {
-                    clasesMap.set(key, {
-                        claseNombre: reg.claseNombre,
-                        tiempoActivo: 0,
-                        tiempoInactivo: 0,
-                        registros: []
-                    });
-                }
-                const clase = clasesMap.get(key);
-                clase.tiempoActivo += reg.tiempoActivo || 0;
-                clase.tiempoInactivo += reg.tiempoInactivo || 0;
-                clase.registros.push(reg);
-            });
-            
-            const contenido = `
-                <div class="detalle-usuario">
-                    <h3>${usuarioInfo.usuarioNombre}</h3>
-                    <div class="detalle-info">
-                        <p><strong>Legajo:</strong> ${usuarioInfo.legajo || '-'}</p>
-                        <p><strong>Email:</strong> ${usuarioInfo.email || 'No disponible'}</p>
-                        <p><strong>Turno:</strong> ${usuarioInfo.turno || 'No especificado'}</p>
-                    </div>
-                    
-                    <div class="detalle-resumen">
-                        <div class="resumen-card activo">
-                            <span class="label">Tiempo Activo</span>
-                            <span class="value">${this.formatearTiempo(totalActivo)}</span>
-                        </div>
-                        <div class="resumen-card inactivo">
-                            <span class="label">Tiempo Inactivo</span>
-                            <span class="value">${this.formatearTiempo(totalInactivo)}</span>
-                        </div>
-                        <div class="resumen-card total">
-                            <span class="label">Tiempo Total</span>
-                            <span class="value">${this.formatearTiempo(totalActivo + totalInactivo)}</span>
-                        </div>
-                    </div>
+            const clase = clasesMap.get(key);
+            clase.tiempoActivo += reg.tiempoActivo || 0;
+            clase.tiempoInactivo += reg.tiempoInactivo || 0;
+            clase.registros.push(reg);
+        });
+        
+        const contenido = `
+            <div class="detalle-usuario">
+                <h3>${usuarioInfo.apellidoNombre || 'Usuario'}</h3>
+                <div class="detalle-info">
+                    <p><strong>Legajo:</strong> ${usuarioInfo.legajo || '-'}</p>
+                    <p><strong>Email:</strong> ${usuarioInfo.email || 'No disponible'}</p>
+                    <p><strong>Turno:</strong> ${usuarioInfo.turno || 'No especificado'}</p>
                 </div>
                 
-                <div class="detalle-clases">
-                    <h4>📋 Detalle por clase</h4>
-                    ${Array.from(clasesMap.values()).map(clase => `
-                        <div class="clase-item">
-                            <div class="clase-header">
-                                <strong>${clase.claseNombre}</strong>
-                                <span class="badge">${clase.registros.length} sesiones</span>
-                            </div>
-                            <div class="clase-tiempos">
-                                <span class="activo">🟢 Activo: ${this.formatearTiempo(clase.tiempoActivo)}</span>
-                                <span class="inactivo">⚪ Inactivo: ${this.formatearTiempo(clase.tiempoInactivo)}</span>
-                            </div>
-                        </div>
-                    `).join('')}
+                <div class="detalle-resumen">
+                    <div class="resumen-card activo">
+                        <span class="label">Tiempo Activo</span>
+                        <span class="value">${this.formatearTiempo(totalActivo)}</span>
+                    </div>
+                    <div class="resumen-card inactivo">
+                        <span class="label">Tiempo Inactivo</span>
+                        <span class="value">${this.formatearTiempo(totalInactivo)}</span>
+                    </div>
+                    <div class="resumen-card total">
+                        <span class="label">Tiempo Total</span>
+                        <span class="value">${this.formatearTiempo(totalActivo + totalInactivo)}</span>
+                    </div>
                 </div>
-            `;
+            </div>
             
-            document.getElementById('detalleModalContent').innerHTML = contenido;
-            document.getElementById('detalleModal').style.display = 'flex';
-            
-        } catch (error) {
-            console.error('❌ Error cargando detalle:', error);
-            alert('Error al cargar detalle');
-        }
+            <div class="detalle-clases">
+                <h4>📋 Detalle por clase</h4>
+                ${Array.from(clasesMap.values()).map(clase => `
+                    <div class="clase-item">
+                        <div class="clase-header">
+                            <strong>Clase ID: ${clase.claseId}</strong>
+                            <span class="badge">${clase.registros.length} sesiones</span>
+                        </div>
+                        <div class="clase-tiempos">
+                            <span class="activo">🟢 Activo: ${this.formatearTiempo(clase.tiempoActivo)}</span>
+                            <span class="inactivo">⚪ Inactivo: ${this.formatearTiempo(clase.tiempoInactivo)}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        document.getElementById('detalleModalContent').innerHTML = contenido;
+        document.getElementById('detalleModal').style.display = 'flex';
+        
+    } catch (error) {
+        console.error('❌ Error cargando detalle:', error);
+        alert('Error al cargar detalle');
     }
+}
 
     mostrarError() {
         const tbody = document.getElementById('tiemposBody');
