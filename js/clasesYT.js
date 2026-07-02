@@ -9,8 +9,8 @@ console.log('🎥 clasesYT.js - Versión CORREGIDA (sin duplicados)');
 // ============================================
 const CONFIG = {
     // 🔴 CAMBIA SOLO ESTOS DOS VALORES para cada nueva clase
-    VIDEO_ID: 'cb12KmMMDJA',      // ID del video de YouTube
-    CLASE_NOMBRE: 'Prueba de transmision', // Nombre visible de la clase
+    VIDEO_ID: 'xZVIo6DmNpQ',      // ID del video de YouTube
+    CLASE_NOMBRE: 'CAFO NEONATAL (Aires de cuidado) - Episodio 03', // Nombre visible de la clase
     
     // ⚙️ Configuración técnica (no tocar)
     DISPLAY_UPDATE_INTERVAL: 1000,
