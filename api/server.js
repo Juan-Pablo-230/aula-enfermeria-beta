@@ -2094,6 +2094,7 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         const userHeader = req.headers['user-id'];
         
         console.log('⏱️ POST /api/tiempo-clase/actualizar');
+        console.log('📦 Body recibido:', req.body);
         
         if (!userHeader) {
             return res.status(401).json({ 
@@ -2104,7 +2105,7 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         
         const { claseId, claseNombre, tiempoActivo, tiempoInactivo, esFinal } = req.body;
         
-        if (!claseId || !claseNombre || tiempoActivo === undefined || tiempoInactivo === undefined) {
+        if (!claseId || tiempoActivo === undefined || tiempoInactivo === undefined) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Faltan datos requeridos' 
@@ -2126,7 +2127,6 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         
         const ahora = new Date();
         
-        // ✅ Guardar SOLO referencias y tiempos
         const filtro = {
             usuarioId: new ObjectId(userHeader),
             claseId: claseId
@@ -2134,10 +2134,8 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
         
         const updateData = {
             $set: {
-                // ❌ ELIMINADO: usuarioNombre
-                // ❌ ELIMINADO: legajo
-                // ❌ ELIMINADO: turno
-                // ❌ ELIMINADO: claseNombre
+                // ✅ AGREGAR claseNombre
+                claseNombre: claseNombre || null,
                 ultimaActualizacion: ahora
             },
             $inc: {
@@ -2163,7 +2161,9 @@ app.post('/api/tiempo-clase/actualizar', async (req, res) => {
             }
         );
         
-        console.log(`✅ Tiempo actualizado para usuario ${usuario.apellidoNombre}`);
+        console.log(`✅ Tiempo actualizado para ${usuario.apellidoNombre}`);
+        console.log(`   + claseNombre: ${claseNombre}`);
+        console.log(`   + Activo: ${tiempoActivo}s, Inactivo: ${tiempoInactivo}s`);
         
         res.json({ 
             success: true, 
