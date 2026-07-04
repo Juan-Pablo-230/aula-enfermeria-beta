@@ -68,53 +68,49 @@ class TiempoEnClasesManager {
     }
 
     agruparRegistros() {
-        const grupos = new Map();
+    const grupos = new Map();
+    
+    this.data.forEach(reg => {
+        const usuario = reg.usuario || {};
+        const usuarioId = reg.usuarioId;
         
-        this.data.forEach(reg => {
-            // ✅ Obtener datos del usuario desde el lookup (viene en 'usuario')
-            const usuario = reg.usuario || {};
-            const usuarioId = reg.usuarioId;
-            
-            // ✅ Si no hay usuario, mostrar como desconocido
-            const usuarioNombre = usuario.apellidoNombre || 'Usuario desconocido';
-            const legajo = usuario.legajo || '-';
-            const turno = usuario.turno || 'No especificado';
-            
-            const key = `${usuarioId}_${reg.claseId}`;
-            
-            if (!grupos.has(key)) {
-                grupos.set(key, {
-                    usuarioId: usuarioId,
-                    usuarioNombre: usuarioNombre,
-                    legajo: legajo,
-                    turno: turno,
-                    claseId: reg.claseId,
-                    // ✅ El nombre de la clase se muestra desde el ID (o podemos dejarlo como ID)
-                    claseNombre: reg.claseId || 'Clase desconocida',
-                    tiempoActivo: 0,
-                    tiempoInactivo: 0,
-                    ultimaActualizacion: reg.ultimaActualizacion || reg.fechaInicio,
-                    cantidadRegistros: 0
-                });
-            }
-            
-            const grupo = grupos.get(key);
-            grupo.tiempoActivo += reg.tiempoActivo || 0;
-            grupo.tiempoInactivo += reg.tiempoInactivo || 0;
-            grupo.cantidadRegistros++;
-            
-            const fechaReg = new Date(reg.ultimaActualizacion || reg.fechaInicio);
-            const fechaGrupo = new Date(grupo.ultimaActualizacion);
-            if (fechaReg > fechaGrupo) {
-                grupo.ultimaActualizacion = reg.ultimaActualizacion || reg.fechaInicio;
-            }
-        });
+        // ✅ Usar el nombre obtenido de la inscripción, o fallback a claseId
+        const nombreClase = reg.claseNombreFinal || reg.claseId || 'Clase desconocida';
         
-        this.registrosAgrupados = Array.from(grupos.values())
-            .sort((a, b) => new Date(b.ultimaActualizacion) - new Date(a.ultimaActualizacion));
+        const key = `${usuarioId}_${reg.claseId}`;
         
-        console.log('📊 Muestra de grupos:', this.registrosAgrupados.slice(0, 3));
-    }
+        if (!grupos.has(key)) {
+            grupos.set(key, {
+                usuarioId: usuarioId,
+                usuarioNombre: usuario.apellidoNombre || 'Usuario desconocido',
+                legajo: usuario.legajo || '-',
+                turno: usuario.turno || 'No especificado',
+                claseId: reg.claseId,
+                claseNombre: nombreClase,
+                tiempoActivo: 0,
+                tiempoInactivo: 0,
+                ultimaActualizacion: reg.ultimaActualizacion || reg.fechaInicio,
+                cantidadRegistros: 0
+            });
+        }
+        
+        const grupo = grupos.get(key);
+        grupo.tiempoActivo += reg.tiempoActivo || 0;
+        grupo.tiempoInactivo += reg.tiempoInactivo || 0;
+        grupo.cantidadRegistros++;
+        
+        const fechaReg = new Date(reg.ultimaActualizacion || reg.fechaInicio);
+        const fechaGrupo = new Date(grupo.ultimaActualizacion);
+        if (fechaReg > fechaGrupo) {
+            grupo.ultimaActualizacion = reg.ultimaActualizacion || reg.fechaInicio;
+        }
+    });
+    
+    this.registrosAgrupados = Array.from(grupos.values())
+        .sort((a, b) => new Date(b.ultimaActualizacion) - new Date(a.ultimaActualizacion));
+    
+    console.log('📊 Muestra de grupos:', this.registrosAgrupados.slice(0, 3));
+}
 
     actualizarFiltrosClase() {
         const selectClase = document.getElementById('filtroClase');
@@ -159,36 +155,36 @@ class TiempoEnClasesManager {
     }
 
     mostrarTabla() {
-        const tbody = document.getElementById('tiemposBody');
-        if (!tbody) return;
+    const tbody = document.getElementById('tiemposBody');
+    if (!tbody) return;
 
-        const datosFiltrados = this.aplicarFiltros();
+    const datosFiltrados = this.aplicarFiltros();
 
-        if (datosFiltrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="empty-message">No hay registros de tiempo con los filtros aplicados</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = datosFiltrados.map((item, index) => {
-            const activo = this.formatearTiempo(item.tiempoActivo);
-            const inactivo = this.formatearTiempo(item.tiempoInactivo);
-            const total = item.tiempoActivo + item.tiempoInactivo;
-            
-            return `
-            <tr>
-                <td>${index + 1}</td>
-                <td>
-                    <strong>${item.usuarioNombre}</strong>
-                    <button class="btn-info btn-small" onclick="tiemposManager.verDetalle('${item.usuarioId}')" title="Ver detalle">📋</button>
-                </td>
-                <td>${item.legajo || '-'}</td>
-                <td>${item.claseId}</td>
-                <td><span class="tiempo-badge activo">🟢 ${activo}</span></td>
-                <td><span class="tiempo-badge inactivo">⚪ ${inactivo}</span></td>
-                <td><span class="tiempo-badge total">📊 ${this.formatearTiempo(total)}</span></td>
-            </tr>
-        `}).join('');
+    if (datosFiltrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-message">No hay registros de tiempo con los filtros aplicados</td></tr>`;
+        return;
     }
+
+    tbody.innerHTML = datosFiltrados.map((item, index) => {
+        const activo = this.formatearTiempo(item.tiempoActivo);
+        const inactivo = this.formatearTiempo(item.tiempoInactivo);
+        const total = item.tiempoActivo + item.tiempoInactivo;
+        
+        return `
+        <tr>
+            <td>${index + 1}</td>
+            <td>
+                <strong>${item.usuarioNombre}</strong>
+                <button class="btn-info btn-small" onclick="tiemposManager.verDetalle('${item.usuarioId}')" title="Ver detalle">📋</button>
+            </td>
+            <td>${item.legajo || '-'}</td>
+            <td>${item.claseNombre}</td>
+            <td><span class="tiempo-badge activo">🟢 ${activo}</span></td>
+            <td><span class="tiempo-badge inactivo">⚪ ${inactivo}</span></td>
+            <td><span class="tiempo-badge total">📊 ${this.formatearTiempo(total)}</span></td>
+        </tr>
+    `}).join('');
+}
 
     formatearTiempo(segundos) {
         if (!segundos && segundos !== 0) return '0s';

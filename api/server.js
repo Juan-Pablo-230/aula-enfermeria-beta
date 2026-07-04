@@ -2211,27 +2211,25 @@ app.get('/api/tiempo-clase', async (req, res) => {
         // Construir filtro base
         let filtro = {};
         
-        // Si es usuario normal, solo ve sus propios registros
         if (usuarioActual.role !== 'admin' && usuarioActual.role !== 'advanced') {
             filtro.usuarioId = new ObjectId(userHeader);
         }
         
-        // Filtro por clase
         if (clase && clase !== 'todas') {
             filtro.claseId = clase;
         }
         
-        // Filtro por usuario específico (solo admin/advanced)
         if (usuario && (usuarioActual.role === 'admin' || usuarioActual.role === 'advanced')) {
             if (ObjectId.isValid(usuario)) {
                 filtro.usuarioId = new ObjectId(usuario);
             }
         }
         
-        // ✅ Agregar lookup para obtener datos completos
+        // ✅ Pipeline: Obtener usuario + nombre de clase desde inscripciones
         const registros = await db.collection('tiempo-en-clases')
             .aggregate([
                 { $match: filtro },
+                // 1. Obtener datos del usuario
                 {
                     $lookup: {
                         from: 'usuarios',
@@ -2241,9 +2239,49 @@ app.get('/api/tiempo-clase', async (req, res) => {
                     }
                 },
                 { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
+                // 2. Obtener inscripciones del usuario para esta clase
+                {
+                    $lookup: {
+                        from: 'inscripciones',
+                        let: { 
+                            usuarioId: '$usuarioId',
+                            claseId: '$claseId'
+                        },
+                        pipeline: [
+                            { 
+                                $match: { 
+                                    $expr: { 
+                                        $and: [
+                                            { $eq: ['$usuarioId', '$$usuarioId'] },
+                                            { $eq: ['$claseId', '$$claseId'] }
+                                        ]
+                                    }
+                                }
+                            },
+                            { $limit: 1 }
+                        ],
+                        as: 'inscripcion'
+                    }
+                },
+                { $unwind: { path: '$inscripcion', preserveNullAndEmptyArrays: true } },
+                // 3. Agregar el nombre de la clase
+                {
+                    $addFields: {
+                        // ✅ Si tiene inscripción, usar su nombre; si no, usar claseId como fallback
+                        claseNombreFinal: {
+                            $cond: [
+                                { $ne: ['$inscripcion', null] },
+                                '$inscripcion.clase',
+                                '$claseId'
+                            ]
+                        }
+                    }
+                },
                 { $sort: { ultimaActualizacion: -1 } }
             ])
             .toArray();
+        
+        console.log(`📊 ${registros.length} registros encontrados`);
         
         res.json({ 
             success: true, 
