@@ -190,30 +190,43 @@ class TimeTracker {
     }
 
     async cargarDatosGuardados() {
-        try {
-            if (!isLoggedInSafe()) return;
-            
-            const user = getCurrentUserSafe();
-            console.log(`👤 Usuario logueado: ${user?.apellidoNombre} (${user?._id})`);
-            
-            const result = await makeRequestSafe('/tiempo-clase', null, 'GET');
-            
-            console.log('📥 Respuesta de /tiempo-clase:', result);
-            
-            if (result.success && result.data) {
-                const registro = result.data.find(r => r.claseId === this.claseId);
-                if (registro) {
-                    this.tiempoActivoTotal = registro.tiempoActivo || 0;
-                    this.tiempoInactivoTotal = registro.tiempoInactivo || 0;
-                    console.log(`💾 Datos cargados - Activo: ${this.tiempoActivoTotal}s, Inactivo: ${this.tiempoInactivoTotal}s`);
-                } else {
-                    console.log('ℹ️ No hay registros previos para esta clase');
-                }
+    try {
+        if (!isLoggedInSafe()) return;
+        
+        const user = getCurrentUserSafe();
+        console.log(`👤 Usuario logueado: ${user?.apellidoNombre} (${user?._id})`);
+        
+        // ✅ Fetch directo para evitar duplicación de /api
+        const response = await fetch('/api/tiempo-clase', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'user-id': user._id
             }
-        } catch (error) {
-            console.error('❌ Error cargando datos guardados:', error);
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
+        const result = await response.json();
+        console.log('📥 Respuesta de /tiempo-clase:', result);
+        
+        if (result.success && result.data) {
+            const registro = result.data.find(r => r.claseId === this.claseId);
+            if (registro) {
+                this.tiempoActivoTotal = registro.tiempoActivo || 0;
+                this.tiempoInactivoTotal = registro.tiempoInactivo || 0;
+                console.log(`💾 Datos cargados - Activo: ${this.tiempoActivoTotal}s, Inactivo: ${this.tiempoInactivoTotal}s`);
+            } else {
+                console.log('ℹ️ No hay registros previos para esta clase');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error cargando datos guardados:', error);
+        // No mostrar mensaje de error al usuario, solo log
     }
+}
 
     handleSalidaPestana() {
         if (!this.sessionActiva) return;
