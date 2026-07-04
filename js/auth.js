@@ -1,4 +1,15 @@
-let versionBeta = true; // Variable global para indicar en que version estamos, true = beta, false = estable
+// Detectar según el dominio actual
+const hostname = window.location.hostname;
+const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+const isBetaDomain = hostname.includes('beta') || hostname.includes('vercel.app');
+const isProdDomain = hostname.includes('enfermeriaenaccion.com.ar');
+
+// Determinar si es BETA (true) o PRODUCCIÓN (false)
+const versionBeta = isLocalhost || isBetaDomain || !isProdDomain;
+
+// ============================================
+// CONFIGURACIÓN SEGÚN ENTORNO
+// ============================================
 
 if (versionBeta == true) {
     console.warn("Esta es una versión BETA del Aula Virtual. Puede contener errores o funcionalidades incompletas. Por favor, utilícelo con precaución y reporte cualquier problema al desarrollador.");
@@ -18,7 +29,7 @@ if (versionBeta == true) {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.3.7';
+        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.3.8';
         
     }
 }
