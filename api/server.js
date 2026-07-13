@@ -1552,18 +1552,24 @@ app.post('/api/clases-publicas', async (req, res) => {
         console.log('📌 Área a guardar en BD:', areaFinal);
         
         const nuevaClase = {
-            nombre,
-            descripcion: descripcion || '',
-            fechaClase: fechaClaseDate,
-            fechaCierre: fechaCierreDate,
-            instructores: instructores || [],
-            lugar: lugar || '',
-            enlaceFormulario: enlaceFormulario || '',
-            publicada: publicada === true,
-            area: areaFinal,
-            fechaCreacion: new Date(),
-            creadoPor: new ObjectId(userHeader)
-        };
+    nombre,
+    descripcion: descripcion || '',
+    fechaClase: fechaClaseDate,
+    fechaCierre: fechaCierreDate,
+    instructores: instructores || [],
+    lugar: lugar || '',
+    enlaceFormulario: enlaceFormulario || '',
+    publicada: publicada === true,
+    area: areaFinal,
+    
+    // ===== CONTROLES INTERNOS =====
+    auditorio: req.body.auditorio === true || false,
+    cafeteria: req.body.cafeteria === true || false,
+    material: req.body.material === true || false,
+    
+    fechaCreacion: new Date(),
+    creadoPor: new ObjectId(userHeader)
+};
         
         const result = await db.collection('clases-publicas').insertOne(nuevaClase);
         
@@ -1658,19 +1664,26 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD:', areaFinal);
         
+        
         const updateData = {
-            $set: {
-                nombre,
-                descripcion: descripcion || '',
-                fechaClase: fechaClaseDate,
-                instructores: instructores || [],
-                lugar: lugar || '',
-                enlaceFormulario: enlaceFormulario || '',
-                publicada: publicada === true,
-                area: areaFinal,
-                fechaActualizacion: new Date()
-            }
-        };
+    $set: {
+        nombre,
+        descripcion: descripcion || '',
+        fechaClase: fechaClaseDate,
+        instructores: instructores || [],
+        lugar: lugar || '',
+        enlaceFormulario: enlaceFormulario || '',
+        publicada: publicada === true,
+        area: areaFinal,
+        
+        // ===== CONTROLES INTERNOS =====
+        auditorio: req.body.auditorio === true || false,
+        cafeteria: req.body.cafeteria === true || false,
+        material: req.body.material === true || false,
+        
+        fechaActualizacion: new Date()
+    }
+};
         
         if (fechaCierreDate) {
             updateData.$set.fechaCierre = fechaCierreDate;

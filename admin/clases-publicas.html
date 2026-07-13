@@ -93,6 +93,29 @@
                     <small class="field-info">Seleccione el área específica a la que va dirigida esta clase, o "Todas las áreas" si es general.</small>
                 </div>
                 
+                <!-- ===== CONTROLES INTERNOS (SOLO ADMIN) ===== -->
+                <div id="controlesInternos" class="form-group" style="border-top: 2px solid var(--border-color); padding-top: 15px; margin-top: 15px;">
+                    <h4 style="color: var(--text-secondary); margin-bottom: 15px;">📋 Controles Internos (Solo Administración)</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal; padding: 8px 12px; border-radius: 6px; background: var(--bg-container); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+                            <input type="checkbox" id="claseAuditorio" class="form-checkbox">
+                            <span>🏛️ Auditorio solicitado</span>
+                        </label>
+                        
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal; padding: 8px 12px; border-radius: 6px; background: var(--bg-container); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+                            <input type="checkbox" id="claseCafeteria" class="form-checkbox">
+                            <span>☕ Servicio de cafetería solicitado</span>
+                        </label>
+                        
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal; padding: 8px 12px; border-radius: 6px; background: var(--bg-container); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+                            <input type="checkbox" id="claseMaterial" class="form-checkbox">
+                            <span>📦 Material solicitado</span>
+                        </label>
+                    </div>
+                    <small class="field-info">Estos controles son internos y no se muestran en la página principal.</small>
+                </div>
+                
                 <!-- Visibilidad de la clase -->
                 <div class="form-group">
                     <label>Visibilidad en página principal <span class="required">*</span></label>

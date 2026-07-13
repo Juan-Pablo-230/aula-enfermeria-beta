@@ -185,6 +185,20 @@ class ClasesPublicasManager {
                 areaInfo = `<div class="clase-area">👥 Área: ${this.escapeHtml(clase.area)}</div>`;
             }
             
+            // ===== BADGES DE CONTROLES INTERNOS =====
+            const controlesInternos = [];
+            if (clase.auditorio) controlesInternos.push('🏛️ Auditorio');
+            if (clase.cafeteria) controlesInternos.push('☕ Cafetería');
+            if (clase.material) controlesInternos.push('📦 Material');
+            
+            const badgeControles = controlesInternos.length > 0 ? 
+                `<div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.85em;">
+                    <span style="color: var(--text-muted);">🔧 Controles:</span>
+                    ${controlesInternos.map(texto => 
+                        `<span style="background: var(--bg-container); padding: 2px 10px; border-radius: 12px; border: 1px solid var(--border-color);">${texto}</span>`
+                    ).join('')}
+                </div>` : '';
+            
             return `
                 <div class="clase-card ${estadoClass}">
                     <div class="clase-header">
@@ -199,6 +213,7 @@ class ClasesPublicasManager {
                         ${clase.lugar ? `<span>📍 ${this.escapeHtml(clase.lugar)}</span>` : ''}
                     </div>
                     ${areaInfo}
+                    ${badgeControles}
                     <div class="clase-enlaces">
                         ${clase.enlaceFormulario ? `<a href="${clase.enlaceFormulario}" target="_blank" class="material-link">📝 Formulario</a>` : '<span class="sin-enlaces">Sin formulario asociado</span>'}
                     </div>
@@ -266,7 +281,12 @@ class ClasesPublicasManager {
             lugar: document.getElementById('claseLugar')?.value || '',
             enlaceFormulario: document.getElementById('claseEnlaceFormulario')?.value || '',
             publicada: publicada,
-            area: areaSeleccionada
+            area: areaSeleccionada,
+            
+            // ===== CONTROLES INTERNOS =====
+            auditorio: document.getElementById('claseAuditorio')?.checked || false,
+            cafeteria: document.getElementById('claseCafeteria')?.checked || false,
+            material: document.getElementById('claseMaterial')?.checked || false
         };
         
         console.log('📤 ENVIANDO AL SERVIDOR:', JSON.stringify(claseData, null, 2));
@@ -364,6 +384,11 @@ class ClasesPublicasManager {
             console.log(`✅ Área seleccionada: ${areaSelect.value}`);
         }
         
+        // ===== CARGAR CONTROLES INTERNOS =====
+        document.getElementById('claseAuditorio').checked = clase.auditorio === true;
+        document.getElementById('claseCafeteria').checked = clase.cafeteria === true;
+        document.getElementById('claseMaterial').checked = clase.material === true;
+        
         const radioPublicada = document.querySelector('input[name="visibilidad"][value="true"]');
         const radioNoPublicada = document.querySelector('input[name="visibilidad"][value="false"]');
         if (clase.publicada) {
@@ -411,6 +436,11 @@ class ClasesPublicasManager {
         
         const areaSelect = document.getElementById('claseArea');
         if (areaSelect) areaSelect.value = 'todas';
+        
+        // ===== RESETEAR CONTROLES INTERNOS =====
+        document.getElementById('claseAuditorio').checked = false;
+        document.getElementById('claseCafeteria').checked = false;
+        document.getElementById('claseMaterial').checked = false;
         
         document.querySelector('input[name="visibilidad"][value="false"]').checked = true;
         this.ocultarMensaje();
