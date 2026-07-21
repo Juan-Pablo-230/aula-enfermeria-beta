@@ -67,149 +67,191 @@ class AdminSystem {
     }
 
     // Método para cargar solicitudes de material histórico (VERSIÓN MEJORADA)
+
     async loadSolicitudesMaterialHistorico() {
-        try {
-            console.log('📥 Cargando solicitudes de material histórico...');
-            
-            const user = authSystem.getCurrentUser();
-            if (!user || !user._id) {
-                console.error('❌ No hay usuario logueado');
-                this.solicitudesMaterialHistoricoData = [];
-                this.showMaterialHistoricoTable([]);
-                return [];
-            }
-            
-            console.log('👤 Usuario actual:', user._id);
-            
-            const result = await authSystem.makeRequest('/material-historico/solicitudes', null, 'GET');
-            
-            this.solicitudesMaterialHistoricoData = result.data || [];
-            console.log('✅ Solicitudes de material histórico cargadas:', this.solicitudesMaterialHistoricoData.length);
-            
-            // Log para depuración - mostrar los datos cargados
-            if (this.solicitudesMaterialHistoricoData.length > 0) {
-                console.log('📋 Primera solicitud:', {
-                    nombre: this.solicitudesMaterialHistoricoData[0].usuario?.apellidoNombre,
-                    turno: this.solicitudesMaterialHistoricoData[0].usuario?.turno,
-                    email: this.solicitudesMaterialHistoricoData[0].usuario?.email || this.solicitudesMaterialHistoricoData[0].email,
-                    clase: this.solicitudesMaterialHistoricoData[0].claseNombre
-                });
-            }
-            
-            // Actualizar tabla si estamos en la vista correcta
-            if (this.vistaActual === 'materialHistorico') {
-                this.showMaterialHistoricoTable(this.solicitudesMaterialHistoricoData);
-            }
-            
-            return this.solicitudesMaterialHistoricoData;
-            
-        } catch (error) {
-            console.error('❌ Error cargando solicitudes de material histórico:', error);
+    try {
+        console.log('📥 Cargando solicitudes de material histórico...');
+        
+        const user = authSystem.getCurrentUser();
+        if (!user || !user._id) {
+            console.error('❌ No hay usuario logueado');
             this.solicitudesMaterialHistoricoData = [];
-            
-            // Mostrar mensaje de error en la tabla
-            if (this.vistaActual === 'materialHistorico') {
-                const tbody = document.getElementById('materialHistoricoBody');
-                if (tbody) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" style="text-align: center; color: #ff6b6b; padding: 20px;">
-                                ⚠️ Error al cargar las solicitudes. Asegúrate de que el servidor tenga las rutas de material histórico configuradas.
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
-            
+            this.showMaterialHistoricoTable([]);
             return [];
         }
-    }
-
-    // Método para mostrar la tabla de material histórico (VERSIÓN MEJORADA)
-    showMaterialHistoricoTable(solicitudes) {
-        const tbody = document.getElementById('materialHistoricoBody');
-        if (!tbody) return;
         
-        tbody.innerHTML = '';
-
-        if (solicitudes.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" style="text-align: center; color: #666; padding: 20px;">
-                        No hay solicitudes de material histórico
-                    </td>
-                </tr>
-            `;
-            
-            const totalEl = document.getElementById('totalSolicitudesHistorico');
-            const clasesEl = document.getElementById('clasesDistintasHistorico');
-            if (totalEl) totalEl.textContent = '0';
-            if (clasesEl) clasesEl.textContent = '0';
-            return;
+        console.log('👤 Usuario actual:', user._id);
+        
+        const result = await authSystem.makeRequest('/material-historico/solicitudes', null, 'GET');
+        
+        this.solicitudesMaterialHistoricoData = result.data || [];
+        console.log('✅ Solicitudes de material histórico cargadas:', this.solicitudesMaterialHistoricoData.length);
+        
+        if (this.solicitudesMaterialHistoricoData.length > 0) {
+            console.log('📋 Primera solicitud:', {
+                nombre: this.solicitudesMaterialHistoricoData[0].usuario?.apellidoNombre,
+                turno: this.solicitudesMaterialHistoricoData[0].usuario?.turno,
+                email: this.solicitudesMaterialHistoricoData[0].usuario?.email,
+                clase: this.solicitudesMaterialHistoricoData[0].clase?.nombre || this.solicitudesMaterialHistoricoData[0].claseNombre
+            });
         }
+        
+        if (this.vistaActual === 'materialHistorico') {
+            this.showMaterialHistoricoTable(this.solicitudesMaterialHistoricoData);
+        }
+        
+        return this.solicitudesMaterialHistoricoData;
+        
+    } catch (error) {
+        console.error('❌ Error cargando solicitudes de material histórico:', error);
+        this.solicitudesMaterialHistoricoData = [];
+        
+        if (this.vistaActual === 'materialHistorico') {
+            const tbody = document.getElementById('materialHistoricoBody');
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #ff6b6b; padding: 20px;">
+                            ⚠️ Error al cargar las solicitudes.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        return [];
+    }
+}
 
-        // Ordenar por fecha más reciente
-        solicitudes.sort((a, b) => 
-            new Date(b.fechaSolicitud) - new Date(a.fechaSolicitud)
-        );
+showMaterialHistoricoTable(solicitudes) {
+    const tbody = document.getElementById('materialHistoricoBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
 
-        // Calcular estadísticas
-        const clasesUnicas = new Set(solicitudes.map(s => s.claseNombre)).size;
+    if (solicitudes.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; color: #666; padding: 20px;">
+                    No hay solicitudes de material histórico
+                </td>
+            </tr>
+        `;
+        
         const totalEl = document.getElementById('totalSolicitudesHistorico');
         const clasesEl = document.getElementById('clasesDistintasHistorico');
-        if (totalEl) totalEl.textContent = solicitudes.length;
-        if (clasesEl) clasesEl.textContent = clasesUnicas;
-
-        solicitudes.forEach((solicitud, index) => {
-            const row = document.createElement('tr');
-            
-            const fecha = solicitud.fechaSolicitud ? 
-                new Date(solicitud.fechaSolicitud).toLocaleString('es-AR') : 
-                'Fecha no disponible';
-            
-            const materialHTML = this.generarMaterialHistoricoHTML(solicitud);
-            
-            // Obtener turno del usuario (de la solicitud o del usuario anidado)
-            let turno = 'No especificado';
-            if (solicitud.turno) {
-                turno = solicitud.turno;
-            } else if (solicitud.usuario && solicitud.usuario.turno) {
-                turno = solicitud.usuario.turno;
-            }
-            
-            // Formatear turno para mostrar de manera más legible
-            const turnoFormateado = this.formatearTurno(turno);
-            
-            // Obtener email para mailto
-            let email = '';
-            let emailDisplay = 'No disponible';
-            
-            if (solicitud.email) {
-                email = solicitud.email;
-                emailDisplay = `<a href="mailto:${email}" class="email-link" title="Enviar correo a ${email}">${email}</a>`;
-            } else if (solicitud.usuario && solicitud.usuario.email) {
-                email = solicitud.usuario.email;
-                emailDisplay = `<a href="mailto:${email}" class="email-link" title="Enviar correo a ${email}">${email}</a>`;
-            }
-            
-            // Obtener nombre y legajo
-            const nombre = solicitud.usuario?.apellidoNombre || 'N/A';
-            const legajo = solicitud.usuario?.legajo || 'N/A';
-            
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${nombre}</td>
-                <td>${legajo}</td>
-                <td>${turnoFormateado}</td>
-                <td>${solicitud.claseNombre || 'N/A'}</td>
-                <td>${emailDisplay}</td>
-                <td>${fecha}</td>
-                <td>${materialHTML}</td>
-            `;
-            
-            tbody.appendChild(row);
-        });
+        if (totalEl) totalEl.textContent = '0';
+        if (clasesEl) clasesEl.textContent = '0';
+        return;
     }
+
+    solicitudes.sort((a, b) => 
+        new Date(b.fechaSolicitud) - new Date(a.fechaSolicitud)
+    );
+
+    const clasesUnicas = new Set(solicitudes.map(s => s.clase?.nombre || s.claseNombre)).size;
+    const totalEl = document.getElementById('totalSolicitudesHistorico');
+    const clasesEl = document.getElementById('clasesDistintasHistorico');
+    if (totalEl) totalEl.textContent = solicitudes.length;
+    if (clasesEl) clasesEl.textContent = clasesUnicas;
+
+    solicitudes.forEach((solicitud, index) => {
+        const row = document.createElement('tr');
+        
+        const fecha = solicitud.fechaSolicitud ? 
+            new Date(solicitud.fechaSolicitud).toLocaleString('es-AR') : 
+            'Fecha no disponible';
+        
+        // Obtener datos de la clase
+        const clase = solicitud.clase || {};
+        const materialEnlaces = clase.materialEnlaces || [];
+        const materialHTML = this.generarMaterialHistoricoHTML(materialEnlaces);
+        
+        let turno = 'No especificado';
+        if (solicitud.turno) {
+            turno = solicitud.turno;
+        } else if (solicitud.usuario && solicitud.usuario.turno) {
+            turno = solicitud.usuario.turno;
+        }
+        
+        const turnoFormateado = this.formatearTurno(turno);
+        
+        let email = '';
+        let emailDisplay = 'No disponible';
+        
+        if (solicitud.email) {
+            email = solicitud.email;
+            emailDisplay = `<a href="mailto:${email}" class="email-link" title="Enviar correo a ${email}">${email}</a>`;
+        } else if (solicitud.usuario && solicitud.usuario.email) {
+            email = solicitud.usuario.email;
+            emailDisplay = `<a href="mailto:${email}" class="email-link" title="Enviar correo a ${email}">${email}</a>`;
+        }
+        
+        const nombre = solicitud.usuario?.apellidoNombre || 'N/A';
+        const legajo = solicitud.usuario?.legajo || 'N/A';
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${nombre}</td>
+            <td>${legajo}</td>
+            <td>${turnoFormateado}</td>
+            <td>${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
+            <td>${emailDisplay}</td>
+            <td>${fecha}</td>
+            <td>${materialHTML}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+generarMaterialHistoricoHTML(materialEnlaces) {
+    if (!materialEnlaces || materialEnlaces.length === 0) {
+        return '<span style="color: #666; font-style: italic;">Material no disponible</span>';
+    }
+    
+    const enlaces = materialEnlaces.map((enlace, index) => {
+        const tipo = this.detectarTipoEnlace(enlace.url);
+        const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
+        const label = tipo === 'youtube' ? 'YouTube' : tipo === 'drive' ? 'Drive' : 'Enlace';
+        return `
+            <a href="${enlace.url}" 
+               target="_blank" 
+               class="email-link" 
+               title="Ver ${label} ${index + 1}"
+               style="
+                   display: inline-flex;
+                   align-items: center;
+                   gap: 4px;
+                   padding: 4px 8px;
+                   background: ${tipo === 'youtube' ? '#ff0000' : tipo === 'drive' ? '#d24726' : '#6c5ce7'};
+                   color: white;
+                   border-radius: 4px;
+                   text-decoration: none;
+                   font-size: 0.85em;
+               ">
+                ${icono} ${label} ${index + 1}
+            </a>
+        `;
+    });
+    
+    return `<div style="display: flex; gap: 5px; flex-wrap: wrap;">${enlaces.join('')}</div>`;
+}
+
+detectarTipoEnlace(url) {
+    if (!url) return 'link';
+    
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        return 'youtube';
+    }
+    
+    if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+        return 'drive';
+    }
+    
+    return 'link';
+}
+
 
     // Nuevo método auxiliar para formatear turnos
     formatearTurno(turno) {

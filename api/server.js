@@ -132,6 +132,7 @@ app.get('/api/debug/routes', (req, res) => {
             '/api/clases-publicas (POST)',
             '/api/clases-publicas/:id (PUT)',
             '/api/clases-publicas/:id/visibilidad (PUT)',
+            '/api/clases-publicas/:id/material (PUT)',
             '/api/clases-publicas/:id (DELETE)',
             '/api/logs/browser (POST)',
             '/api/logs/browser/consultar (GET)',
@@ -652,12 +653,12 @@ app.get('/api/inscripciones/estadisticas', async (req, res) => {
     }
 });
 
-// ==================== RUTAS DE CLASES HISTÓRICAS ====================
+// ==================== RUTAS DE CLASES HISTÓRICAS (usando clases-publicas) ====================
 
 app.get('/api/clases-historicas', async (req, res) => {
     try {
         const db = await mongoDB.getDatabaseSafe('formulario');
-        const clases = await db.collection('clases')
+        const clases = await db.collection('clases-publicas')
             .find({})
             .sort({ fechaClase: -1 })
             .toArray();
@@ -678,7 +679,7 @@ app.get('/api/clases-historicas/:id', async (req, res) => {
         }
         
         const db = await mongoDB.getDatabaseSafe('formulario');
-        const clase = await db.collection('clases').findOne({ 
+        const clase = await db.collection('clases-publicas').findOne({ 
             _id: new ObjectId(id) 
         });
         
@@ -719,7 +720,7 @@ app.post('/api/clases-historicas', async (req, res) => {
             });
         }
         
-        const { nombre, descripcion, fechaClase, enlaces, instructores, tags, estado, area } = req.body;
+        const { nombre, descripcion, fechaClase, enlaces, instructores, tags, estado, area, materialEnlaces } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -744,9 +745,12 @@ app.post('/api/clases-historicas', async (req, res) => {
         let estadoFinal = estado || 'activa';
         const activaBool = estadoFinal === 'activa' || estadoFinal === 'publicada';
         
-        // ✅ Asegurar que el área se guarda
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD (histórica):', areaFinal);
+        
+        // Obtener materialEnlaces si existe
+        const materialEnlacesFinal = materialEnlaces || [];
+        console.log('📎 Enlaces de material a guardar:', materialEnlacesFinal.length);
         
         const nuevaClase = {
             nombre,
@@ -758,14 +762,16 @@ app.post('/api/clases-historicas', async (req, res) => {
             instructores: instructores || [],
             tags: tags || [],
             area: areaFinal,
+            materialEnlaces: materialEnlacesFinal,
             fechaCreacion: new Date(),
             creadoPor: new ObjectId(userHeader)
         };
         
-        const result = await db.collection('clases').insertOne(nuevaClase);
+        const result = await db.collection('clases-publicas').insertOne(nuevaClase);
         
         console.log('✅ Clase creada:', result.insertedId);
         console.log('📌 Área guardada:', areaFinal);
+        console.log('📎 Enlaces de material:', materialEnlacesFinal.length);
         
         res.json({ 
             success: true, 
@@ -801,7 +807,7 @@ app.put('/api/clases-historicas/:id', async (req, res) => {
             });
         }
         
-        const { nombre, descripcion, fechaClase, enlaces, instructores, tags, estado, area } = req.body;
+        const { nombre, descripcion, fechaClase, enlaces, instructores, tags, estado, area, materialEnlaces } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -826,7 +832,6 @@ app.put('/api/clases-historicas/:id', async (req, res) => {
         let estadoFinal = estado || 'activa';
         const activaBool = estadoFinal === 'activa' || estadoFinal === 'publicada';
         
-        // ✅ Asegurar que el área se actualiza
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD (histórica):', areaFinal);
         
@@ -841,11 +846,12 @@ app.put('/api/clases-historicas/:id', async (req, res) => {
                 instructores: instructores || [],
                 tags: tags || [],
                 area: areaFinal,
+                materialEnlaces: materialEnlaces || [],
                 fechaActualizacion: new Date()
             }
         };
         
-        const result = await db.collection('clases').updateOne(
+        const result = await db.collection('clases-publicas').updateOne(
             { _id: new ObjectId(id) },
             updateData
         );
@@ -855,6 +861,7 @@ app.put('/api/clases-historicas/:id', async (req, res) => {
         }
         
         console.log('✅ Clase actualizada:', id);
+        console.log('📎 Enlaces de material actualizados:', (materialEnlaces || []).length);
         
         res.json({ success: true, message: 'Clase actualizada exitosamente' });
         
@@ -886,7 +893,7 @@ app.delete('/api/clases-historicas/:id', async (req, res) => {
             });
         }
         
-        const result = await db.collection('clases').deleteOne({
+        const result = await db.collection('clases-publicas').deleteOne({
             _id: new ObjectId(id)
         });
         
@@ -904,7 +911,8 @@ app.delete('/api/clases-historicas/:id', async (req, res) => {
     }
 });
 
-// ==================== RUTAS DE MATERIAL HISTÓRICO ====================
+// ==================== RUTAS DE MATERIAL HISTÓRICO (usando clases-publicas) ====================
+
 app.post('/api/material-historico/solicitudes', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
@@ -942,8 +950,8 @@ app.post('/api/material-historico/solicitudes', async (req, res) => {
             });
         }
         
-        // Verificar que la clase existe
-        const clase = await db.collection('clases').findOne({ 
+        // Verificar que la clase existe en clases-publicas
+        const clase = await db.collection('clases-publicas').findOne({ 
             _id: new ObjectId(claseId) 
         });
         
@@ -951,6 +959,35 @@ app.post('/api/material-historico/solicitudes', async (req, res) => {
             return res.status(404).json({ 
                 success: false, 
                 message: 'Clase no encontrada' 
+            });
+        }
+        
+        // ✅ VERIFICAR CONDICIONES PARA SOLICITAR MATERIAL
+        // 1. Debe estar publicada
+        // 2. La fecha de cierre debe haber pasado
+        // 3. Debe tener al menos un enlace de material
+        const ahora = new Date();
+        const fechaCierre = new Date(clase.fechaCierre);
+        const tieneMaterial = clase.materialEnlaces && clase.materialEnlaces.length > 0;
+        
+        if (!clase.publicada) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'La clase no está publicada. No se puede solicitar material.' 
+            });
+        }
+        
+        if (ahora < fechaCierre) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'El período de solicitud aún no ha finalizado. La clase cierra el ' + fechaCierre.toLocaleDateString('es-AR') 
+            });
+        }
+        
+        if (!tieneMaterial) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'La clase no tiene material disponible para solicitar.' 
             });
         }
         
@@ -964,15 +1001,17 @@ app.post('/api/material-historico/solicitudes', async (req, res) => {
             return res.json({ 
                 success: true, 
                 message: 'Material ya solicitado anteriormente',
-                exists: true
+                exists: true,
+                data: solicitudExistente
             });
         }
         
-        // ✅ Guardar SOLO las referencias (sin datos duplicados)
+        // ✅ Guardar SOLO referencias (sin datos duplicados)
         const nuevaSolicitud = {
             usuarioId: new ObjectId(userHeader),
             claseId: new ObjectId(claseId),
-            fechaSolicitud: new Date()
+            fechaSolicitud: new Date(),
+            claseNombre: clase.nombre
         };
         
         const result = await db.collection('solicitudMaterial').insertOne(nuevaSolicitud);
@@ -1029,7 +1068,7 @@ app.get('/api/material-historico/solicitudes', async (req, res) => {
             matchCriteria = {};
         }
         
-        // ✅ Agregar lookup para obtener datos completos de usuario y clase
+        // ✅ Agregar lookup para obtener datos completos de usuario y clase (desde clases-publicas)
         const solicitudes = await db.collection('solicitudMaterial')
             .aggregate([
                 { $match: matchCriteria },
@@ -1044,7 +1083,7 @@ app.get('/api/material-historico/solicitudes', async (req, res) => {
                 { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
                 {
                     $lookup: {
-                        from: 'clases',
+                        from: 'clases-publicas',
                         localField: 'claseId',
                         foreignField: '_id',
                         as: 'clase'
@@ -1498,7 +1537,7 @@ app.post('/api/clases-publicas', async (req, res) => {
             });
         }
         
-        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area } = req.body;
+        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area, auditorio, cafeteria, material, materialEnlaces } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -1552,24 +1591,27 @@ app.post('/api/clases-publicas', async (req, res) => {
         console.log('📌 Área a guardar en BD:', areaFinal);
         
         const nuevaClase = {
-    nombre,
-    descripcion: descripcion || '',
-    fechaClase: fechaClaseDate,
-    fechaCierre: fechaCierreDate,
-    instructores: instructores || [],
-    lugar: lugar || '',
-    enlaceFormulario: enlaceFormulario || '',
-    publicada: publicada === true,
-    area: areaFinal,
-    
-    // ===== CONTROLES INTERNOS =====
-    auditorio: req.body.auditorio === true || false,
-    cafeteria: req.body.cafeteria === true || false,
-    material: req.body.material === true || false,
-    
-    fechaCreacion: new Date(),
-    creadoPor: new ObjectId(userHeader)
-};
+            nombre,
+            descripcion: descripcion || '',
+            fechaClase: fechaClaseDate,
+            fechaCierre: fechaCierreDate,
+            instructores: instructores || [],
+            lugar: lugar || '',
+            enlaceFormulario: enlaceFormulario || '',
+            publicada: publicada === true,
+            area: areaFinal,
+            
+            // ===== CONTROLES INTERNOS =====
+            auditorio: auditorio === true || false,
+            cafeteria: cafeteria === true || false,
+            material: material === true || false,
+            
+            // ===== MATERIAL ENLACES =====
+            materialEnlaces: materialEnlaces || [],
+            
+            fechaCreacion: new Date(),
+            creadoPor: new ObjectId(userHeader)
+        };
         
         const result = await db.collection('clases-publicas').insertOne(nuevaClase);
         
@@ -1577,6 +1619,7 @@ app.post('/api/clases-publicas', async (req, res) => {
         console.log('📌 Área guardada:', areaFinal);
         console.log('📅 Fecha clase:', fechaClaseDate);
         console.log('🔒 Fecha cierre:', fechaCierreDate);
+        console.log('📎 Enlaces de material:', (materialEnlaces || []).length);
         
         res.json({ 
             success: true, 
@@ -1616,7 +1659,7 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
             });
         }
         
-        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area } = req.body;
+        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area, auditorio, cafeteria, material, materialEnlaces } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -1664,26 +1707,28 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD:', areaFinal);
         
-        
         const updateData = {
-    $set: {
-        nombre,
-        descripcion: descripcion || '',
-        fechaClase: fechaClaseDate,
-        instructores: instructores || [],
-        lugar: lugar || '',
-        enlaceFormulario: enlaceFormulario || '',
-        publicada: publicada === true,
-        area: areaFinal,
-        
-        // ===== CONTROLES INTERNOS =====
-        auditorio: req.body.auditorio === true || false,
-        cafeteria: req.body.cafeteria === true || false,
-        material: req.body.material === true || false,
-        
-        fechaActualizacion: new Date()
-    }
-};
+            $set: {
+                nombre,
+                descripcion: descripcion || '',
+                fechaClase: fechaClaseDate,
+                instructores: instructores || [],
+                lugar: lugar || '',
+                enlaceFormulario: enlaceFormulario || '',
+                publicada: publicada === true,
+                area: areaFinal,
+                
+                // ===== CONTROLES INTERNOS =====
+                auditorio: auditorio === true || false,
+                cafeteria: cafeteria === true || false,
+                material: material === true || false,
+                
+                // ===== MATERIAL ENLACES =====
+                materialEnlaces: materialEnlaces || [],
+                
+                fechaActualizacion: new Date()
+            }
+        };
         
         if (fechaCierreDate) {
             updateData.$set.fechaCierre = fechaCierreDate;
@@ -1699,12 +1744,80 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         }
         
         console.log('✅ Clase actualizada:', id);
+        console.log('📎 Enlaces de material actualizados:', (materialEnlaces || []).length);
         
         res.json({ success: true, message: 'Clase pública actualizada exitosamente' });
         
     } catch (error) {
         console.error('❌ Error actualizando clase pública:', error);
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+});
+
+// PUT - Actualizar material de una clase pública
+app.put('/api/clases-publicas/:id/material', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userHeader = req.headers['user-id'];
+        const { materialEnlaces } = req.body;
+        
+        console.log(`📦 PUT /api/clases-publicas/${id}/material`);
+        console.log(`📎 Enlaces recibidos:`, materialEnlaces);
+        
+        if (!userHeader || !ObjectId.isValid(id)) {
+            return res.status(401).json({ success: false, message: 'Solicitud inválida' });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No tienes permisos para modificar material' 
+            });
+        }
+        
+        // Validar enlaces
+        if (!Array.isArray(materialEnlaces)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El material debe ser un array de enlaces' 
+            });
+        }
+        
+        const result = await db.collection('clases-publicas').updateOne(
+            { _id: new ObjectId(id) },
+            { 
+                $set: { 
+                    materialEnlaces: materialEnlaces,
+                    fechaActualizacion: new Date()
+                } 
+            }
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Clase no encontrada' });
+        }
+        
+        console.log('✅ Material actualizado para clase:', id);
+        console.log('📎 Total enlaces guardados:', materialEnlaces.length);
+        
+        res.json({ 
+            success: true, 
+            message: 'Material actualizado correctamente' 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error actualizando material:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
     }
 });
 
@@ -2102,6 +2215,7 @@ app.delete('/api/usuarios/cuenta', async (req, res) => {
 });
 
 // ==================== RUTAS PARA TIEMPO EN CLASE ====================
+
 app.post('/api/tiempo-clase/actualizar', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];

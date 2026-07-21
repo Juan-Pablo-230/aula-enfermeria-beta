@@ -1,4 +1,4 @@
-// solicitudes-material.js
+// solicitudes-material.js - Versión con clases-publicas
 console.log('📚 Módulo de Solicitudes de Material cargado');
 
 class SolicitudesMaterialManager {
@@ -29,8 +29,9 @@ class SolicitudesMaterialManager {
     filtrarDatos() {
         let datos = [...this.data];
 
+        // Filtrar por clase (usando claseNombre de la solicitud)
         if (this.filtroClase !== 'todas') {
-            datos = datos.filter(d => d.claseNombre === this.filtroClase);
+            datos = datos.filter(d => d.claseNombre === this.filtroClase || d.clase?.nombre === this.filtroClase);
         }
 
         if (this.filtroUsuario) {
@@ -54,7 +55,8 @@ class SolicitudesMaterialManager {
         const selectClase = document.getElementById('filtroClase');
         if (!selectClase) return;
 
-        const clases = [...new Set(this.data.map(d => d.claseNombre).filter(Boolean))];
+        // Obtener nombres de clases desde los datos (usando claseNombre o clase.nombre)
+        const clases = [...new Set(this.data.map(d => d.claseNombre || d.clase?.nombre).filter(Boolean))];
         
         selectClase.innerHTML = '<option value="todas">Todas las clases</option>';
         clases.sort().forEach(clase => {
@@ -66,56 +68,77 @@ class SolicitudesMaterialManager {
     }
 
     mostrarTabla() {
-    const tbody = document.getElementById('solicitudesBody');
-    if (!tbody) return;
+        const tbody = document.getElementById('solicitudesBody');
+        if (!tbody) return;
 
-    const datosFiltrados = this.filtrarDatos();
+        const datosFiltrados = this.filtrarDatos();
 
-    if (datosFiltrados.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="empty-message">
-                    No hay solicitudes para mostrar
-                </td>
-            </tr>
-        `;
-        return;
+        if (datosFiltrados.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="empty-message">
+                        No hay solicitudes para mostrar
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = datosFiltrados.map((item, index) => {
+            let fechaFormateada = 'N/A';
+            if (item.fechaSolicitud) {
+                const fecha = new Date(item.fechaSolicitud);
+                fechaFormateada = fecha.toLocaleString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+            
+            // Obtener datos de la clase
+            const clase = item.clase || {};
+            const materialEnlaces = clase.materialEnlaces || [];
+            
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.usuario?.apellidoNombre || 'N/A'}</td>
+                    <td>${item.usuario?.legajo || 'N/A'}</td>
+                    <td>${this.formatearTurno(item.usuario?.turno)}</td>
+                    <td>${clase.nombre || item.claseNombre || 'N/A'}</td>
+                    <td><a href="mailto:${item.usuario?.email || ''}" class="email-link">${item.usuario?.email || 'N/A'}</a></td>
+                    <td>${fechaFormateada}</td>
+                    <td>
+                        <div class="material-badge">
+                            ${materialEnlaces.map((enlace, idx) => {
+                                const tipo = this.detectarTipoEnlace(enlace.url);
+                                const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
+                                return `<a href="${enlace.url}" target="_blank" class="material-link ${tipo}">${icono} Enlace ${idx + 1}</a>`;
+                            }).join('')}
+                            ${materialEnlaces.length === 0 ? '<span class="sin-enlaces">Sin material</span>' : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    tbody.innerHTML = datosFiltrados.map((item, index) => {
-        // Formatear fecha con hour12: false para forzar 24h
-        let fechaFormateada = 'N/A';
-        if (item.fechaSolicitud) {
-            const fecha = new Date(item.fechaSolicitud);
-            fechaFormateada = fecha.toLocaleString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
+    detectarTipoEnlace(url) {
+        if (!url) return 'link';
+        
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            return 'youtube';
         }
         
-        return `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${item.usuario?.apellidoNombre || 'N/A'}</td>
-                <td>${item.usuario?.legajo || 'N/A'}</td>
-                <td>${this.formatearTurno(item.usuario?.turno || item.turno)}</td>
-                <td>${item.claseNombre || 'N/A'}</td>
-                <td><a href="mailto:${item.usuario?.email || item.email}" class="email-link">${item.usuario?.email || item.email || 'N/A'}</a></td>
-                <td>${fechaFormateada}</td>
-                <td>
-                    <div class="material-badge">
-                        ${item.youtube ? `<a href="${item.youtube}" target="_blank" class="material-link youtube">▶️ YouTube</a>` : ''}
-                        ${item.powerpoint ? `<a href="${item.powerpoint}" target="_blank" class="material-link powerpoint">📊 PPT</a>` : ''}
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            return 'drive';
+        }
+        
+        return 'link';
+    }
 
     formatearTurno(turno) {
         if (!turno) return '<span class="turno-badge default">No especificado</span>';
@@ -135,7 +158,7 @@ class SolicitudesMaterialManager {
 
     actualizarEstadisticas() {
         const total = this.data.length;
-        const clasesUnicas = new Set(this.data.map(s => s.claseNombre)).size;
+        const clasesUnicas = new Set(this.data.map(s => s.claseNombre || s.clase?.nombre)).size;
         const usuariosUnicos = new Set(this.data.map(s => s.usuario?._id)).size;
         
         const semanaAtras = new Date();
