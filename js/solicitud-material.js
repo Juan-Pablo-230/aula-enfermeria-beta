@@ -1,4 +1,4 @@
-console.log('📚 solicitud-material.js cargado - Versión independiente con localStorage');
+console.log('📚 solicitud-material.js cargado - Versión con clases-publicas');
 
 // ============================================
 // Funciones auxiliares basadas en authSystem
@@ -161,75 +161,74 @@ class MaterialHistorico {
     }
 
     async cargarClasesHistoricas() {
-    try {
-        console.log('📥 Cargando clases desde MongoDB.');
-        
-        const user = getCurrentUserSafe();
-        if (!user) {
-            throw new Error('Usuario no disponible');
-        }
-
-        const response = await fetch(`${this.apiBaseUrl}/clases-historicas`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'user-id': user._id
+        try {
+            console.log('📥 Cargando clases desde MongoDB (clases-publicas)...');
+            
+            const user = getCurrentUserSafe();
+            if (!user) {
+                throw new Error('Usuario no disponible');
             }
-        });
 
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-            // Obtener todas las clases publicadas/activas
-            let todasClases = result.data.filter(clase => 
-                clase.estado === 'publicada' || 
-                (clase.activa === true && !clase.estado)
-            );
+            // ✅ Usar la ruta /clases-historicas que ahora apunta a clases-publicas
+            const response = await fetch(`${this.apiBaseUrl}/clases-historicas`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'user-id': user._id
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error HTTP: ${response.status}`);
+            }
             
-            // ========== NUEVO: FILTRAR POR ÁREA DEL USUARIO ==========
-            const userArea = user.area || null;
+            const result = await response.json();
             
-            console.log(`👤 Usuario: ${user.apellidoNombre}, Área: ${userArea || 'No definida'}`);
-            
-            if (userArea && userArea !== '') {
-                console.log(`🔍 Filtrando clases históricas para el área: "${userArea}"`);
+            if (result.success && result.data) {
+                // Obtener todas las clases publicadas/activas
+                let todasClases = result.data.filter(clase => 
+                    clase.publicada === true && 
+                    (clase.estado === 'publicada' || clase.estado === 'activa' || clase.activa === true)
+                );
                 
-                this.clasesHistoricas = todasClases.filter(clase => {
-                    // Si la clase no tiene área definida o es 'todas', se muestra (clase general)
-                    if (!clase.area || clase.area === 'todas') {
-                        console.log(`✅ Clase general: ${clase.nombre}`);
-                        return true;
-                    }
-                    // Si el área de la clase coincide con el área del usuario
-                    const coincide = clase.area === userArea;
-                    if (coincide) {
-                        console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
-                    } else {
-                        console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
-                    }
-                    return coincide;
-                });
+                // ========== FILTRAR POR ÁREA DEL USUARIO ==========
+                const userArea = user.area || null;
+                
+                console.log(`👤 Usuario: ${user.apellidoNombre}, Área: ${userArea || 'No definida'}`);
+                
+                if (userArea && userArea !== '') {
+                    console.log(`🔍 Filtrando clases históricas para el área: "${userArea}"`);
+                    
+                    this.clasesHistoricas = todasClases.filter(clase => {
+                        if (!clase.area || clase.area === 'todas') {
+                            console.log(`✅ Clase general: ${clase.nombre}`);
+                            return true;
+                        }
+                        const coincide = clase.area === userArea;
+                        if (coincide) {
+                            console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
+                        } else {
+                            console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
+                        }
+                        return coincide;
+                    });
+                } else {
+                    console.log('👤 Usuario sin área definida - Mostrando todas las clases históricas');
+                    this.clasesHistoricas = todasClases;
+                }
+                
+                console.log(`✅ ${this.clasesHistoricas.length} clases publicadas cargadas (filtradas por área)`);
+                
+                this.procesarAnosDisponibles();
+                this.llenarSelectorAnos();
             } else {
-                console.log('👤 Usuario sin área definida - Mostrando todas las clases históricas');
-                this.clasesHistoricas = todasClases;
+                throw new Error('Se recibió una respuesta inválida del servidor');
             }
             
-            console.log(`✅ ${this.clasesHistoricas.length} clases publicadas cargadas (filtradas por área)`);
-            
-            this.procesarAnosDisponibles();
-            this.llenarSelectorAnos();
-        } else {
-            throw new Error('Se recibió una respuesta inválida del servidor');
+        } catch (error) {
+            console.error('❌ Error cargando clases:', error);
+            this.mostrarMensaje('Error al cargar clases. Verifique su conexión.', 'error');
         }
-        
-    } catch (error) {
-        console.error('❌ Error cargando clases:', error);
-        this.mostrarMensaje('Error al cargar clases. Verifique su conexión.', 'error');
     }
-}
 
     procesarAnosDisponibles() {
         const anos = new Set();
@@ -342,44 +341,42 @@ class MaterialHistorico {
     }
 
     filtrarClasesPorMes() {
-    const selectClase = document.getElementById('claseSeleccionada');
-    const form = document.getElementById('materialHistoricoForm');
-    const sinClasesMensaje = document.getElementById('sinClasesMensaje');
-    const buscadorContainer = document.getElementById('buscadorClasesContainer');
-    
-    if (!this.anoSeleccionado || !this.mesSeleccionado) {
-        if (form) form.style.display = 'none';
+        const selectClase = document.getElementById('claseSeleccionada');
+        const form = document.getElementById('materialHistoricoForm');
+        const sinClasesMensaje = document.getElementById('sinClasesMensaje');
+        const buscadorContainer = document.getElementById('buscadorClasesContainer');
+        
+        if (!this.anoSeleccionado || !this.mesSeleccionado) {
+            if (form) form.style.display = 'none';
+            if (sinClasesMensaje) sinClasesMensaje.style.display = 'none';
+            if (buscadorContainer) buscadorContainer.style.display = 'none';
+            return;
+        }
+        
+        this.clasesFiltradas = this.clasesHistoricas.filter(clase => {
+            if (!clase.fechaClase) return false;
+            const fecha = new Date(clase.fechaClase);
+            const pasaAno = this.anoSeleccionado === 'todos' || fecha.getFullYear() === parseInt(this.anoSeleccionado);
+            const pasaMes = this.mesSeleccionado === 'todos' || fecha.getMonth() === parseInt(this.mesSeleccionado);
+            return pasaAno && pasaMes;
+        });
+        
+        console.log(`🔍 ${this.clasesFiltradas.length} clases encontradas (filtradas por año/mes sobre área restringida)`);
+        
+        if (this.clasesFiltradas.length === 0) {
+            if (form) form.style.display = 'none';
+            if (buscadorContainer) buscadorContainer.style.display = 'none';
+            if (sinClasesMensaje) sinClasesMensaje.style.display = 'block';
+            return;
+        }
+        
         if (sinClasesMensaje) sinClasesMensaje.style.display = 'none';
-        if (buscadorContainer) buscadorContainer.style.display = 'none';
-        return;
+        if (form) form.style.display = 'block';
+        if (buscadorContainer) buscadorContainer.style.display = 'block';
+        
+        this.llenarSelectClases();
+        this.configurarBuscadorClases();
     }
-    
-    // Ya tenemos this.clasesHistoricas pre-filtradas por área
-    // Ahora aplicamos filtro adicional por año y mes
-    this.clasesFiltradas = this.clasesHistoricas.filter(clase => {
-        if (!clase.fechaClase) return false;
-        const fecha = new Date(clase.fechaClase);
-        const pasaAno = this.anoSeleccionado === 'todos' || fecha.getFullYear() === parseInt(this.anoSeleccionado);
-        const pasaMes = this.mesSeleccionado === 'todos' || fecha.getMonth() === parseInt(this.mesSeleccionado);
-        return pasaAno && pasaMes;
-    });
-    
-    console.log(`🔍 ${this.clasesFiltradas.length} clases encontradas (filtradas por año/mes sobre área restringida)`);
-    
-    if (this.clasesFiltradas.length === 0) {
-        if (form) form.style.display = 'none';
-        if (buscadorContainer) buscadorContainer.style.display = 'none';
-        if (sinClasesMensaje) sinClasesMensaje.style.display = 'block';
-        return;
-    }
-    
-    if (sinClasesMensaje) sinClasesMensaje.style.display = 'none';
-    if (form) form.style.display = 'block';
-    if (buscadorContainer) buscadorContainer.style.display = 'block';
-    
-    this.llenarSelectClases();
-    this.configurarBuscadorClases();
-}
 
     configurarBuscadorClases() {
         const buscador = document.getElementById('buscadorClases');
@@ -420,13 +417,25 @@ class MaterialHistorico {
                 });
             }
             
-            option.textContent = `${clase.nombre} (${fechaTexto})`;
+            // ✅ Verificar si tiene material disponible (materialEnlaces)
+            const materialEnlaces = clase.materialEnlaces || [];
+            const tieneMaterial = materialEnlaces.length > 0;
+            const materialIcono = tieneMaterial ? '📎' : '📭';
+            
+            option.textContent = `${materialIcono} ${clase.nombre} (${fechaTexto})`;
             option.dataset.nombre = clase.nombre;
             option.dataset.descripcion = clase.descripcion || '';
             option.dataset.fecha = clase.fechaClase;
-            option.dataset.youtube = clase.enlaces?.youtube || '';
-            option.dataset.powerpoint = clase.enlaces?.powerpoint || '';
+            option.dataset.materialEnlaces = JSON.stringify(materialEnlaces);
             option.dataset.instructores = clase.instructores?.join(', ') || '';
+            option.dataset.publicada = clase.publicada;
+            option.dataset.fechaCierre = clase.fechaCierre;
+            
+            // ✅ Deshabilitar si no tiene material
+            if (!tieneMaterial) {
+                option.disabled = true;
+                option.textContent = `📭 ${clase.nombre} (${fechaTexto}) - Sin material disponible`;
+            }
             
             select.appendChild(option);
         });
@@ -451,13 +460,36 @@ class MaterialHistorico {
             return;
         }
 
+        // ✅ Verificar si el usuario ya solicitó esta clase
+        const user = getCurrentUserSafe();
+        if (user) {
+            const storageKey = `solicitudMaterial_${user._id}`;
+            const stored = localStorage.getItem(storageKey);
+            const solicitudes = stored ? JSON.parse(stored) : [];
+            const yaSolicitada = solicitudes.some(s => s.claseId === claseId);
+            
+            if (yaSolicitada) {
+                this.mostrarMensaje('ℹ️ Ya has solicitado material para esta clase anteriormente.', 'info');
+                // Mostrar el material directamente
+                const claseData = {
+                    id: claseId,
+                    nombre: selectOption.dataset.nombre,
+                    descripcion: selectOption.dataset.descripcion,
+                    fecha: selectOption.dataset.fecha,
+                    materialEnlaces: JSON.parse(selectOption.dataset.materialEnlaces || '[]'),
+                    instructores: selectOption.dataset.instructores
+                };
+                this.mostrarMaterial(claseData);
+                return;
+            }
+        }
+
         const claseData = {
             id: claseId,
             nombre: selectOption.dataset.nombre,
             descripcion: selectOption.dataset.descripcion,
             fecha: selectOption.dataset.fecha,
-            youtube: selectOption.dataset.youtube,
-            powerpoint: selectOption.dataset.powerpoint,
+            materialEnlaces: JSON.parse(selectOption.dataset.materialEnlaces || '[]'),
             instructores: selectOption.dataset.instructores
         };
 
@@ -472,8 +504,10 @@ class MaterialHistorico {
 
         const solicitud = {
             claseId: claseData.id,
+            claseNombre: claseData.nombre,
             fechaClase: claseData.fecha,
-            fechaSolicitud: new Date().toISOString()
+            fechaSolicitud: new Date().toISOString(),
+            materialEnlaces: claseData.materialEnlaces
         };
 
         // Guardar en localStorage
@@ -506,7 +540,7 @@ class MaterialHistorico {
             };
 
             const url = `${window.location.origin}/api/material-historico/solicitudes`;
-            console.log('📤 Enviando solicitud a:', url);
+            console.log('📤 Enviando solicitud al servidor:', url);
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -514,7 +548,7 @@ class MaterialHistorico {
                     'Content-Type': 'application/json',
                     'user-id': user._id
                 },
-                body: JSON.stringify(solicitud)
+                body: JSON.stringify(data)
             });
 
             console.log('📥 Respuesta status:', response.status);
@@ -585,26 +619,31 @@ class MaterialHistorico {
             document.getElementById('claseInfo')?.appendChild(instructoresElem);
         }
         
+        // ✅ Mostrar enlaces de material desde materialEnlaces
         linksContainer.innerHTML = '';
-        if (claseData.youtube) {
-            linksContainer.innerHTML += `
-                <div class="link-card youtube" onclick="window.open('${claseData.youtube}', '_blank')">
-                    <a href="${claseData.youtube}" target="_blank">
-                        <div class="icon">▶️</div>
-                        <div class="title">YouTube</div>
-                        <div class="subtitle">Ver grabación de la clase</div>
-                    </a>
-                </div>
-            `;
-        }
-        if (claseData.powerpoint) {
-            linksContainer.innerHTML += `
-                <div class="link-card powerpoint" onclick="window.open('${claseData.powerpoint}', '_blank')">
-                    <a href="${claseData.powerpoint}" target="_blank">
-                        <div class="icon">📊</div>
-                        <div class="title">PowerPoint</div>
-                        <div class="subtitle">Descargar presentación</div>
-                    </a>
+        const materialEnlaces = claseData.materialEnlaces || [];
+        
+        if (materialEnlaces.length > 0) {
+            materialEnlaces.forEach((enlace, index) => {
+                const tipo = this.detectarTipoEnlace(enlace.url);
+                const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
+                const titulo = tipo === 'youtube' ? 'YouTube' : tipo === 'drive' ? 'Google Drive' : 'Enlace';
+                const subtitulo = tipo === 'youtube' ? 'Ver grabación de la clase' : tipo === 'drive' ? 'Ver presentación' : 'Ver material';
+                
+                linksContainer.innerHTML += `
+                    <div class="link-card ${tipo}" onclick="window.open('${enlace.url}', '_blank')">
+                        <a href="${enlace.url}" target="_blank">
+                            <div class="icon">${icono}</div>
+                            <div class="title">${titulo} ${index + 1}</div>
+                            <div class="subtitle">${subtitulo}</div>
+                        </a>
+                    </div>
+                `;
+            });
+        } else {
+            linksContainer.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                    No hay material disponible para esta clase.
                 </div>
             `;
         }
@@ -624,6 +663,20 @@ class MaterialHistorico {
         
         materialLinks.classList.add('visible');
         this.mostrarMensaje('✅ Material disponible', 'success');
+    }
+
+    detectarTipoEnlace(url) {
+        if (!url) return 'link';
+        
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            return 'youtube';
+        }
+        
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            return 'drive';
+        }
+        
+        return 'link';
     }
 
     ocultarMaterial() {
@@ -712,66 +765,62 @@ class MaterialHistorico {
     }
 
     mostrarMisSolicitudes() {
-    const tbody = document.querySelector('#tablaMisSolicitudes tbody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
+        const tbody = document.querySelector('#tablaMisSolicitudes tbody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
 
-    if (this.solicitudes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">
-            Todavía no has solicitado material de clases grabadas.
-        </td></tr>`;
-        return;
+        if (this.solicitudes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">
+                Todavía no has solicitado material de clases grabadas.
+            </td></tr>`;
+            return;
+        }
+
+        this.solicitudes.forEach(solicitud => {
+            const usuario = solicitud.usuario || {};
+            const clase = solicitud.clase || {};
+            
+            const fechaClase = clase.fechaClase ? 
+                new Date(clase.fechaClase).toLocaleDateString('es-AR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                }) : 'Fecha no disponible';
+            
+            const fechaSolicitud = solicitud.fechaSolicitud ? 
+                new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
+                    hour12: false
+                }) : 'Fecha no disponible';
+            
+            // ✅ Obtener enlaces de la clase desde materialEnlaces
+            const materialEnlaces = clase.materialEnlaces || [];
+            
+            const materialHTML = this.generarMaterialHTML(materialEnlaces);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
+                <td>${fechaClase}</td>
+                <td>${fechaSolicitud}</td>
+                <td class="material-badge">${materialHTML}</td>
+            `;
+            tbody.appendChild(row);
+        });
     }
 
-    // ✅ Ahora los datos vienen con 'usuario' y 'clase' poblados
-    this.solicitudes.forEach(solicitud => {
-        // Obtener datos de las referencias
-        const usuario = solicitud.usuario || {};
-        const clase = solicitud.clase || {};
+    generarMaterialHTML(materialEnlaces) {
+        if (!materialEnlaces || materialEnlaces.length === 0) {
+            return '<span style="color: #666; font-style: italic;">Material disponible</span>';
+        }
         
-        const fechaClase = clase.fechaClase ? 
-            new Date(clase.fechaClase).toLocaleDateString('es-AR', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: false
-            }) : 'Fecha no disponible';
+        const enlaces = materialEnlaces.map((enlace, index) => {
+            const tipo = this.detectarTipoEnlace(enlace.url);
+            const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
+            return `<a href="${enlace.url}" target="_blank" title="Ver material ${index + 1}">${icono} Enlace ${index + 1}</a>`;
+        });
         
-        const fechaSolicitud = solicitud.fechaSolicitud ? 
-            new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
-                hour12: false
-            }) : 'Fecha no disponible';
-        
-        // ✅ Obtener enlaces de la clase
-        const youtube = clase.enlaces?.youtube || '';
-        const powerpoint = clase.enlaces?.powerpoint || '';
-        
-        const materialHTML = this.generarMaterialHTML({ youtube, powerpoint });
-        
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${clase.nombre || 'N/A'}</td>
-            <td>${fechaClase}</td>
-            <td>${fechaSolicitud}</td>
-            <td class="material-badge">${materialHTML}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-    generarMaterialHTML(enlaces) {
-    // ✅ Recibe un objeto con youtube y powerpoint
-    const enlacesArray = [];
-    if (enlaces.youtube) {
-        enlacesArray.push(`<a href="${enlaces.youtube}" target="_blank" title="Ver en YouTube">▶️ YouTube</a>`);
+        return enlaces.join(' | ');
     }
-    if (enlaces.powerpoint) {
-        enlacesArray.push(`<a href="${enlaces.powerpoint}" target="_blank" title="Ver presentación">📊 Presentacion</a>`);
-    }
-    if (enlacesArray.length === 0) {
-        return '<span style="color: #666;">Material disponible</span>';
-    }
-    return enlacesArray.join(' | ');
-}
 
     mostrarMensaje(mensaje, tipo) {
         const msgDiv = document.getElementById('statusMessage');
