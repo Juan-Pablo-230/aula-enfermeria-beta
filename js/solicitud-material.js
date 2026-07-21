@@ -153,81 +153,103 @@ class MaterialHistorico {
     }
 
     async cargarClasesHistoricas() {
-        try {
-            console.log('📥 Cargando clases desde MongoDB (clases-publicas)...');
-            
-            const user = getCurrentUserSafe();
-            if (!user) {
-                throw new Error('Usuario no disponible');
-            }
-
-            // ✅ USAR /api/clases-publicas/publicadas (NO /api/clases-historicas)
-            const response = await fetch(`${this.apiBaseUrl}/clases-publicas/publicadas`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'user-id': user._id
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            console.log('📦 Respuesta de /api/clases-publicas/publicadas:', result);
-            
-            if (result.success && result.data) {
-                // Obtener todas las clases publicadas
-                let todasClases = result.data.filter(clase => 
-                    clase.publicada === true
-                );
-                
-                console.log(`📊 Clases publicadas encontradas: ${todasClases.length}`);
-                
-                // ========== FILTRAR POR ÁREA DEL USUARIO ==========
-                const userArea = user.area || null;
-                
-                console.log(`👤 Usuario: ${user.apellidoNombre}, Área: ${userArea || 'No definida'}`);
-                
-                if (userArea && userArea !== '') {
-                    console.log(`🔍 Filtrando clases históricas para el área: "${userArea}"`);
-                    
-                    this.clasesHistoricas = todasClases.filter(clase => {
-                        if (!clase.area || clase.area === 'todas') {
-                            console.log(`✅ Clase general: ${clase.nombre}`);
-                            return true;
-                        }
-                        const coincide = clase.area === userArea;
-                        if (coincide) {
-                            console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
-                        } else {
-                            console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
-                        }
-                        return coincide;
-                    });
-                } else {
-                    console.log('👤 Usuario sin área definida - Mostrando todas las clases históricas');
-                    this.clasesHistoricas = todasClases;
-                }
-                
-                console.log(`✅ ${this.clasesHistoricas.length} clases publicadas cargadas (filtradas por área)`);
-                
-                // Verificar materialEnlaces en la primera clase
-                if (this.clasesHistoricas.length > 0) {
-                    console.log('📎 Material en primera clase:', this.clasesHistoricas[0].materialEnlaces);
-                }
-                
-                this.procesarAnosDisponibles();
-                this.llenarSelectorAnos();
-            } else {
-                throw new Error('Se recibió una respuesta inválida del servidor');
-            }
-            
-        } catch (error) {
-            console.error('❌ Error cargando clases:', error);
-            this.mostrarMensaje('Error al cargar clases. Verifique su conexión.', 'error');
+    try {
+        console.log('📥 Cargando clases desde MongoDB (clases-publicas)...');
+        
+        const user = getCurrentUserSafe();
+        if (!user) {
+            throw new Error('Usuario no disponible');
         }
+
+        const response = await fetch(`${this.apiBaseUrl}/clases-publicas/publicadas`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'user-id': user._id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('📦 Respuesta de /api/clases-publicas/publicadas:', result);
+        
+        if (result.success && result.data) {
+            // 1. Filtrar solo clases publicadas
+            let clasesPublicadas = result.data.filter(clase => 
+                clase.publicada === true
+            );
+            
+            console.log(`📊 Clases publicadas encontradas: ${clasesPublicadas.length}`);
+            
+            // ========== FILTRAR POR ÁREA DEL USUARIO ==========
+            const userArea = user.area || null;
+            
+            console.log(`👤 Usuario: ${user.apellidoNombre}, Área: ${userArea || 'No definida'}`);
+            
+            let clasesFiltradasPorArea = [];
+            
+            if (userArea && userArea !== '') {
+                console.log(`🔍 Filtrando clases históricas para el área: "${userArea}"`);
+                
+                clasesFiltradasPorArea = clasesPublicadas.filter(clase => {
+                    if (!clase.area || clase.area === 'todas') {
+                        return true;
+                    }
+                    return clase.area === userArea;
+                });
+            } else {
+                console.log('👤 Usuario sin área definida - Mostrando todas las clases');
+                clasesFiltradasPorArea = clasesPublicadas;
+            }
+            
+            console.log(`📊 Clases filtradas por área: ${clasesFiltradasPorArea.length}`);
+            
+            // ✅ ========== FILTRAR CLASES CON MATERIAL Y FECHA DE CIERRE PASADA ==========
+            const ahora = new Date();
+            
+            this.clasesHistoricas = clasesFiltradasPorArea.filter(clase => {
+                // 1. Verificar que tenga material
+                const tieneMaterial = clase.materialEnlaces && clase.materialEnlaces.length > 0;
+                
+                // 2. Verificar que la fecha de cierre haya pasado
+                let fechaCierrePasada = false;
+                if (clase.fechaCierre) {
+                    const fechaCierre = new Date(clase.fechaCierre);
+                    fechaCierrePasada = fechaCierre < ahora;
+                }
+                
+                // Log para depuración
+                if (!tieneMaterial) {
+                    console.log(`📭 Clase sin material: ${clase.nombre}`);
+                } else if (!fechaCierrePasada) {
+                    console.log(`⏳ Clase con material pero fecha de cierre no pasada: ${clase.nombre} (cierre: ${new Date(clase.fechaCierre).toLocaleDateString('es-AR')})`);
+                } else {
+                    console.log(`✅ Clase disponible: ${clase.nombre} (${clase.materialEnlaces.length} enlaces)`);
+                }
+                
+                return tieneMaterial && fechaCierrePasada;
+            });
+            
+            console.log(`✅ ${this.clasesHistoricas.length} clases disponibles (con material y fecha de cierre pasada)`);
+            
+            // Verificar materialEnlaces en la primera clase
+            if (this.clasesHistoricas.length > 0) {
+                console.log('📎 Material en primera clase:', this.clasesHistoricas[0].materialEnlaces);
+            }
+            
+            this.procesarAnosDisponibles();
+            this.llenarSelectorAnos();
+        } else {
+            throw new Error('Se recibió una respuesta inválida del servidor');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando clases:', error);
+        this.mostrarMensaje('Error al cargar clases. Verifique su conexión.', 'error');
     }
+}
 
     procesarAnosDisponibles() {
         const anos = new Set();
@@ -396,55 +418,53 @@ class MaterialHistorico {
     }
 
     llenarSelectClases() {
-        const select = document.getElementById('claseSeleccionada');
-        if (!select) return;
+    const select = document.getElementById('claseSeleccionada');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Seleccione una clase</option>';
+    
+    this.clasesFiltradas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    
+    this.clasesFiltradas.forEach(clase => {
+        const option = document.createElement('option');
+        option.value = clase._id;
         
-        select.innerHTML = '<option value="">Seleccione una clase</option>';
-        
-        this.clasesFiltradas.sort((a, b) => a.nombre.localeCompare(b.nombre));
-        
-        this.clasesFiltradas.forEach(clase => {
-            const option = document.createElement('option');
-            option.value = clase._id;
-            
-            let fechaTexto = '';
-            if (clase.fechaClase) {
-                const fecha = new Date(clase.fechaClase);
-                fechaTexto = fecha.toLocaleDateString('es-AR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', hour12: false
-                });
-            }
-            
-            // ✅ Obtener materialEnlaces directamente (ya está en la BD)
-            const materialEnlaces = clase.materialEnlaces || [];
-            const tieneMaterial = materialEnlaces.length > 0;
-            const materialIcono = tieneMaterial ? '📎' : '📭';
-            
-            option.textContent = `${materialIcono} ${clase.nombre} (${fechaTexto})`;
-            option.dataset.nombre = clase.nombre;
-            option.dataset.descripcion = clase.descripcion || '';
-            option.dataset.fecha = clase.fechaClase;
-            option.dataset.materialEnlaces = JSON.stringify(materialEnlaces);
-            option.dataset.instructores = clase.instructores?.join(', ') || '';
-            option.dataset.publicada = clase.publicada;
-            option.dataset.fechaCierre = clase.fechaCierre;
-            
-            // ✅ Deshabilitar si no tiene material
-            if (!tieneMaterial) {
-                option.disabled = true;
-                option.textContent = `📭 ${clase.nombre} (${fechaTexto}) - Sin material disponible`;
-            }
-            
-            select.appendChild(option);
-        });
-        
-        const buscador = document.getElementById('buscadorClases');
-        if (buscador) {
-            buscador.value = '';
-            this.filtrarListaClases('');
+        let fechaTexto = '';
+        if (clase.fechaClase) {
+            const fecha = new Date(clase.fechaClase);
+            fechaTexto = fecha.toLocaleDateString('es-AR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            });
         }
+        
+        // Todas las clases que llegan aquí ya tienen material y fecha de cierre pasada
+        const materialEnlaces = clase.materialEnlaces || [];
+        const tieneMaterial = materialEnlaces.length > 0;
+        
+        // Todas deberían tener material, pero lo verificamos
+        if (!tieneMaterial) {
+            option.disabled = true;
+            option.textContent = `📭 ${clase.nombre} (${fechaTexto}) - Sin material disponible`;
+        } else {
+            option.textContent = `📎 ${clase.nombre} (${fechaTexto})`;
+        }
+        
+        option.dataset.nombre = clase.nombre;
+        option.dataset.descripcion = clase.descripcion || '';
+        option.dataset.fecha = clase.fechaClase;
+        option.dataset.materialEnlaces = JSON.stringify(materialEnlaces);
+        option.dataset.instructores = clase.instructores?.join(', ') || '';
+        
+        select.appendChild(option);
+    });
+    
+    const buscador = document.getElementById('buscadorClases');
+    if (buscador) {
+        buscador.value = '';
+        this.filtrarListaClases('');
     }
+}
 
     async procesarSolicitud() {
         const claseId = document.getElementById('claseSeleccionada').value;
