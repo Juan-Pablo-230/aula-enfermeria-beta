@@ -1402,7 +1402,6 @@ detectarTipoEnlace(url) {
         const inscripcionesSection = document.getElementById('inscripcionesSection');
         const usuariosSection = document.getElementById('usuariosSection');
         const materialHistoricoSection = document.getElementById('materialHistoricoSection');
-        const gestionClasesVisualSection = document.getElementById('gestionClasesVisualSection');
         
         const statsInscripciones = document.getElementById('statsInscripciones');
         const statsUsuarios = document.getElementById('statsUsuarios');
@@ -1413,10 +1412,9 @@ detectarTipoEnlace(url) {
         const btnInscripciones = document.getElementById('btnInscripciones');
         const btnUsuarios = document.getElementById('btnUsuarios');
         const btnMaterialHistorico = document.getElementById('btnMaterialHistorico');
-        const btnGestionClasesVisual = document.getElementById('btnGestionClasesVisual');
         
         // Resetear todas las vistas
-        [inscripcionesSection, usuariosSection, materialHistoricoSection, gestionClasesVisualSection].forEach(section => {
+        [inscripcionesSection, usuariosSection, materialHistoricoSection].forEach(section => {
             if (section) section.style.display = 'none';
         });
         
@@ -1427,7 +1425,7 @@ detectarTipoEnlace(url) {
         // Ocultar filtros
         if (filtrosInscripciones) filtrosInscripciones.style.display = 'none';
         
-        [btnInscripciones, btnUsuarios, btnMaterialHistorico, btnGestionClasesVisual].forEach(btn => {
+        [btnInscripciones, btnUsuarios, btnMaterialHistorico].forEach(btn => {
             if (btn) btn.classList.remove('active');
         });
         
@@ -1466,14 +1464,6 @@ detectarTipoEnlace(url) {
             // Inicializar Material Historico si es necesario
             if (typeof MaterialHistorico !== 'undefined' && !window.materialHistorico) {
                 window.materialHistorico = new MaterialHistorico();
-            }
-        } else if (vista === 'gestionClasesVisual') {
-            gestionClasesVisualSection.style.display = 'block';
-            btnGestionClasesVisual.classList.add('active');
-            
-            // Inicializar Gestión Visual si es necesario
-            if (typeof GestionClasesVisual !== 'undefined' && !window.gestionClasesVisual) {
-                window.gestionClasesVisual = new GestionClasesVisual();
             }
         }
     }
@@ -1599,23 +1589,6 @@ detectarTipoEnlace(url) {
             // Mostrar botón solo si tiene permisos
             if (!authSystem.isAdmin() && !authSystem.isAdvancedUser()) {
                 btnMaterialHistorico.style.display = 'none';
-            }
-        }
-        
-        // Botón de Gestión Visual de Clases
-        const btnGestionClasesVisual = document.getElementById('btnGestionClasesVisual');
-        if (btnGestionClasesVisual) {
-            btnGestionClasesVisual.addEventListener('click', () => {
-                if (authSystem.isAdmin() || authSystem.isAdvancedUser()) {
-                    this.cambiarVista('gestionClasesVisual');
-                } else {
-                    alert('Solo administradores y usuarios avanzados pueden acceder a esta sección');
-                }
-            });
-            
-            // Mostrar botón solo si tiene permisos
-            if (!authSystem.isAdmin() && !authSystem.isAdvancedUser()) {
-                btnGestionClasesVisual.style.display = 'none';
             }
         }
         

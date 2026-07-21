@@ -49,7 +49,6 @@ class NavigationCleaner {
             '#usuariosSection',
             '#materialSection',
             '#materialHistoricoSection',
-            '#gestionClasesVisualSection',
             '.gestion-container',
             '.form-panel',
             '.list-panel'
