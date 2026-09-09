@@ -769,48 +769,70 @@ class MaterialHistorico {
     }
 
     mostrarMisSolicitudes() {
-        const tbody = document.querySelector('#tablaMisSolicitudes tbody');
-        if (!tbody) return;
-        
-        tbody.innerHTML = '';
+    const tbody = document.querySelector('#tablaMisSolicitudes tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
 
-        if (this.solicitudes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">
-                Todavía no has solicitado material de clases grabadas.
-            </td></tr>`;
-            return;
-        }
-
-        this.solicitudes.forEach(solicitud => {
-            const usuario = solicitud.usuario || {};
-            const clase = solicitud.clase || {};
-            
-            const fechaClase = clase.fechaClase ? 
-                new Date(clase.fechaClase).toLocaleDateString('es-AR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', hour12: false
-                }) : 'Fecha no disponible';
-            
-            const fechaSolicitud = solicitud.fechaSolicitud ? 
-                new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
-                    hour12: false
-                }) : 'Fecha no disponible';
-            
-            // ✅ Obtener enlaces de la clase desde materialEnlaces
-            const materialEnlaces = clase.materialEnlaces || [];
-            
-            const materialHTML = this.generarMaterialHTML(materialEnlaces);
-            
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
-                <td>${fechaClase}</td>
-                <td>${fechaSolicitud}</td>
-                <td class="material-badge">${materialHTML}</td>
-            `;
-            tbody.appendChild(row);
-        });
+    if (this.solicitudes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #666; padding: 20px;">
+            Todavía no has solicitado material de clases grabadas.
+        </td></tr>`;
+        return;
     }
+
+    this.solicitudes.forEach(solicitud => {
+        const usuario = solicitud.usuario || {};
+        const clase = solicitud.clase || {};
+        
+        const fechaClase = clase.fechaClase ? 
+            new Date(clase.fechaClase).toLocaleDateString('es-AR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }) : 'Fecha no disponible';
+        
+        const fechaSolicitud = solicitud.fechaSolicitud ? 
+            new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
+                hour12: false
+            }) : 'Fecha no disponible';
+        
+        // ✅ Obtener enlaces de la clase desde materialEnlaces
+        const materialEnlaces = clase.materialEnlaces || [];
+        
+        // ✅ Generar HTML de enlaces con límite y scroll
+        let materialHTML = '';
+        if (materialEnlaces.length === 0) {
+            materialHTML = '<span style="color: #666; font-style: italic;">Material disponible</span>';
+        } else {
+            // Mostrar hasta 3 enlaces, y un indicador de "más" si hay más
+            const maxMostrar = 3;
+            const enlacesMostrar = materialEnlaces.slice(0, maxMostrar);
+            const tieneMas = materialEnlaces.length > maxMostrar;
+            
+            const enlacesHTML = enlacesMostrar.map((enlace, index) => {
+                const tipo = this.detectarTipoEnlace(enlace.url);
+                const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
+                return `<a href="${enlace.url}" target="_blank" title="Ver material ${index + 1}">${icono} ${index + 1}</a>`;
+            }).join('');
+            
+            materialHTML = enlacesHTML;
+            
+            if (tieneMas) {
+                const restantes = materialEnlaces.length - maxMostrar;
+                materialHTML += `<span style="font-size: 0.8em; color: var(--text-muted); padding: 4px 8px; background: var(--bg-card); border-radius: 4px; border: 1px solid var(--border-color);">+${restantes} más</span>`;
+            }
+        }
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
+            <td>${fechaClase}</td>
+            <td>${fechaSolicitud}</td>
+            <td><div class="material-badge">${materialHTML}</div></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
 
     generarMaterialHTML(materialEnlaces) {
         if (!materialEnlaces || materialEnlaces.length === 0) {
