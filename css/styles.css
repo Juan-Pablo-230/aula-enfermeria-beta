@@ -1159,6 +1159,45 @@ body {
     transform: translateY(0);
 }
 
+/* ===== ESTILOS PARA RECORDATORIOS ===== */
+.tiempo-btn.active {
+    background: var(--accent-color) !important;
+    color: white !important;
+    border-color: var(--accent-color) !important;
+}
+
+.tiempo-btn:hover:not(.active) {
+    border-color: var(--accent-color);
+    background: var(--bg-card-hover);
+}
+
+#btnProgramarRecordatorio:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#btnProgramarRecordatorio:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+#modalRecordatorio .modal-container {
+    max-width: 450px;
+}
+
+#modalRecordatorio .modal-body {
+    padding: 20px;
+}
+
+#recordatorioEstado {
+    animation: fadeIn 0.3s ease;
+}
+
+#btnProgramarRecordatorio:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Ajustes responsivos para móviles */
 @media (max-width: 768px) {
     .report-buttons-container {
