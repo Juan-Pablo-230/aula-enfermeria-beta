@@ -787,45 +787,50 @@ class MaterialHistorico {
         
         const fechaClase = clase.fechaClase ? 
             new Date(clase.fechaClase).toLocaleDateString('es-AR', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: false
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false
             }) : 'Fecha no disponible';
         
         const fechaSolicitud = solicitud.fechaSolicitud ? 
             new Date(solicitud.fechaSolicitud).toLocaleString('es-AR', {
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
                 hour12: false
             }) : 'Fecha no disponible';
         
-        const materialEnlaces = clase.materialEnlaces || [];
+        // ✅ Obtener enlaces de material
+        const materialEnlaces = clase.materialEnlaces || solicitud.materialEnlaces || [];
         
         let materialHTML = '';
         if (materialEnlaces.length === 0) {
-            materialHTML = '<span style="color: #666; font-style: italic;">Material disponible</span>';
+            materialHTML = '<span class="sin-material">📭 Sin material</span>';
         } else {
-            const maxMostrar = 3;
-            const enlacesMostrar = materialEnlaces.slice(0, maxMostrar);
-            const tieneMas = materialEnlaces.length > maxMostrar;
-            
-            const enlacesHTML = enlacesMostrar.map((enlace, index) => {
+            // ✅ Mostrar TODOS los enlaces con sus íconos
+            const enlacesHTML = materialEnlaces.map((enlace, index) => {
                 const tipo = this.detectarTipoEnlace(enlace.url);
-                const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
+                const icono = tipo === 'youtube' ? '▶️' : 
+                              tipo === 'drive' ? '📊' : 
+                              tipo === 'link' ? '🔗' : '📎';
                 return `<a href="${enlace.url}" target="_blank" title="Ver material ${index + 1}">${icono} ${index + 1}</a>`;
             }).join('');
             
             materialHTML = enlacesHTML;
-            
-            if (tieneMas) {
-                const restantes = materialEnlaces.length - maxMostrar;
-                materialHTML += `<span>+${restantes} más</span>`;
-            }
         }
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td data-label="Clase">${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
-            <td data-label="Fecha Clase">${fechaClase}</td>
-            <td data-label="Fecha Solicitud">${fechaSolicitud}</td>
-            <td data-label="Material"><div class="material-badge">${materialHTML}</div></td>
+            <td>${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
+            <td>${fechaClase}</td>
+            <td>${fechaSolicitud}</td>
+            <td><div class="material-badge">${materialHTML}</div></td>
         `;
         tbody.appendChild(row);
     });
