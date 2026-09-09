@@ -796,15 +796,12 @@ class MaterialHistorico {
                 hour12: false
             }) : 'Fecha no disponible';
         
-        // ✅ Obtener enlaces de la clase desde materialEnlaces
         const materialEnlaces = clase.materialEnlaces || [];
         
-        // ✅ Generar HTML de enlaces con límite y scroll
         let materialHTML = '';
         if (materialEnlaces.length === 0) {
             materialHTML = '<span style="color: #666; font-style: italic;">Material disponible</span>';
         } else {
-            // Mostrar hasta 3 enlaces, y un indicador de "más" si hay más
             const maxMostrar = 3;
             const enlacesMostrar = materialEnlaces.slice(0, maxMostrar);
             const tieneMas = materialEnlaces.length > maxMostrar;
@@ -819,16 +816,16 @@ class MaterialHistorico {
             
             if (tieneMas) {
                 const restantes = materialEnlaces.length - maxMostrar;
-                materialHTML += `<span style="font-size: 0.8em; color: var(--text-muted); padding: 4px 8px; background: var(--bg-card); border-radius: 4px; border: 1px solid var(--border-color);">+${restantes} más</span>`;
+                materialHTML += `<span>+${restantes} más</span>`;
             }
         }
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
-            <td>${fechaClase}</td>
-            <td>${fechaSolicitud}</td>
-            <td><div class="material-badge">${materialHTML}</div></td>
+            <td data-label="Clase">${clase.nombre || solicitud.claseNombre || 'N/A'}</td>
+            <td data-label="Fecha Clase">${fechaClase}</td>
+            <td data-label="Fecha Solicitud">${fechaSolicitud}</td>
+            <td data-label="Material"><div class="material-badge">${materialHTML}</div></td>
         `;
         tbody.appendChild(row);
     });

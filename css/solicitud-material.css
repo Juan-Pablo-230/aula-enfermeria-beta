@@ -421,6 +421,210 @@ select[readonly] {
     margin-left: 8px;
 }
 
+/* ===== MEJORAS RESPONSIVE PARA LA TABLA DE SOLICITUDES ===== */
+
+/* Contenedor responsive de la tabla */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 15px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+/* Estilo base mejorado para la tabla */
+.inscripciones-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+    min-width: 600px; /* Ancho mínimo para mantener estructura en desktop */
+}
+
+.inscripciones-table th {
+    background: var(--accent-color);
+    color: white;
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.inscripciones-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.inscripciones-table tr:hover {
+    background: var(--bg-card);
+}
+
+/* Badges de material en la tabla */
+.material-badge {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.material-badge a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.material-badge a:hover {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.material-badge span {
+    font-size: 0.75em;
+    color: var(--text-muted);
+    padding: 2px 8px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+/* ===== RESPONSIVE: TABLA CONVIERTE EN TARJETAS ===== */
+@media screen and (max-width: 768px) {
+    /* Ocultar encabezados en móvil */
+    .inscripciones-table thead {
+        display: none;
+    }
+    
+    /* Cada fila se convierte en tarjeta */
+    .inscripciones-table,
+    .inscripciones-table tbody,
+    .inscripciones-table tr,
+    .inscripciones-table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .inscripciones-table tr {
+        margin-bottom: 16px;
+        padding: 16px;
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease;
+    }
+    
+    .inscripciones-table tr:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .inscripciones-table td {
+        padding: 8px 0;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .inscripciones-table td:last-child {
+        border-bottom: none;
+    }
+    
+    /* Mostrar etiqueta antes del valor */
+    .inscripciones-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.85em;
+        min-width: 100px;
+    }
+    
+    /* Estilo especial para la columna de material */
+    .inscripciones-table td:last-child::before {
+        align-self: flex-start;
+        padding-top: 4px;
+    }
+    
+    .inscripciones-table td:last-child {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .inscripciones-table td:last-child .material-badge {
+        justify-content: flex-start;
+        width: 100%;
+    }
+    
+    /* Estilo para el mensaje de "sin solicitudes" */
+    .inscripciones-table td[colspan] {
+        display: block;
+        text-align: center !important;
+        padding: 30px 20px !important;
+        border: 2px dashed var(--border-color);
+        border-radius: 10px;
+        margin: 10px 0;
+        background: var(--bg-container);
+    }
+    
+    .inscripciones-table td[colspan]::before {
+        display: none;
+    }
+}
+
+/* ===== MEJORAS ADICIONALES PARA PANTALLAS MUY PEQUEÑAS ===== */
+@media screen and (max-width: 480px) {
+    .inscripciones-table tr {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .inscripciones-table td {
+        padding: 6px 0;
+        font-size: 0.9em;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    
+    .inscripciones-table td::before {
+        min-width: auto;
+        font-size: 0.75em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .material-badge a {
+        font-size: 0.8em;
+        padding: 3px 8px;
+    }
+    
+    .material-badge {
+        gap: 5px;
+    }
+    
+    /* Mejorar visibilidad del mensaje vacío */
+    .inscripciones-table td[colspan] {
+        padding: 20px 15px !important;
+        font-size: 0.95em;
+    }
+}
+
 /* ===== ANIMACIONES ADICIONALES ===== */
 @keyframes fadeIn {
     from { opacity: 0; }
