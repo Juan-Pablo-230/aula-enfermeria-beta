@@ -1,12 +1,12 @@
-// clases-publicas.js - Versión con integración de material y validaciones
-console.log('📚 Módulo de Clases Públicas cargado (con material integrado)');
+// clases-publicas.js - Versión con redirección automática por modalidad
+console.log('📚 Módulo de Clases Públicas cargado (con redirección automática)');
 
 class ClasesPublicasManager {
     constructor() {
         this.data = [];
         this.editandoId = null;
         this.areasDisponibles = [];
-        this.claseMaterialId = null; // Para el modal de material
+        this.claseMaterialId = null;
         this.init();
     }
 
@@ -14,6 +14,7 @@ class ClasesPublicasManager {
         await this.cargarAreas();
         await this.cargarDatos();
         this.setupEventListeners();
+        this.setupModalidadListeners();
     }
 
     async cargarAreas() {
@@ -33,37 +34,29 @@ class ClasesPublicasManager {
         
         if (window.area && typeof window.area === 'object') {
             const areas = new Set();
-            
             for (const categoria in window.area) {
                 if (Array.isArray(window.area[categoria])) {
                     window.area[categoria].forEach(areaName => {
-                        if (areaName && typeof areaName === 'string') {
-                            areas.add(areaName);
-                        }
+                        if (areaName && typeof areaName === 'string') areas.add(areaName);
                     });
                 }
             }
             
             this.areasDisponibles = Array.from(areas).sort();
-            console.log('📋 Áreas encontradas:', this.areasDisponibles);
             
             if (areaSelect) {
                 const currentValue = areaSelect.value;
                 areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
-                
                 this.areasDisponibles.forEach(area => {
                     const option = document.createElement('option');
                     option.value = area;
                     option.textContent = area;
                     areaSelect.appendChild(option);
                 });
-                
                 if (currentValue && currentValue !== 'todas') {
                     const optionExists = Array.from(areaSelect.options).some(opt => opt.value === currentValue);
                     if (optionExists) areaSelect.value = currentValue;
                 }
-                
-                console.log('✅ Selector de áreas poblado. Opciones:', Array.from(areaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
             }
             
             if (filtroArea) {
@@ -76,7 +69,6 @@ class ClasesPublicasManager {
                 });
             }
         } else {
-            console.warn('⚠️ window.area no disponible');
             if (areaSelect) areaSelect.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
             if (filtroArea) filtroArea.innerHTML = '<option value="todas">🌍 Todas las áreas</option>';
         }
@@ -107,6 +99,152 @@ class ClasesPublicasManager {
         });
     }
 
+    // ============================================
+    // LÓGICA DE MODALIDAD
+    // ============================================
+
+    setupModalidadListeners() {
+        const modalidadSelect = document.getElementById('claseModalidad');
+        const plataformaSelect = document.getElementById('clasePlataforma');
+        const enlaceVirtualInput = document.getElementById('claseEnlaceVirtual');
+
+        modalidadSelect?.addEventListener('change', () => this.actualizarCamposModalidad());
+        plataformaSelect?.addEventListener('change', () => this.actualizarCamposPlataforma());
+        enlaceVirtualInput?.addEventListener('input', () => this.actualizarInfoRedireccion());
+    }
+
+    actualizarCamposModalidad() {
+        const modalidad = document.getElementById('claseModalidad')?.value || '';
+        
+        const campoUbicacion = document.getElementById('campoUbicacion');
+        const campoPlataforma = document.getElementById('campoPlataforma');
+        const campoEnlaceVirtual = document.getElementById('campoEnlaceVirtual');
+        const campoEnlaceYouTube = document.getElementById('campoEnlaceYouTube');
+        const infoRedireccion = document.getElementById('infoRedireccion');
+
+        // Reset
+        if (campoUbicacion) campoUbicacion.style.display = 'none';
+        if (campoPlataforma) campoPlataforma.style.display = 'none';
+        if (campoEnlaceVirtual) campoEnlaceVirtual.style.display = 'none';
+        if (campoEnlaceYouTube) campoEnlaceYouTube.style.display = 'none';
+        if (infoRedireccion) infoRedireccion.style.display = 'none';
+
+        const ubicacionInput = document.getElementById('claseUbicacion');
+        const plataformaSelect = document.getElementById('clasePlataforma');
+        const enlaceVirtualInput = document.getElementById('claseEnlaceVirtual');
+        const enlaceYouTubeInput = document.getElementById('claseEnlaceYouTube');
+
+        if (ubicacionInput) ubicacionInput.required = false;
+        if (plataformaSelect) plataformaSelect.required = false;
+        if (enlaceVirtualInput) enlaceVirtualInput.required = false;
+        if (enlaceYouTubeInput) enlaceYouTubeInput.required = false;
+
+        if (modalidad === 'Presencial') {
+            if (campoUbicacion) campoUbicacion.style.display = 'block';
+            if (ubicacionInput) ubicacionInput.required = true;
+            if (infoRedireccion) infoRedireccion.style.display = 'block';
+            this.actualizarInfoRedireccion();
+        } else if (modalidad === 'Virtual') {
+            if (campoPlataforma) campoPlataforma.style.display = 'block';
+            if (plataformaSelect) plataformaSelect.required = true;
+            if (infoRedireccion) infoRedireccion.style.display = 'block';
+            this.actualizarCamposPlataforma();
+        } else if (modalidad === 'Híbrido') {
+            if (campoUbicacion) campoUbicacion.style.display = 'block';
+            if (campoPlataforma) campoPlataforma.style.display = 'block';
+            if (ubicacionInput) ubicacionInput.required = true;
+            if (plataformaSelect) plataformaSelect.required = true;
+            if (infoRedireccion) infoRedireccion.style.display = 'block';
+            this.actualizarCamposPlataforma();
+        }
+    }
+
+    actualizarCamposPlataforma() {
+        const modalidad = document.getElementById('claseModalidad')?.value || '';
+        const plataforma = document.getElementById('clasePlataforma')?.value || '';
+        
+        const campoEnlaceVirtual = document.getElementById('campoEnlaceVirtual');
+        const campoEnlaceYouTube = document.getElementById('campoEnlaceYouTube');
+        const enlaceVirtualInput = document.getElementById('claseEnlaceVirtual');
+        const enlaceYouTubeInput = document.getElementById('claseEnlaceYouTube');
+
+        if (modalidad !== 'Virtual' && modalidad !== 'Híbrido') return;
+
+        if (campoEnlaceVirtual) campoEnlaceVirtual.style.display = 'none';
+        if (campoEnlaceYouTube) campoEnlaceYouTube.style.display = 'none';
+        if (enlaceVirtualInput) enlaceVirtualInput.required = false;
+        if (enlaceYouTubeInput) enlaceYouTubeInput.required = false;
+
+        if (plataforma === 'Reunión virtual') {
+            if (campoEnlaceVirtual) campoEnlaceVirtual.style.display = 'block';
+            if (enlaceVirtualInput) enlaceVirtualInput.required = true;
+        } else if (plataforma === 'YouTube') {
+            if (campoEnlaceYouTube) campoEnlaceYouTube.style.display = 'block';
+            if (enlaceYouTubeInput) enlaceYouTubeInput.required = true;
+        }
+
+        this.actualizarInfoRedireccion();
+    }
+
+    // ============================================
+    // INFO DE REDIRECCIÓN (TEXTO INFORMATIVO)
+    // ============================================
+
+    actualizarInfoRedireccion() {
+        const modalidad = document.getElementById('claseModalidad')?.value || '';
+        const plataforma = document.getElementById('clasePlataforma')?.value || '';
+        const enlaceVirtual = document.getElementById('claseEnlaceVirtual')?.value.trim() || '';
+        const infoTexto = document.getElementById('infoRedireccionTexto');
+
+        if (!infoTexto) return;
+
+        let mensaje = '';
+
+        if (modalidad === 'Presencial') {
+            mensaje = '🏛️ <strong>Redirige a:</strong> <code>/asistenciapres.html</code><br><small>El usuario completa la asistencia presencial automáticamente</small>';
+        } else if (modalidad === 'Virtual') {
+            if (plataforma === 'Reunión virtual') {
+                if (enlaceVirtual) {
+                    mensaje = `🎥 <strong>Redirige a:</strong> <code>${this.escapeHtml(enlaceVirtual)}</code><br><small>El usuario se une directamente a la reunión</small>`;
+                } else {
+                    mensaje = '🎥 <strong>Redirige a:</strong> <em>el enlace de la reunión</em> (complete el enlace arriba)';
+                }
+            } else if (plataforma === 'YouTube') {
+                mensaje = '📺 <strong>Redirige a:</strong> <code>/clasesYT.html</code><br><small>El usuario ve la clase en vivo en YouTube</small>';
+            } else {
+                mensaje = '💻 Seleccione una plataforma para ver el destino';
+            }
+        } else if (modalidad === 'Híbrido') {
+            mensaje = '🔄 <strong>Redirige a:</strong> <code>/asistenciapres.html</code><br><small>Asistencia presencial + opción virtual disponible</small>';
+            if (plataforma === 'Reunión virtual' && enlaceVirtual) {
+                mensaje += `<br>🎥 <strong>Reunión:</strong> <code>${this.escapeHtml(enlaceVirtual)}</code>`;
+            } else if (plataforma === 'YouTube') {
+                mensaje += `<br>📺 <strong>Video:</strong> <code>/clasesYT.html</code>`;
+            }
+        } else {
+            mensaje = 'Seleccione una modalidad para ver el destino';
+        }
+
+        infoTexto.innerHTML = mensaje;
+    }
+
+    // ============================================
+    // EXTRAER ID DE YOUTUBE
+    // ============================================
+
+    extraerYouTubeId(url) {
+        if (!url) return null;
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
+            /^([a-zA-Z0-9_-]{11})$/
+        ];
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) return match[1];
+        }
+        return null;
+    }
+
     async cargarDatos() {
         try {
             const result = await authSystem.makeRequest('/clases-publicas', null, 'GET');
@@ -120,12 +258,7 @@ class ClasesPublicasManager {
         }
     }
 
-    // ============================================
-    // VALIDACIÓN DE CLASES DUPLICADAS
-    // ============================================
-
     validarDuplicados(nombre, enlaceFormulario, idExcluir = null) {
-        // Validar nombre duplicado
         const nombreDuplicado = this.data.some(c => 
             c.nombre.toLowerCase() === nombre.toLowerCase() && 
             c._id !== idExcluir
@@ -138,36 +271,16 @@ class ClasesPublicasManager {
             };
         }
 
-        // Validar enlace duplicado (si se proporcionó)
-        if (enlaceFormulario && enlaceFormulario.trim() !== '') {
-            const enlaceDuplicado = this.data.some(c => 
-                c.enlaceFormulario === enlaceFormulario && 
-                c._id !== idExcluir
-            );
-
-            if (enlaceDuplicado) {
-                const claseConEnlace = this.data.find(c => 
-                    c.enlaceFormulario === enlaceFormulario && 
-                    c._id !== idExcluir
-                );
-                return { 
-                    valido: false, 
-                    mensaje: `❌ El enlace de redirección ya está siendo utilizado por la clase "${claseConEnlace?.nombre || 'desconocida'}".` 
-                };
-            }
-        }
-
         return { valido: true, mensaje: '' };
     }
 
     // ============================================
-    // GUARDAR CLASE (CON VALIDACIÓN)
+    // GUARDAR CLASE (CON REDIRECCIÓN AUTOMÁTICA)
     // ============================================
 
     async guardarClase(event) {
         event.preventDefault();
         
-        // Obtener datos del formulario
         const areaSelect = document.getElementById('claseArea');
         let areaSeleccionada = areaSelect ? areaSelect.value : 'todas';
         
@@ -175,21 +288,23 @@ class ClasesPublicasManager {
         const fechaHoraClase = document.getElementById('claseFechaHora')?.value;
         const fechaCierre = document.getElementById('claseFechaCierre')?.value;
         const publicada = document.querySelector('input[name="visibilidad"]:checked')?.value === 'true';
-        const enlaceFormulario = document.getElementById('claseEnlaceFormulario')?.value.trim();
+        const modalidad = document.getElementById('claseModalidad')?.value || '';
         
-        // Validar campos obligatorios
+        // Validaciones básicas
         if (!nombre) {
             this.mostrarMensaje('❌ El nombre de la clase es obligatorio', 'error');
             return;
         }
-        
         if (!fechaHoraClase) {
             this.mostrarMensaje('❌ La fecha y hora de la clase es obligatoria', 'error');
             return;
         }
-        
         if (!fechaCierre) {
             this.mostrarMensaje('❌ La fecha y hora de cierre es obligatoria', 'error');
+            return;
+        }
+        if (!modalidad) {
+            this.mostrarMensaje('❌ Debe seleccionar una modalidad', 'error');
             return;
         }
         
@@ -201,11 +316,65 @@ class ClasesPublicasManager {
             return;
         }
         
-        // ===== VALIDACIÓN DE DUPLICADOS =====
-        const validacion = this.validarDuplicados(nombre, enlaceFormulario, this.editandoId);
+        // Validación de duplicados
+        const validacion = this.validarDuplicados(nombre, null, this.editandoId);
         if (!validacion.valido) {
             this.mostrarMensaje(validacion.mensaje, 'error');
             return;
+        }
+
+        // ===== RECOLECTAR CAMPOS SEGÚN MODALIDAD =====
+        let ubicacion = '';
+        let plataforma = '';
+        let enlaceVirtual = '';
+        let enlaceYouTube = '';
+        let youtubeVideoId = '';
+        let enlaceFormulario = ''; // ← SE GENERA AUTOMÁTICAMENTE
+
+        if (modalidad === 'Presencial' || modalidad === 'Híbrido') {
+            ubicacion = document.getElementById('claseUbicacion')?.value.trim() || '';
+            if (!ubicacion) {
+                this.mostrarMensaje('❌ La ubicación es obligatoria para modalidad Presencial/Híbrido', 'error');
+                return;
+            }
+            // ✅ Presencial siempre redirige a asistenciapres.html
+            enlaceFormulario = '/asistenciapres.html';
+        }
+
+        if (modalidad === 'Virtual' || modalidad === 'Híbrido') {
+            plataforma = document.getElementById('clasePlataforma')?.value || '';
+            if (!plataforma) {
+                this.mostrarMensaje('❌ La plataforma es obligatoria para modalidad Virtual/Híbrido', 'error');
+                return;
+            }
+
+            if (plataforma === 'Reunión virtual') {
+                enlaceVirtual = document.getElementById('claseEnlaceVirtual')?.value.trim() || '';
+                if (!enlaceVirtual) {
+                    this.mostrarMensaje('❌ El enlace de la reunión es obligatorio', 'error');
+                    return;
+                }
+                // ✅ Virtual + Reunión virtual: redirige al enlace de la reunión
+                if (modalidad === 'Virtual') {
+                    enlaceFormulario = enlaceVirtual;
+                }
+            } else if (plataforma === 'YouTube') {
+                enlaceYouTube = document.getElementById('claseEnlaceYouTube')?.value.trim() || '';
+                if (!enlaceYouTube) {
+                    this.mostrarMensaje('❌ La URL de YouTube es obligatoria', 'error');
+                    return;
+                }
+                youtubeVideoId = this.extraerYouTubeId(enlaceYouTube);
+                if (!youtubeVideoId) {
+                    this.mostrarMensaje('❌ No se pudo extraer el ID del video de YouTube. Verifique la URL.', 'error');
+                    return;
+                }
+                // ✅ Virtual + YouTube: redirige a clasesYT.html
+                if (modalidad === 'Virtual') {
+                    enlaceFormulario = '/clasesYT.html';
+                }
+                console.log('🎬 YouTube ID extraído:', youtubeVideoId);
+            }
         }
         
         // Procesar instructores
@@ -220,12 +389,15 @@ class ClasesPublicasManager {
             fechaClase: fechaHoraClase,
             fechaCierre: fechaCierre,
             instructores: instructores,
-            lugar: document.getElementById('claseLugar')?.value || '',
-            enlaceFormulario: enlaceFormulario || '',
+            enlaceFormulario: enlaceFormulario, // ← Autogenerado
             publicada: publicada,
             area: areaSeleccionada,
-            
-            // ===== CONTROLES INTERNOS =====
+            modalidad: modalidad,
+            ubicacion: ubicacion,
+            plataforma: plataforma,
+            enlaceVirtual: enlaceVirtual,
+            enlaceYouTube: enlaceYouTube,
+            youtubeVideoId: youtubeVideoId,
             auditorio: document.getElementById('claseAuditorio')?.checked || false,
             cafeteria: document.getElementById('claseCafeteria')?.checked || false,
             material: document.getElementById('claseMaterial')?.checked || false
@@ -243,7 +415,16 @@ class ClasesPublicasManager {
                 this.mostrarMensaje('✅ Clase creada correctamente', 'success');
             }
             
-            console.log('✅ Respuesta del servidor:', response);
+            // Si es YouTube, guardar videoId en localStorage para clasesYT.js
+            if (youtubeVideoId) {
+                try {
+                    localStorage.setItem('claseYT_videoId', youtubeVideoId);
+                    localStorage.setItem('claseYT_nombre', nombre);
+                    console.log('💾 videoId guardado en localStorage:', youtubeVideoId);
+                } catch (e) {
+                    console.warn('⚠️ No se pudo guardar en localStorage:', e);
+                }
+            }
             
             this.cancelarEdicion();
             await this.cargarDatos();
@@ -262,48 +443,52 @@ class ClasesPublicasManager {
         document.getElementById('claseNombre').value = clase.nombre || '';
         document.getElementById('claseDescripcion').value = clase.descripcion || '';
         
-        // Cargar fecha y hora de la clase
         if (clase.fechaClase) {
             const fecha = new Date(clase.fechaClase);
-            const year = fecha.getFullYear();
-            const month = String(fecha.getMonth() + 1).padStart(2, '0');
-            const day = String(fecha.getDate()).padStart(2, '0');
-            const hours = String(fecha.getHours()).padStart(2, '0');
-            const minutes = String(fecha.getMinutes()).padStart(2, '0');
-            document.getElementById('claseFechaHora').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            const pad = (n) => String(n).padStart(2, '0');
+            document.getElementById('claseFechaHora').value = 
+                `${fecha.getFullYear()}-${pad(fecha.getMonth()+1)}-${pad(fecha.getDate())}T${pad(fecha.getHours())}:${pad(fecha.getMinutes())}`;
         }
         
-        // Cargar fecha de cierre
         if (clase.fechaCierre) {
             const fechaCierre = new Date(clase.fechaCierre);
-            const year = fechaCierre.getFullYear();
-            const month = String(fechaCierre.getMonth() + 1).padStart(2, '0');
-            const day = String(fechaCierre.getDate()).padStart(2, '0');
-            const hours = String(fechaCierre.getHours()).padStart(2, '0');
-            const minutes = String(fechaCierre.getMinutes()).padStart(2, '0');
-            document.getElementById('claseFechaCierre').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-        } else {
-            // Si no tiene fechaCierre, establecer un valor por defecto (1 hora después de la clase)
-            if (clase.fechaClase) {
-                const fechaClase = new Date(clase.fechaClase);
-                const defaultCierre = new Date(fechaClase.getTime() + 60 * 60 * 1000);
-                const year = defaultCierre.getFullYear();
-                const month = String(defaultCierre.getMonth() + 1).padStart(2, '0');
-                const day = String(defaultCierre.getDate()).padStart(2, '0');
-                const hours = String(defaultCierre.getHours()).padStart(2, '0');
-                const minutes = String(defaultCierre.getMinutes()).padStart(2, '0');
-                document.getElementById('claseFechaCierre').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-            }
+            const pad = (n) => String(n).padStart(2, '0');
+            document.getElementById('claseFechaCierre').value = 
+                `${fechaCierre.getFullYear()}-${pad(fechaCierre.getMonth()+1)}-${pad(fechaCierre.getDate())}T${pad(fechaCierre.getHours())}:${pad(fechaCierre.getMinutes())}`;
         }
         
         document.getElementById('claseInstructores').value = clase.instructores?.join(', ') || '';
-        document.getElementById('claseLugar').value = clase.lugar || '';
-        document.getElementById('claseEnlaceFormulario').value = clase.enlaceFormulario || '';
         
+        // Modalidad
+        const modalidadSelect = document.getElementById('claseModalidad');
+        if (modalidadSelect) {
+            modalidadSelect.value = clase.modalidad || '';
+            this.actualizarCamposModalidad();
+        }
+
+        // Ubicación
+        const ubicacionInput = document.getElementById('claseUbicacion');
+        if (ubicacionInput) ubicacionInput.value = clase.ubicacion || '';
+
+        // Plataforma
+        const plataformaSelect = document.getElementById('clasePlataforma');
+        if (plataformaSelect) {
+            plataformaSelect.value = clase.plataforma || '';
+            this.actualizarCamposPlataforma();
+        }
+
+        // Enlace virtual
+        const enlaceVirtualInput = document.getElementById('claseEnlaceVirtual');
+        if (enlaceVirtualInput) enlaceVirtualInput.value = clase.enlaceVirtual || '';
+
+        // Enlace YouTube
+        const enlaceYouTubeInput = document.getElementById('claseEnlaceYouTube');
+        if (enlaceYouTubeInput) enlaceYouTubeInput.value = clase.enlaceYouTube || '';
+
+        // Área
         const areaSelect = document.getElementById('claseArea');
         if (areaSelect) {
             const areaValue = clase.area || 'todas';
-            
             let optionExists = false;
             for (let i = 0; i < areaSelect.options.length; i++) {
                 if (areaSelect.options[i].value === areaValue) {
@@ -311,7 +496,6 @@ class ClasesPublicasManager {
                     break;
                 }
             }
-            
             if (optionExists) {
                 areaSelect.value = areaValue;
             } else {
@@ -320,13 +504,10 @@ class ClasesPublicasManager {
                 newOption.textContent = areaValue;
                 areaSelect.appendChild(newOption);
                 areaSelect.value = areaValue;
-                console.log(`⚠️ Opción "${areaValue}" no existía, fue agregada`);
             }
-            
-            console.log(`✅ Área seleccionada: ${areaSelect.value}`);
         }
         
-        // ===== CARGAR CONTROLES INTERNOS =====
+        // Controles internos
         document.getElementById('claseAuditorio').checked = clase.auditorio === true;
         document.getElementById('claseCafeteria').checked = clase.cafeteria === true;
         document.getElementById('claseMaterial').checked = clase.material === true;
@@ -357,29 +538,30 @@ class ClasesPublicasManager {
     limpiarFormulario() {
         document.getElementById('claseForm').reset();
         
-        // Establecer fecha y hora de clase por defecto (ahora + 1 hora)
         const ahora = new Date();
         const defaultClase = new Date(ahora.getTime() + 60 * 60 * 1000);
-        const yearClase = defaultClase.getFullYear();
-        const monthClase = String(defaultClase.getMonth() + 1).padStart(2, '0');
-        const dayClase = String(defaultClase.getDate()).padStart(2, '0');
-        const hoursClase = String(defaultClase.getHours()).padStart(2, '0');
-        const minutesClase = String(defaultClase.getMinutes()).padStart(2, '0');
-        document.getElementById('claseFechaHora').value = `${yearClase}-${monthClase}-${dayClase}T${hoursClase}:${minutesClase}`;
+        const pad = (n) => String(n).padStart(2, '0');
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
         
-        // Establecer fecha de cierre por defecto (2 horas después de la clase)
-        const defaultCierre = new Date(defaultClase.getTime() + 60 * 60 * 1000);
-        const yearCierre = defaultCierre.getFullYear();
-        const monthCierre = String(defaultCierre.getMonth() + 1).padStart(2, '0');
-        const dayCierre = String(defaultCierre.getDate()).padStart(2, '0');
-        const hoursCierre = String(defaultCierre.getHours()).padStart(2, '0');
-        const minutesCierre = String(defaultCierre.getMinutes()).padStart(2, '0');
-        document.getElementById('claseFechaCierre').value = `${yearCierre}-${monthCierre}-${dayCierre}T${hoursCierre}:${minutesCierre}`;
+        document.getElementById('claseFechaHora').value = fmt(defaultClase);
+        document.getElementById('claseFechaCierre').value = fmt(new Date(defaultClase.getTime() + 60 * 60 * 1000));
         
         const areaSelect = document.getElementById('claseArea');
         if (areaSelect) areaSelect.value = 'todas';
         
-        // ===== RESETEAR CONTROLES INTERNOS =====
+        const modalidadSelect = document.getElementById('claseModalidad');
+        if (modalidadSelect) modalidadSelect.value = '';
+        this.actualizarCamposModalidad();
+
+        const ubicacionInput = document.getElementById('claseUbicacion');
+        if (ubicacionInput) ubicacionInput.value = '';
+        const plataformaSelect = document.getElementById('clasePlataforma');
+        if (plataformaSelect) plataformaSelect.value = '';
+        const enlaceVirtualInput = document.getElementById('claseEnlaceVirtual');
+        if (enlaceVirtualInput) enlaceVirtualInput.value = '';
+        const enlaceYouTubeInput = document.getElementById('claseEnlaceYouTube');
+        if (enlaceYouTubeInput) enlaceYouTubeInput.value = '';
+        
         document.getElementById('claseAuditorio').checked = false;
         document.getElementById('claseCafeteria').checked = false;
         document.getElementById('claseMaterial').checked = false;
@@ -410,15 +592,10 @@ class ClasesPublicasManager {
     }
 
     actualizarEstadisticas() {
-        const total = this.data.length;
-        const publicadas = this.data.filter(c => c.publicada === true).length;
-        const noPublicadas = this.data.filter(c => c.publicada === false).length;
-        const conFormulario = this.data.filter(c => c.enlaceFormulario).length;
-
-        document.getElementById('totalClases').textContent = total;
-        document.getElementById('clasesPublicadas').textContent = publicadas;
-        document.getElementById('clasesNoPublicadas').textContent = noPublicadas;
-        document.getElementById('clasesConFormulario').textContent = conFormulario;
+        document.getElementById('totalClases').textContent = this.data.length;
+        document.getElementById('clasesPublicadas').textContent = this.data.filter(c => c.publicada === true).length;
+        document.getElementById('clasesNoPublicadas').textContent = this.data.filter(c => c.publicada === false).length;
+        document.getElementById('clasesConFormulario').textContent = this.data.filter(c => c.enlaceFormulario).length;
     }
 
     mostrarMensaje(texto, tipo) {
@@ -441,7 +618,7 @@ class ClasesPublicasManager {
     }
 
     // ============================================
-    // MOSTRAR LISTA CON MATERIAL Y BOTONES CONDICIONALES
+    // MOSTRAR LISTA
     // ============================================
 
     mostrarLista(filtroTexto = '', filtroVisibilidad = 'todas', filtroArea = 'todas') {
@@ -466,7 +643,6 @@ class ClasesPublicasManager {
         }
         
         if (filtroArea && filtroArea !== 'todas') {
-            console.log(`🔍 Filtrando por área: "${filtroArea}"`);
             clasesFiltradas = clasesFiltradas.filter(c => {
                 if (!c.area || c.area === 'todas') return true;
                 return c.area === filtroArea;
@@ -483,8 +659,7 @@ class ClasesPublicasManager {
         container.innerHTML = clasesFiltradas.map(clase => {
             let fechaFormateada = 'N/A';
             if (clase.fechaClase) {
-                const fecha = new Date(clase.fechaClase);
-                fechaFormateada = fecha.toLocaleString('es-AR', {
+                fechaFormateada = new Date(clase.fechaClase).toLocaleString('es-AR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit', hour12: false
                 });
@@ -492,8 +667,7 @@ class ClasesPublicasManager {
             
             let cierreFormateado = 'No definido';
             if (clase.fechaCierre) {
-                const fechaCierre = new Date(clase.fechaCierre);
-                cierreFormateado = fechaCierre.toLocaleString('es-AR', {
+                cierreFormateado = new Date(clase.fechaCierre).toLocaleString('es-AR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit', hour12: false
                 });
@@ -503,14 +677,31 @@ class ClasesPublicasManager {
             const estadoTexto = clase.publicada ? 'Publicada' : 'No publicada';
             const estadoClass = clase.publicada ? 'publicada' : 'no-publicada';
             
-            let areaInfo = '';
-            if (!clase.area || clase.area === 'todas') {
-                areaInfo = '<div class="clase-area">🌍 Área: Todas las áreas</div>';
-            } else {
-                areaInfo = `<div class="clase-area">👥 Área: ${this.escapeHtml(clase.area)}</div>`;
+            let areaInfo = (!clase.area || clase.area === 'todas') 
+                ? '<div class="clase-area">🌍 Área: Todas las áreas</div>'
+                : `<div class="clase-area">👥 Área: ${this.escapeHtml(clase.area)}</div>`;
+
+            // Info de modalidad
+            let modalidadInfo = '';
+            if (clase.modalidad) {
+                const iconoMod = clase.modalidad === 'Presencial' ? '🏛️' : 
+                                  clase.modalidad === 'Virtual' ? '💻' : '🔄';
+                let detalles = '';
+                if (clase.modalidad === 'Presencial' && clase.ubicacion) {
+                    detalles = ` - 📍 ${this.escapeHtml(clase.ubicacion)}`;
+                } else if (clase.modalidad === 'Virtual') {
+                    if (clase.plataforma === 'Reunión virtual') {
+                        detalles = ` - 🎥 Reunión virtual`;
+                    } else if (clase.plataforma === 'YouTube' && clase.youtubeVideoId) {
+                        detalles = ` - 📺 YouTube (ID: ${this.escapeHtml(clase.youtubeVideoId)})`;
+                    }
+                } else if (clase.modalidad === 'Híbrido') {
+                    detalles = ` - 📍 ${this.escapeHtml(clase.ubicacion || 'N/A')} + 💻 ${this.escapeHtml(clase.plataforma || 'N/A')}`;
+                }
+                modalidadInfo = `<div class="clase-area">${iconoMod} Modalidad: ${this.escapeHtml(clase.modalidad)}${detalles}</div>`;
             }
             
-            // ===== BADGES DE CONTROLES INTERNOS =====
+            // Badges de controles internos
             const controlesInternos = [];
             if (clase.auditorio) controlesInternos.push('🏛️ Auditorio');
             if (clase.cafeteria) controlesInternos.push('☕ Cafetería');
@@ -524,12 +715,12 @@ class ClasesPublicasManager {
                     ).join('')}
                 </div>` : '';
             
-            // ===== MATERIAL ENLACES =====
+            // Material enlaces
             const materialEnlaces = clase.materialEnlaces || [];
             const materialHTML = materialEnlaces.length > 0 ? 
                 `<div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.85em; align-items: center;">
                     <span style="color: var(--text-muted);">📎 Material:</span>
-                    ${materialEnlaces.map((enlace, idx) => {
+                    ${materialEnlaces.map((enlace) => {
                         const tipo = this.detectarTipoEnlace(enlace.url);
                         const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
                         const label = tipo === 'youtube' ? 'YouTube' : tipo === 'drive' ? 'Drive' : 'Enlace';
@@ -537,23 +728,19 @@ class ClasesPublicasManager {
                     }).join(' ')}
                 </div>` : '';
             
-            // ===== VERIFICAR SI LA CLASE ESTÁ ACTIVA O PUBLICADA PARA MOSTRAR BOTÓN DE MATERIAL =====
             const claseActiva = clase.activa === true || clase.publicada === true;
             
-            // ===== CONSTRUIR BOTONES DE ACCIÓN =====
             let accionesHTML = `
                 <button class="btn-small btn-edit" onclick="clasesPublicasManager.editarClase('${clase._id}')">✏️ Editar</button>
                 <button class="btn-small btn-danger" onclick="clasesPublicasManager.eliminarClase('${clase._id}')">🗑️ Eliminar</button>
             `;
             
-            // ✅ Botón "Cargar material" SOLO si la clase está activa o publicada
             if (claseActiva) {
                 accionesHTML += `
                     <button class="btn-small btn-material" onclick="clasesPublicasManager.abrirModalMaterial('${clase._id}')">📎 Cargar material</button>
                 `;
             }
             
-            // Botón de visibilidad
             if (clase.publicada) {
                 accionesHTML += `
                     <button class="btn-small btn-warning" onclick="clasesPublicasManager.cambiarVisibilidad('${clase._id}', false)">⏸️ Ocultar</button>
@@ -575,13 +762,13 @@ class ClasesPublicasManager {
                         <span>📅 Clase: ${fechaFormateada}</span>
                         <span>🔒 Cierre: ${cierreFormateado}</span>
                         ${clase.instructores?.length ? `<span>👥 ${this.escapeHtml(clase.instructores.join(', '))}</span>` : ''}
-                        ${clase.lugar ? `<span>📍 ${this.escapeHtml(clase.lugar)}</span>` : ''}
                     </div>
+                    ${modalidadInfo}
                     ${areaInfo}
                     ${badgeControles}
                     ${materialHTML}
                     <div class="clase-enlaces">
-                        ${clase.enlaceFormulario ? `<a href="${clase.enlaceFormulario}" target="_blank" class="material-link">📝 Formulario</a>` : '<span class="sin-enlaces">Sin formulario asociado</span>'}
+                        ${clase.enlaceFormulario ? `<a href="${clase.enlaceFormulario}" target="_blank" class="material-link">📝 Ir a la clase</a>` : '<span class="sin-enlaces">Sin enlace de redirección</span>'}
                     </div>
                     <div class="clase-acciones">
                         ${accionesHTML}
@@ -592,22 +779,13 @@ class ClasesPublicasManager {
     }
 
     // ============================================
-    // FUNCIONES PARA EL MANEJO DE MATERIAL
+    // MANEJO DE MATERIAL
     // ============================================
 
     detectarTipoEnlace(url) {
         if (!url) return 'link';
-        
-        // Detectar YouTube
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            return 'youtube';
-        }
-        
-        // Detectar Google Drive
-        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
-            return 'drive';
-        }
-        
+        if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) return 'drive';
         return 'link';
     }
 
@@ -620,7 +798,6 @@ class ClasesPublicasManager {
 
         this.claseMaterialId = claseId;
 
-        // Crear modal
         const modalHTML = `
             <div id="modalMaterial" class="modal-overlay" style="display: flex;">
                 <div class="modal-container" style="max-width: 750px;">
@@ -634,38 +811,25 @@ class ClasesPublicasManager {
                         <div style="margin-bottom: 20px; padding: 15px; background: var(--bg-card); border-radius: 8px;">
                             <p><strong>📅 Fecha:</strong> ${new Date(clase.fechaClase).toLocaleString('es-AR')}</p>
                             <p><strong>👥 Instructores:</strong> ${clase.instructores?.join(', ') || 'No especificados'}</p>
-                            <p><strong>📍 Lugar:</strong> ${clase.lugar || 'No especificado'}</p>
+                            <p><strong>🎓 Modalidad:</strong> ${clase.modalidad || 'No especificada'}</p>
                         </div>
                         
-                        <div id="materialLinksContainer">
-                            <!-- Los enlaces se cargarán dinámicamente -->
-                        </div>
+                        <div id="materialLinksContainer"></div>
                         
                         <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button onclick="clasesPublicasManager.agregarEnlaceMaterial()" class="btn btn-primary btn-small">
-                                ➕ Agregar enlace
-                            </button>
-                            <button onclick="clasesPublicasManager.guardarMaterial('${claseId}')" class="btn btn-success">
-                                💾 Guardar Material
-                            </button>
-                            <button onclick="clasesPublicasManager.cerrarModalMaterial()" class="btn btn-secondary">
-                                ❌ Cerrar
-                            </button>
+                            <button onclick="clasesPublicasManager.agregarEnlaceMaterial()" class="btn btn-primary btn-small">➕ Agregar enlace</button>
+                            <button onclick="clasesPublicasManager.guardarMaterial('${claseId}')" class="btn btn-success">💾 Guardar Material</button>
+                            <button onclick="clasesPublicasManager.cerrarModalMaterial()" class="btn btn-secondary">❌ Cerrar</button>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        // Eliminar modal existente si hay
         const existingModal = document.getElementById('modalMaterial');
-        if (existingModal) {
-            existingModal.remove();
-        }
+        if (existingModal) existingModal.remove();
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Cargar enlaces existentes
         this.cargarEnlacesMaterial(claseId);
     }
 
@@ -676,10 +840,7 @@ class ClasesPublicasManager {
         const clase = this.data.find(c => c._id === claseId);
         if (!clase) return;
 
-        // Si no tiene enlaces, crear un array vacío
-        if (!clase.materialEnlaces) {
-            clase.materialEnlaces = [];
-        }
+        if (!clase.materialEnlaces) clase.materialEnlaces = [];
 
         if (clase.materialEnlaces.length === 0) {
             container.innerHTML = `
@@ -691,7 +852,6 @@ class ClasesPublicasManager {
         }
 
         container.innerHTML = clase.materialEnlaces.map((enlace, index) => {
-            // Detectar tipo de enlace automáticamente
             const tipo = this.detectarTipoEnlace(enlace.url);
             const icono = tipo === 'youtube' ? '▶️' : tipo === 'drive' ? '📊' : '🔗';
             
@@ -717,11 +877,7 @@ class ClasesPublicasManager {
     agregarEnlaceMaterial() {
         const clase = this.data.find(c => c._id === this.claseMaterialId);
         if (!clase) return;
-
-        if (!clase.materialEnlaces) {
-            clase.materialEnlaces = [];
-        }
-
+        if (!clase.materialEnlaces) clase.materialEnlaces = [];
         clase.materialEnlaces.push({ url: '' });
         this.cargarEnlacesMaterial(this.claseMaterialId);
     }
@@ -729,10 +885,8 @@ class ClasesPublicasManager {
     actualizarEnlaceMaterial(index, url) {
         const clase = this.data.find(c => c._id === this.claseMaterialId);
         if (!clase || !clase.materialEnlaces) return;
-
         if (index >= 0 && index < clase.materialEnlaces.length) {
             clase.materialEnlaces[index].url = url;
-            // Actualizar el tipo mostrado
             this.cargarEnlacesMaterial(this.claseMaterialId);
         }
     }
@@ -740,7 +894,6 @@ class ClasesPublicasManager {
     eliminarEnlaceMaterial(index) {
         const clase = this.data.find(c => c._id === this.claseMaterialId);
         if (!clase || !clase.materialEnlaces) return;
-
         if (index >= 0 && index < clase.materialEnlaces.length) {
             clase.materialEnlaces.splice(index, 1);
             this.cargarEnlacesMaterial(this.claseMaterialId);
@@ -751,14 +904,12 @@ class ClasesPublicasManager {
         const clase = this.data.find(c => c._id === claseId);
         if (!clase) return;
 
-        // Validar enlaces
         const enlacesInvalidos = clase.materialEnlaces?.filter(e => e.url && !e.url.trim()) || [];
         if (enlacesInvalidos.length > 0) {
             this.mostrarMensajeModalMaterial('❌ Hay enlaces vacíos. Complete o elimine los enlaces vacíos.', 'error');
             return;
         }
 
-        // Filtrar enlaces vacíos
         const enlacesValidos = clase.materialEnlaces?.filter(e => e.url && e.url.trim()) || [];
 
         try {
@@ -768,12 +919,8 @@ class ClasesPublicasManager {
 
             if (response.success) {
                 this.mostrarMensajeModalMaterial('✅ Material guardado correctamente', 'success');
-                // Actualizar datos locales
                 clase.materialEnlaces = enlacesValidos;
-                
-                // Recargar la lista para mostrar los badges
                 await this.cargarDatos();
-                
                 setTimeout(() => this.cerrarModalMaterial(), 1500);
             } else {
                 throw new Error(response.message || 'Error al guardar material');
@@ -787,29 +934,19 @@ class ClasesPublicasManager {
     mostrarMensajeModalMaterial(texto, tipo) {
         const msg = document.getElementById('materialMessage');
         if (!msg) return;
-
         msg.textContent = texto;
         msg.className = `message ${tipo}`;
         msg.style.display = 'block';
-
         if (tipo === 'success') {
-            setTimeout(() => {
-                msg.style.display = 'none';
-            }, 2000);
+            setTimeout(() => { msg.style.display = 'none'; }, 2000);
         }
     }
 
     cerrarModalMaterial() {
         const modal = document.getElementById('modalMaterial');
-        if (modal) {
-            modal.remove();
-        }
+        if (modal) modal.remove();
         this.claseMaterialId = null;
     }
-
-    // ============================================
-    // UTILIDADES
-    // ============================================
 
     escapeHtml(text) {
         if (!text) return '';
@@ -819,7 +956,6 @@ class ClasesPublicasManager {
     }
 }
 
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     window.clasesPublicasManager = new ClasesPublicasManager();
 });

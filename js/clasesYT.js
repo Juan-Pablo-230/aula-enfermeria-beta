@@ -5,18 +5,31 @@
 console.log('🎥 clasesYT.js - Versión CORREGIDA (sin duplicados)');
 
 // ============================================
-// CONFIGURACIÓN - ¡ÚNICO LUGAR PARA CAMBIAR!
+// CONFIGURACIÓN - Lee desde localStorage si viene del panel
 // ============================================
-const CONFIG = {
-    // 🔴 CAMBIA SOLO ESTOS DOS VALORES para cada nueva clase
-    VIDEO_ID: 'HwbjmjyW8-8',      // ID del video de YouTube
-    CLASE_NOMBRE: 'Retransmisión: FÁRMACO EN HTA PULMONAR', // Nombre visible de la clase
-    
-    // ⚙️ Configuración técnica (no tocar)
-    DISPLAY_UPDATE_INTERVAL: 1000,
-    SAVE_INTERVAL: 30000,
-    UMBRAL_MINIMO: 1
-};
+const CONFIG = (() => {
+
+    // Intentar leer desde localStorage (por si viene desde el panel de clases públicas)
+    try {
+        const videoIdLS = localStorage.getItem('claseYT_videoId');
+        const nombreLS = localStorage.getItem('claseYT_nombre');
+        if (videoIdLS && videoIdLS.length === 11) {
+            defaults.VIDEO_ID = videoIdLS;
+            console.log('📥 videoId leído desde localStorage:', videoIdLS);
+        }
+        if (nombreLS) {
+            defaults.CLASE_NOMBRE = nombreLS;
+            console.log('📥 Nombre de clase leído desde localStorage:', nombreLS);
+        }
+        // Limpiar después de leer (opcional, para no reusarlo siempre)
+        // localStorage.removeItem('claseYT_videoId');
+        // localStorage.removeItem('claseYT_nombre');
+    } catch (e) {
+        console.warn('⚠️ No se pudo leer desde localStorage:', e);
+    }
+
+    return defaults;
+})();
 
 // ============================================
 // FUNCIONES DE UTILIDAD (deben estar antes de ser usadas)

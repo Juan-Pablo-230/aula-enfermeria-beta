@@ -70,18 +70,60 @@
                     <label>Descripción</label>
                     <textarea id="claseDescripcion" rows="2" class="form-control" placeholder="Breve descripción de la clase..."></textarea>
                 </div>
+
+                <!-- ===== MODALIDAD ===== -->
+                <div class="form-group">
+                    <label>🎓 Modalidad <span class="required">*</span></label>
+                    <select id="claseModalidad" required class="form-control">
+                        <option value="">Seleccione modalidad...</option>
+                        <option value="Presencial">🏛️ Presencial</option>
+                        <option value="Virtual">💻 Virtual</option>
+                        <option value="Híbrido">🔄 Híbrido</option>
+                    </select>
+                    <small class="field-info">Seleccione cómo se dictará la clase</small>
+                </div>
+
+                <!-- ===== CAMPOS CONDICIONALES SEGÚN MODALIDAD ===== -->
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lugar / Modalidad</label>
-                        <input type="text" id="claseLugar" class="form-control" placeholder="Ej: Aula 101 / Virtual / Híbrida">
+                <!-- Presencial / Híbrido: Ubicación -->
+                <div class="form-group modalidad-campo" id="campoUbicacion" style="display: none;">
+                    <label>📍 Ubicación <span class="required">*</span></label>
+                    <input type="text" id="claseUbicacion" class="form-control" placeholder="Ej: Aula 101, Sede Central, Piso 2">
+                    <small class="field-info">Dirección o ubicación física donde se dictará la clase</small>
+                </div>
+
+                <!-- Virtual / Híbrido: Plataforma -->
+                <div class="form-group modalidad-campo" id="campoPlataforma" style="display: none;">
+                    <label>💻 Plataforma de reunión <span class="required">*</span></label>
+                    <select id="clasePlataforma" class="form-control">
+                        <option value="">Seleccione plataforma...</option>
+                        <option value="Reunión virtual">🎥 Reunión virtual (Zoom, Meet, Teams, etc.)</option>
+                        <option value="YouTube">📺 YouTube (Transmisión o video)</option>
+                    </select>
+                    <small class="field-info">Seleccione cómo se transmitirá la clase</small>
+                </div>
+
+                <!-- Reunión virtual: Enlace de llamada -->
+                <div class="form-group modalidad-campo" id="campoEnlaceVirtual" style="display: none;">
+                    <label>🔗 Enlace de la reunión <span class="required">*</span></label>
+                    <input type="url" id="claseEnlaceVirtual" class="form-control" placeholder="https://meet.google.com/... o https://zoom.us/j/...">
+                    <small class="field-info">Enlace para unirse a la reunión virtual (a este enlace se redirigirá al usuario)</small>
+                </div>
+
+                <!-- YouTube: URL del video -->
+                <div class="form-group modalidad-campo" id="campoEnlaceYouTube" style="display: none;">
+                    <label>📺 URL de la transmisión o video de YouTube <span class="required">*</span></label>
+                    <input type="url" id="claseEnlaceYouTube" class="form-control" placeholder="https://www.youtube.com/watch?v=XXXXXX o https://youtu.be/XXXXXX">
+                    <small class="field-info">Se extraerá automáticamente el ID del video y se redirige a clasesYT.html</small>
+                </div>
+
+                                <!-- ===== INFO DE REDIRECCIÓN (SOLO LECTURA) ===== -->
+                <div class="form-group" id="infoRedireccion" style="display: none;">
+                    <label>🔗 Redirección automática (post-inscripción)</label>
+                    <div id="infoRedireccionTexto" style="padding: 10px 14px; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.9em; color: var(--text-secondary);">
+                        <!-- Se completa dinámicamente -->
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Enlace de redirección (post-inscripción)</label>
-                        <input type="url" id="claseEnlaceFormulario" class="form-control" placeholder="https://teams.microsoft.com/... o /asistenciapres.html">
-                        <small class="field-info">URL donde se redirige al usuario después de inscribirse</small>
-                    </div>
+                    <small class="field-info">El sistema redirige automáticamente según la modalidad elegida</small>
                 </div>
                 
                 <!-- Selector de Área de trabajo -->

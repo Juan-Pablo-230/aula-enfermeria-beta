@@ -476,6 +476,67 @@ textarea.form-control {
     border-color: var(--accent-color);
 }
 
+/* ============================================ */
+/* ===== CAMPOS CONDICIONALES POR MODALIDAD ===== */
+/* ============================================ */
+
+.modalidad-campo {
+    animation: fadeInCampo 0.3s ease;
+}
+
+@keyframes fadeInCampo {
+    from {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Info de redirección */
+#infoRedireccionTexto {
+    line-height: 1.5;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+#infoRedireccionTexto code {
+    background: var(--bg-container);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 0.0625rem solid var(--border-color);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    color: var(--accent-color);
+    word-break: break-all;
+}
+
+#infoRedireccionTexto strong {
+    color: var(--text-primary);
+}
+
+#infoRedireccionTexto small {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Inputs de fecha y URL más compactos */
+#claseForm input[type="datetime-local"],
+#claseForm input[type="url"] {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
 @keyframes slideDown {
     from {
         opacity: 0;
@@ -533,6 +594,10 @@ textarea.form-control {
     
     .visibilidad-opcion {
         min-width: auto;
+    }
+
+    .modalidad-campo {
+        width: 100%;
     }
 }
 

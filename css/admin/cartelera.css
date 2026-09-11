@@ -1,110 +1,221 @@
-/* ===== ESTILOS ESPECÍFICOS PARA CARTELERA ===== */
+/* ============================================ */
+/* ===== VARIABLES LOCALES DE RESPALDO ===== */
+/* ============================================ */
+:root {
+    --cart-bg-card: var(--bg-card, #f1f3f4);
+    --cart-bg-container: var(--bg-container, #ffffff);
+    --cart-text-primary: var(--text-primary, #202124);
+    --cart-text-secondary: var(--text-secondary, #5f6368);
+    --cart-text-muted: var(--text-muted, #80868b);
+    --cart-border-color: var(--border-color, #dadce0);
+    --cart-accent: var(--accent-color, #4285f4);
+    --cart-accent-hover: var(--accent-hover, #1a73e8);
+    --cart-error: var(--error-500, #ea4335);
+    --cart-success: var(--success-500, #34a853);
+    --cart-warning: var(--warning-500, #f9ab00);
+    --cart-radius-lg: var(--border-radius-lg, 0.75rem);
+    --cart-radius-md: var(--border-radius-md, 0.5rem);
+    --cart-radius-sm: var(--border-radius-sm, 0.25rem);
+    --cart-shadow-sm: var(--shadow-sm, 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1));
+    --cart-shadow-md: var(--shadow-md, 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1));
+}
+
+/* ============================================ */
+/* ===== RESET Y CONTENEDOR ===== */
+/* ============================================ */
+
+.section-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+/* ============================================ */
+/* ===== HEADER DE CARTELERA ===== */
+/* ============================================ */
 
 .cartelera-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5625rem;
+    margin-bottom: 1.5rem;
     padding: 1.25rem;
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    border: 0.0625rem solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    background: var(--cart-bg-card);
+    border-radius: var(--cart-radius-lg);
+    border: 0.0625rem solid var(--cart-border-color);
+    box-shadow: var(--cart-shadow-sm);
+    gap: 1rem;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .cartelera-header h2 {
     margin: 0;
-    color: var(--text-primary);
+    color: var(--cart-text-primary);
     font-size: 1.5em;
     font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
 }
+
+/* ============================================ */
+/* ===== CONTENEDOR DE AVISOS ===== */
+/* ============================================ */
 
 .avisos-container {
     max-height: 70vh;
     overflow-y: auto;
-    padding: 0.3125rem;
+    overflow-x: hidden;
+    padding: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
+/* ============================================ */
+/* ===== TARJETA DE AVISO (SIN DESBORDE) ===== */
+/* ============================================ */
+
 .aviso-card {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
+    position: relative;
+    background: var(--cart-bg-card);
+    border-radius: var(--cart-radius-lg);
     padding: 1.25rem;
-    margin-bottom: 0.9375rem;
+    margin-bottom: 1rem;
     border-left: 0.3125rem solid;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
-    position: relative;
-    overflow: hidden;
+    box-shadow: var(--cart-shadow-sm);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    /* ✅ NO overflow: hidden - permite que las fechas se vean */
+    overflow: visible;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
 }
 
-.aviso-card::before {
+/* ✅ Hijos del aviso-card con min-width: 0 para que flexbox calcule bien */
+.aviso-card > * {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* ✅ Animación de brillo con pseudo-elemento separado */
+.aviso-card::after {
     content: '';
     position: absolute;
     top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: var(--cart-radius-lg);
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-    transition: left 0.6s ease;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.aviso-card:hover::before {
-    left: 100%;
+.aviso-card:hover::after {
+    opacity: 1;
 }
 
 .aviso-card:hover {
-    transform: translateX(0.3125rem);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--cart-shadow-md);
 }
 
 .aviso-card.warning {
     border-left-color: #f9ab00;
-    background: linear-gradient(90deg, rgba(249, 171, 0, 0.05), var(--bg-card));
+    background: linear-gradient(90deg, rgba(249, 171, 0, 0.05), var(--cart-bg-card));
 }
 
 .aviso-card.urgent {
     border-left-color: #ea4335;
-    background: linear-gradient(90deg, rgba(234, 67, 53, 0.05), var(--bg-card));
+    background: linear-gradient(90deg, rgba(234, 67, 53, 0.05), var(--cart-bg-card));
 }
 
 .aviso-card.info {
     border-left-color: #4285f4;
-    background: linear-gradient(90deg, rgba(66, 133, 244, 0.05), var(--bg-card));
+    background: linear-gradient(90deg, rgba(66, 133, 244, 0.05), var(--cart-bg-card));
 }
 
 .aviso-card.inactive {
     opacity: 0.6;
-    border-left-color: var(--text-muted);
+    border-left-color: var(--cart-text-muted);
 }
+
+/* ============================================ */
+/* ===== HEADER DEL AVISO (TÍTULO + BADGES) ===== */
+/* ============================================ */
 
 .aviso-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
-    gap: 0.625rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .aviso-titulo {
     font-size: 1.15em;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--cart-text-primary);
     display: flex;
     align-items: center;
-    gap: 0.625rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
+    flex: 1 1 100%;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
+/* ============================================ */
+/* ===== FECHAS SIN DESBORDE ===== */
+/* ============================================ */
+
 .aviso-fechas {
-    font-size: 0.8em;
-    color: var(--text-muted);
     display: flex;
-    gap: 0.9375rem;
-    align-items: center;
+    flex-direction: row;
     flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font-size: 0.8em;
+    color: var(--cart-text-muted);
+    margin: 0.25rem 0 0.75rem 0;
+    padding: 0;
+    overflow: visible;
 }
+
+.aviso-fechas > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* ============================================ */
+/* ===== BADGES ===== */
+/* ============================================ */
 
 .aviso-estado {
     display: inline-block;
@@ -113,6 +224,8 @@
     font-size: 0.7em;
     font-weight: 600;
     white-space: nowrap;
+    flex-shrink: 0;
+    align-self: flex-start;
 }
 
 .aviso-estado.activo {
@@ -123,17 +236,20 @@
 
 .aviso-estado.inactivo {
     background: rgba(128, 128, 128, 0.1);
-    color: var(--text-muted);
-    border: 0.0625rem solid var(--border-color);
+    color: var(--cart-text-muted);
+    border: 0.0625rem solid var(--cart-border-color);
 }
 
 .aviso-mensaje {
-    color: var(--text-secondary);
+    color: var(--cart-text-secondary);
     margin: 0.75rem 0;
     line-height: 1.6;
     font-size: 0.95em;
     white-space: pre-wrap;
     word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .aviso-prioridad {
@@ -143,6 +259,7 @@
     font-size: 0.7em;
     font-weight: 600;
     margin-left: 0.5rem;
+    white-space: nowrap;
 }
 
 .prioridad-alta {
@@ -169,44 +286,449 @@
     justify-content: flex-end;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 0.0625rem solid var(--border-color);
+    border-top: 0.0625rem solid var(--cart-border-color);
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-#avisoModal .modal-container {
+/* ============================================ */
+/* ===== MODAL ===== */
+/* ============================================ */
+
+#avisoModal .modal-container,
+.modal-overlay .modal-container {
     max-width: 34.375rem;
+    width: 95%;
+    box-sizing: border-box;
 }
 
 #avisoModal .modal-form .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-md);
+    gap: 1rem;
 }
 
 #avisoModal textarea {
     resize: vertical;
     min-height: 5rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 0.125rem solid var(--cart-border-color);
+    border-radius: var(--cart-radius-md);
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--cart-bg-container);
+    color: var(--cart-text-primary);
+    box-sizing: border-box;
 }
+
+#avisoModal textarea:focus {
+    outline: none;
+    border-color: var(--cart-accent);
+    box-shadow: 0 0 0 0.1875rem rgba(66, 133, 244, 0.1);
+}
+
+#avisoModal input,
+#avisoModal select,
+.modal-overlay input,
+.modal-overlay select {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 0.125rem solid var(--cart-border-color);
+    border-radius: var(--cart-radius-md);
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--cart-bg-container);
+    color: var(--cart-text-primary);
+    box-sizing: border-box;
+}
+
+#avisoModal input:focus,
+#avisoModal select:focus,
+.modal-overlay input:focus,
+.modal-overlay select:focus {
+    outline: none;
+    border-color: var(--cart-accent);
+    box-shadow: 0 0 0 0.1875rem rgba(66, 133, 244, 0.1);
+}
+
+#avisoModal label,
+.modal-overlay label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: var(--cart-text-primary);
+    font-size: 0.875rem;
+}
+
+#avisoModal .form-group,
+.modal-overlay .form-group {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+#avisoModal .form-actions,
+.modal-overlay .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* ============================================ */
+/* ===== INPUTS DE FECHA MÁS CHICOS ===== */
+/* ============================================ */
+
+/* Los inputs de fecha ocupan menos espacio */
+#avisoModal input[type="datetime-local"],
+.modal-overlay input[type="datetime-local"] {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.85rem;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+/* El form-row con las dos fechas: cada una ocupa 50% */
+#avisoModal .form-row,
+.modal-overlay .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#avisoModal .form-row .form-group,
+.modal-overlay .form-row .form-group {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ============================================ */
+/* ===== BOTONES (SELECTORES MÚLTIPLES) ===== */
+/* ============================================ */
+
+/* ===== BOTÓN PRIMARIO / SUCCESS / GUARDAR ===== */
+.btn-primary,
+.btn-success,
+.cartelera-btn-primary,
+#avisoModal .btn-primary,
+#avisoModal .btn-success,
+#avisoModal button[type="submit"],
+.modal-overlay button[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #34a853 0%, #0f9d58 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 0.125rem 0.5rem rgba(52, 168, 83, 0.3);
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-height: 2.75rem;
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.cartelera-btn-primary:hover,
+#avisoModal .btn-primary:hover,
+#avisoModal .btn-success:hover,
+#avisoModal button[type="submit"]:hover,
+.modal-overlay button[type="submit"]:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.75rem rgba(52, 168, 83, 0.4);
+    background: linear-gradient(135deg, #2e8b47 0%, #0a7d45 100%);
+}
+
+.btn-primary:active,
+.btn-success:active,
+#avisoModal button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled,
+.btn-success:disabled,
+#avisoModal button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ===== BOTÓN SECUNDARIO / CANCELAR ===== */
+.btn-secondary,
+.btn-cancel,
+.cartelera-btn-secondary,
+#avisoModal .btn-secondary,
+#avisoModal .btn-cancel,
+#avisoModal button[type="button"]:not([class*="btn-edit"]):not([class*="btn-danger"]):not([class*="btn-info"]),
+.modal-overlay button[type="button"]:not([class*="btn-edit"]):not([class*="btn-danger"]):not([class*="btn-info"]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #6c757d;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 0.125rem 0.5rem rgba(108, 117, 125, 0.3);
+    box-sizing: border-box;
+    min-height: 2.75rem;
+}
+
+.btn-secondary:hover,
+.btn-cancel:hover,
+.cartelera-btn-secondary:hover,
+#avisoModal .btn-secondary:hover,
+#avisoModal .btn-cancel:hover,
+#avisoModal button[type="button"]:hover,
+.modal-overlay button[type="button"]:hover {
+    background: #5a6268;
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.75rem rgba(108, 117, 125, 0.4);
+}
+
+/* ===== BOTÓN DANGER / ELIMINAR ===== */
+.btn-danger,
+.cartelera-btn-danger,
+#avisoModal .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ea4335 0%, #c82333 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 0.125rem 0.5rem rgba(234, 67, 53, 0.3);
+    box-sizing: border-box;
+}
+
+.btn-danger:hover,
+.cartelera-btn-danger:hover,
+#avisoModal .btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.75rem rgba(234, 67, 53, 0.4);
+}
+
+/* ===== BOTÓN WARNING ===== */
+.btn-warning,
+.cartelera-btn-warning,
+#avisoModal .btn-warning {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 0.125rem 0.5rem rgba(255, 193, 7, 0.3);
+    box-sizing: border-box;
+}
+
+.btn-warning:hover,
+.cartelera-btn-warning:hover,
+#avisoModal .btn-warning:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.75rem rgba(255, 193, 7, 0.4);
+}
+
+/* ============================================ */
+/* ===== BOTONES PEQUEÑOS (ACCIONES DE AVISO) ===== */
+/* ============================================ */
+
+/* Botón Editar (azul) */
+.btn-edit,
+.aviso-acciones .btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 0.0625rem 0.25rem rgba(66, 133, 244, 0.3);
+    box-sizing: border-box;
+}
+
+.btn-edit:hover,
+.aviso-acciones .btn-edit:hover {
+    background: linear-gradient(135deg, #1a73e8 0%, #1967d2 100%);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.5rem rgba(66, 133, 244, 0.4);
+}
+
+/* Botón Eliminar (rojo) */
+.aviso-acciones .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, #ea4335 0%, #c82333 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 0.0625rem 0.25rem rgba(234, 67, 53, 0.3);
+    box-sizing: border-box;
+}
+
+.aviso-acciones .btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.5rem rgba(234, 67, 53, 0.4);
+}
+
+/* Botón Info */
+.btn-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 0.0625rem 0.25rem rgba(23, 162, 184, 0.3);
+    box-sizing: border-box;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.25rem 0.5rem rgba(23, 162, 184, 0.4);
+}
+
+/* ============================================ */
+/* ===== BOTÓN CERRAR MODAL ===== */
+/* ============================================ */
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--cart-text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+    line-height: 1;
+    border-radius: 0.25rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+}
+
+.close-modal:hover {
+    color: #ea4335;
+    background: rgba(234, 67, 53, 0.1);
+    transform: rotate(90deg);
+}
+
+/* ============================================ */
+/* ===== MENSAJES DE ESTADO ===== */
+/* ============================================ */
 
 .loading-message,
 .empty-message,
 .error-message {
     text-align: center;
     padding: 3.75rem 2.5rem;
-    color: var(--text-muted);
+    color: var(--cart-text-muted);
     font-size: 1.1em;
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg);
-    border: 0.125rem dashed var(--border-color);
+    background: var(--cart-bg-card);
+    border-radius: var(--cart-radius-lg);
+    border: 0.125rem dashed var(--cart-border-color);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.9375rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .error-message {
-    color: var(--error-500);
-    border-color: var(--error-500);
+    color: #ea4335;
+    border-color: #ea4335;
     background: rgba(234, 67, 53, 0.05);
 }
 
@@ -215,45 +737,135 @@
     font-size: 3em;
 }
 
+/* Spinner */
+.spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 0.1875rem solid var(--cart-border-color);
+    border-top-color: var(--cart-accent);
+    border-right-color: var(--cart-accent);
+    border-radius: 50%;
+    animation: cartSpin 0.8s linear infinite;
+}
+
+@keyframes cartSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================ */
+/* ===== RESPONSIVE ===== */
+/* ============================================ */
+
 @media (max-width: 768px) {
     .cartelera-header {
         flex-direction: column;
-        gap: 0.9375rem;
+        align-items: stretch;
         text-align: center;
+        padding: 1rem;
     }
     
+    .cartelera-header h2 {
+        text-align: center;
+        font-size: 1.25em;
+    }
+    
+    .cartelera-header .btn,
+    .cartelera-header button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* FECHAS: Apiladas verticalmente en móvil */
     .aviso-header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
+    .aviso-titulo {
+        width: 100%;
+        font-size: 1em;
+    }
+    
+    .aviso-estado {
+        align-self: flex-start;
     }
     
     .aviso-fechas {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.3125rem;
+        gap: 0.25rem;
+        width: 100%;
+        font-size: 0.75em;
+    }
+    
+    .aviso-fechas > span {
+        white-space: normal;
+        word-break: break-word;
+        overflow: visible;
+        text-overflow: clip;
+        width: 100%;
+        max-width: 100%;
     }
     
     .aviso-acciones {
         flex-direction: column;
     }
     
-    .aviso-acciones button {
+    .aviso-acciones button,
+    .aviso-acciones .btn-edit,
+    .aviso-acciones .btn-danger {
         width: 100%;
+        justify-content: center;
     }
     
-    #avisoModal .modal-form .form-row {
+    /* Fechas del modal: apiladas en móvil */
+    #avisoModal .form-row,
+    .modal-overlay .form-row {
         grid-template-columns: 1fr;
+    }
+    
+    #avisoModal .form-actions,
+    .modal-overlay .form-actions {
+        flex-direction: column;
+    }
+    
+    #avisoModal .btn-primary,
+    #avisoModal .btn-secondary,
+    #avisoModal button,
+    .modal-overlay button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .aviso-card {
+        padding: 1rem;
     }
 }
 
 @media (max-width: 480px) {
     .aviso-titulo {
-        font-size: 1em;
-        flex-direction: column;
-        align-items: flex-start;
+        font-size: 0.95em;
     }
     
     .aviso-mensaje {
         font-size: 0.9em;
+    }
+    
+    .aviso-fechas {
+        font-size: 0.7em;
+    }
+    
+    .aviso-card {
+        padding: 0.875rem;
+    }
+    
+    .cartelera-header {
+        padding: 0.875rem;
+    }
+    
+    .cartelera-header h2 {
+        font-size: 1.1em;
     }
 }
