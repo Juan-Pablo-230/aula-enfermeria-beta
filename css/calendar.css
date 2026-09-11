@@ -1,31 +1,31 @@
 /* ===== calendar.css ===== */
 .calendar-container {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 20px;
+    padding: 1.25rem;
     animation: fadeIn 0.5s ease;
 }
 
 /* Header del calendario */
 .calendar-header {
     text-align: center;
-    margin-bottom: 30px;
-    padding: 30px 25px;
+    margin-bottom: 1.875rem;
+    padding: 1.875rem 1.5625rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border-radius: 15px;
+    border-radius: 0.9375rem;
     box-shadow: var(--shadow-lg);
 }
 
 .calendar-header h1 {
-    margin: 0 0 10px 0;
+    margin: 0 0 0.625rem 0;
     font-size: 2.5em;
     font-weight: 800;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0.125rem 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
 }
 
 .calendar-header p {
-    margin: 0 0 20px 0;
+    margin: 0 0 1.25rem 0;
     font-size: 1.1em;
     opacity: 0.95;
 }
@@ -34,34 +34,34 @@
     display: inline-block;
     background: rgba(255, 255, 255, 0.2);
     color: white;
-    padding: 12px 25px;
-    border-radius: 40px;
+    padding: 0.75rem 1.5625rem;
+    border-radius: 2.5rem;
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(5px);
+    border: 0.0625rem solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(0.3125rem);
 }
 
 #btnVolverCalendar:hover {
     background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.3125rem 0.9375rem rgba(0, 0, 0, 0.2);
 }
 
 /* Filtros rápidos */
 .calendar-filtros {
     display: flex;
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 30px;
+    gap: 0.9375rem;
+    margin-bottom: 1.875rem;
     flex-wrap: wrap;
 }
 
 .filtro-btn {
-    padding: 10px 20px;
-    border: 2px solid var(--border-color);
-    border-radius: 30px;
+    padding: 0.625rem 1.25rem;
+    border: 0.125rem solid var(--border-color);
+    border-radius: 1.875rem;
     background: var(--bg-card);
     color: var(--text-secondary);
     font-weight: 600;
@@ -73,7 +73,7 @@
 .filtro-btn:hover {
     border-color: var(--accent-color);
     color: var(--accent-color);
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
 }
 
 .filtro-btn.active {
@@ -85,26 +85,26 @@
 /* Tarjeta de la próxima clase (AMARILLO DESTACADO) */
 .proxima-clase-card {
     background: linear-gradient(135deg, #fff9e6 0%, #fff2cc 100%);
-    border: 4px solid #ffd966;
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 40px;
-    box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4);
+    border: 0.25rem solid #ffd966;
+    border-radius: 1.25rem;
+    padding: 1.5625rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 0.9375rem 1.875rem rgba(255, 215, 0, 0.4);
     animation: glowPulse 2s infinite ease-in-out;
 }
 
 @keyframes glowPulse {
-    0% { box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
-    50% { box-shadow: 0 15px 40px rgba(255, 215, 0, 0.7); }
-    100% { box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); }
+    0% { box-shadow: 0 0.3125rem 1.25rem rgba(255, 215, 0, 0.3); }
+    50% { box-shadow: 0 0.9375rem 2.5rem rgba(255, 215, 0, 0.7); }
+    100% { box-shadow: 0 0.3125rem 1.25rem rgba(255, 215, 0, 0.3); }
 }
 
 .proxima-clase-header {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: 0.9375rem;
+    margin-bottom: 1.25rem;
 }
 
 .proxima-clase-header h2 {
@@ -112,7 +112,7 @@
     margin: 0;
     font-size: 1.8em;
     font-weight: 800;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    text-shadow: 0.0625rem 0.0625rem 0.125rem rgba(0,0,0,0.1);
 }
 
 .proxima-icon {
@@ -132,14 +132,14 @@
 .proxima-clase-info h3 {
     color: #7f6000;
     font-size: 1.6em;
-    margin: 0 0 15px 0;
+    margin: 0 0 0.9375rem 0;
     font-weight: 700;
 }
 
 .proxima-clase-info p {
     color: #5e3a00;
     font-size: 1.1em;
-    margin: 8px 0;
+    margin: 0.5rem 0;
     line-height: 1.5;
 }
 
@@ -150,21 +150,21 @@
 /* Grid de clases */
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 25px;
-    margin-top: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(21.875rem, 1fr));
+    gap: 1.5625rem;
+    margin-top: 1.25rem;
 }
 
 /* Tarjeta de clase */
 .calendar-card {
     background: var(--bg-card);
-    border-radius: 15px;
-    padding: 20px;
+    border-radius: 0.9375rem;
+    padding: 1.25rem;
     box-shadow: var(--shadow-md);
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--border-color);
+    border: 0.0625rem solid var(--border-color);
     position: relative;
     overflow: hidden;
 }
@@ -175,12 +175,12 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 4px;
+    height: 0.25rem;
     background: linear-gradient(90deg, var(--accent-color), transparent);
 }
 
 .calendar-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-0.3125rem);
     box-shadow: var(--shadow-lg);
 }
 
@@ -194,21 +194,21 @@
 }
 
 .calendar-card.proxima {
-    border: 2px solid #ffd966;
+    border: 0.125rem solid #ffd966;
     background: rgba(255, 215, 0, 0.05);
 }
 
 .calendar-card.proxima::before {
     background: linear-gradient(90deg, #ffd966, #ffb347);
-    height: 6px;
+    height: 0.375rem;
 }
 
 /* Tipos de clase */
 .calendar-card.publica::after {
     content: '🔴';
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 0.625rem;
+    right: 0.625rem;
     font-size: 0.8em;
     opacity: 0.5;
 }
@@ -216,8 +216,8 @@
 .calendar-card.historica::after {
     content: '📼';
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 0.625rem;
+    right: 0.625rem;
     font-size: 0.8em;
     opacity: 0.5;
 }
@@ -227,8 +227,8 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 15px;
-    gap: 10px;
+    margin-bottom: 0.9375rem;
+    gap: 0.625rem;
 }
 
 .calendar-card-header h3 {
@@ -243,8 +243,8 @@
 /* Badge de tipo */
 .clase-tipo-badge {
     font-size: 0.7em;
-    padding: 4px 10px;
-    border-radius: 20px;
+    padding: 0.25rem 0.625rem;
+    border-radius: 1.25rem;
     font-weight: 700;
     white-space: nowrap;
     letter-spacing: 0.5px;
@@ -253,20 +253,20 @@
 .clase-tipo-badge.publica {
     background: rgba(52, 168, 83, 0.15);
     color: var(--success-500);
-    border: 1px solid rgba(52, 168, 83, 0.3);
+    border: 0.0625rem solid rgba(52, 168, 83, 0.3);
 }
 
 .clase-tipo-badge.historica {
     background: rgba(66, 133, 244, 0.15);
     color: var(--accent-color);
-    border: 1px solid rgba(66, 133, 244, 0.3);
+    border: 0.0625rem solid rgba(66, 133, 244, 0.3);
 }
 
 /* Contenido de la tarjeta */
 .clase-instructores {
     color: var(--text-secondary);
     font-size: 0.9em;
-    margin: 5px 0;
+    margin: 0.3125rem 0;
     font-style: italic;
     white-space: nowrap;
     overflow: hidden;
@@ -274,43 +274,43 @@
 }
 
 .clase-detalles {
-    margin: 10px 0;
+    margin: 0.625rem 0;
 }
 
 .clase-fecha, .clase-lugar {
     color: var(--text-secondary);
     font-size: 0.9em;
-    margin: 3px 0;
+    margin: 0.1875rem 0;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 0.3125rem;
 }
 
 .clase-descripcion {
     color: var(--text-primary);
     font-size: 0.9em;
-    margin: 10px 0;
+    margin: 0.625rem 0;
     line-height: 1.5;
-    padding: 10px;
+    padding: 0.625rem;
     background: var(--bg-container);
-    border-radius: 8px;
-    border-left: 3px solid var(--accent-color);
+    border-radius: 0.5rem;
+    border-left: 0.1875rem solid var(--accent-color);
 }
 
 /* Enlaces de material */
 .clase-material {
     display: flex;
-    gap: 8px;
-    margin: 15px 0 10px;
+    gap: 0.5rem;
+    margin: 0.9375rem 0 0.625rem;
     flex-wrap: wrap;
 }
 
 .material-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    gap: 0.3125rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
     text-decoration: none;
     font-size: 0.85em;
     font-weight: 600;
@@ -324,8 +324,8 @@
 
 .material-link.youtube:hover {
     background: #cc0000;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.3125rem 0.9375rem rgba(255, 0, 0, 0.3);
 }
 
 .material-link.powerpoint {
@@ -335,16 +335,16 @@
 
 .material-link.powerpoint:hover {
     background: #b33e1f;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(210, 71, 38, 0.3);
+    transform: translateY(-0.125rem);
+    box-shadow: 0 0.3125rem 0.9375rem rgba(210, 71, 38, 0.3);
 }
 
 /* Badge de estado */
 .clase-estado-badge {
     align-self: flex-end;
-    margin-top: 10px;
-    padding: 6px 15px;
-    border-radius: 20px;
+    margin-top: 0.625rem;
+    padding: 0.375rem 0.9375rem;
+    border-radius: 1.25rem;
     font-size: 0.8em;
     font-weight: 700;
     text-transform: uppercase;
@@ -354,19 +354,19 @@
 .clase-estado-badge.pasada {
     background: var(--bg-container);
     color: var(--text-muted);
-    border: 1px solid var(--border-color);
+    border: 0.0625rem solid var(--border-color);
 }
 
 .clase-estado-badge.futura {
     background: rgba(66, 133, 244, 0.1);
     color: var(--accent-color);
-    border: 1px solid rgba(66, 133, 244, 0.3);
+    border: 0.0625rem solid rgba(66, 133, 244, 0.3);
 }
 
 .clase-estado-badge.proxima {
     background: #ffd966;
     color: #7f6000;
-    border: 2px solid #b45f06;
+    border: 0.125rem solid #b45f06;
     font-weight: 800;
     animation: pulseBadge 1s infinite;
 }
@@ -382,12 +382,12 @@
 .error-message {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 60px;
+    padding: 3.75rem;
     background: var(--bg-card);
-    border-radius: 15px;
+    border-radius: 0.9375rem;
     color: var(--text-muted);
     font-size: 1.1em;
-    border: 2px dashed var(--border-color);
+    border: 0.125rem dashed var(--border-color);
 }
 
 .error-message {
@@ -427,7 +427,7 @@
     .calendar-filtros {
         flex-direction: column;
         align-items: stretch;
-        padding: 0 10px;
+        padding: 0 0.625rem;
     }
 
     .filtro-btn {
@@ -461,17 +461,17 @@
 
 /* Scrollbar personalizada */
 .calendar-grid::-webkit-scrollbar {
-    width: 8px;
+    width: 0.5rem;
 }
 
 .calendar-grid::-webkit-scrollbar-track {
     background: var(--bg-secondary);
-    border-radius: 4px;
+    border-radius: 0.25rem;
 }
 
 .calendar-grid::-webkit-scrollbar-thumb {
     background: var(--accent-color);
-    border-radius: 4px;
+    border-radius: 0.25rem;
 }
 
 .calendar-grid::-webkit-scrollbar-thumb:hover {
@@ -483,24 +483,24 @@
 .proxima-badge {
     background: #ffd966;
     color: #7f6000;
-    padding: 4px 12px;
-    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1.25rem;
     font-size: 0.8em;
     font-weight: 800;
-    border: 2px solid #b45f06;
+    border: 0.125rem solid #b45f06;
     animation: pulse 1.5s infinite;
 }
 
 .clase-fecha-relativa {
-    margin-top: 15px;
-    padding: 8px 12px;
+    margin-top: 0.9375rem;
+    padding: 0.5rem 0.75rem;
     background: rgba(66, 133, 244, 0.1);
-    border-radius: 8px;
+    border-radius: 0.5rem;
     color: var(--accent-color);
     font-size: 0.9em;
     font-weight: 600;
     text-align: center;
-    border: 1px solid rgba(66, 133, 244, 0.3);
+    border: 0.0625rem solid rgba(66, 133, 244, 0.3);
 }
 
 .calendar-card.proxima .clase-fecha-relativa {
@@ -511,7 +511,7 @@
 }
 
 .proxima-enlace {
-    margin-top: 15px;
+    margin-top: 0.9375rem;
     text-align: center;
 }
 
@@ -519,15 +519,15 @@
     display: inline-block;
     background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
     color: white;
-    padding: 12px 25px;
-    border-radius: 8px;
+    padding: 0.75rem 1.5625rem;
+    border-radius: 0.5rem;
     text-decoration: none;
     font-weight: bold;
     transition: all 0.3s ease;
 }
 
 .proxima-enlace .btn-unirse:hover {
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
     box-shadow: var(--shadow-md);
 }
 
@@ -535,8 +535,8 @@
     display: inline-block;
     background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
     color: white;
-    padding: 8px 15px;
-    border-radius: 6px;
+    padding: 0.5rem 0.9375rem;
+    border-radius: 0.375rem;
     text-decoration: none;
     font-size: 0.9em;
     font-weight: 600;
@@ -544,11 +544,11 @@
 }
 
 .btn-unirse-small:hover {
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
     box-shadow: var(--shadow-sm);
 }
 
 /* Eliminar estilos que ya no usamos */
 .calendar-filtros {
-    display: none; /* Ocultamos los filtros ya que no los necesitamos */
+    display: none;
 }

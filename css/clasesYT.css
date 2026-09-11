@@ -4,9 +4,9 @@
 
 /* ===== CONTENEDOR PRINCIPAL ===== */
 .clase-container {
-    max-width: 1400px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 20px;
+    padding: 1.25rem;
     animation: fadeIn 0.5s ease;
 }
 
@@ -14,15 +14,15 @@
 .clase-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px 25px;
-    border-radius: 15px;
-    margin-bottom: 30px;
+    padding: 1.25rem 1.5625rem;
+    border-radius: 0.9375rem;
+    margin-bottom: 1.875rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    gap: 1.25rem;
+    box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.2);
 }
 
 .clase-titulo {
@@ -30,27 +30,27 @@
     font-size: 1.8em;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .header-info {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 1.25rem;
     flex-wrap: wrap;
 }
 
 /* ===== BADGE DE TIEMPO ===== */
 .tiempo-badge {
     background: rgba(255, 255, 255, 0.2);
-    padding: 12px 25px;
-    border-radius: 40px;
+    padding: 0.75rem 1.5625rem;
+    border-radius: 2.5rem;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 12px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    gap: 0.75rem;
+    backdrop-filter: blur(0.625rem);
+    border: 0.0625rem solid rgba(255, 255, 255, 0.2);
 }
 
 .tiempo-numero {
@@ -58,9 +58,9 @@
     font-family: 'Courier New', monospace;
     font-weight: 700;
     background: rgba(0, 0, 0, 0.3);
-    padding: 4px 12px;
-    border-radius: 30px;
-    min-width: 70px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1.875rem;
+    min-width: 4.375rem;
     text-align: center;
 }
 
@@ -68,45 +68,45 @@
 .btn-volver {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    padding: 12px 25px;
-    border-radius: 40px;
+    padding: 0.75rem 1.5625rem;
+    border-radius: 2.5rem;
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 0.0625rem solid rgba(255, 255, 255, 0.2);
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
 }
 
 .btn-volver:hover {
     background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
 }
 
 /* ===== GRID PRINCIPAL ===== */
 .clase-grid {
     display: grid;
     grid-template-columns: 1.5fr 1fr;
-    gap: 25px;
-    align-items: stretch; /* Hace que ambas columnas tengan la misma altura */
+    gap: 1.5625rem;
+    align-items: stretch;
 }
 
 /* ===== COLUMNA DE VIDEO ===== */
 .video-column {
     background: #1e1e2e;
-    border-radius: 15px;
+    border-radius: 0.9375rem;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
-    height: 100%; /* Ocupa toda la altura de la celda del grid */
+    height: 100%;
 }
 
 .video-wrapper {
     position: relative;
     width: 100%;
-    padding-bottom: 56.25%; /* 16:9 */
+    padding-bottom: 56.25%;
     background: #000;
     line-height: 0;
 }
@@ -121,17 +121,17 @@
 }
 
 .video-info {
-    padding: 15px 20px;
+    padding: 0.9375rem 1.25rem;
     background: #2a2f36;
-    border-top: 1px solid #3a3f46;
-    flex-shrink: 0; /* Evita que se comprima */
+    border-top: 0.0625rem solid #3a3f46;
+    flex-shrink: 0;
 }
 
 /* Información de usuario compacta */
 .user-info-compact {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
     flex-wrap: wrap;
     color: #e0e0e0;
     font-size: 0.95em;
@@ -154,29 +154,29 @@
 /* ===== COLUMNA DE CHAT ===== */
 .chat-column {
     background: #1e1e2e;
-    border-radius: 15px;
+    border-radius: 0.9375rem;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
-    border: 1px solid #3a3f46;
-    height: 100%; /* Ocupa toda la altura de la celda del grid */
+    border: 0.0625rem solid #3a3f46;
+    height: 100%;
 }
 
 .chat-header {
     background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
     color: white;
-    padding: 15px 20px;
+    padding: 0.9375rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* Evita que se comprima */
+    flex-shrink: 0;
 }
 
 .chat-header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .chat-icon {
@@ -190,16 +190,15 @@
 
 .chat-badge {
     background: rgba(255, 255, 255, 0.2);
-    padding: 5px 12px;
-    border-radius: 30px;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 1.875rem;
     font-size: 0.85em;
     font-weight: 600;
 }
 
-/* Contenedor del iframe del chat - AHORA OCUPADA EL ESPACIO RESTANTE */
 .chat-container {
-    flex: 1; /* Ocupa todo el espacio disponible */
-    min-height: 0; /* Importante para flexbox */
+    flex: 1;
+    min-height: 0;
     background: #1a1f25;
     overflow: hidden;
 }
@@ -220,13 +219,13 @@
 /* ===== MENSAJE FLOTANTE ===== */
 .status-message {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 1.25rem;
+    right: 1.25rem;
     background: #34a853;
     color: white;
-    padding: 15px 25px;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    padding: 0.9375rem 1.5625rem;
+    border-radius: 0.625rem;
+    box-shadow: 0 0.625rem 1.5625rem rgba(0,0,0,0.2);
     z-index: 10000;
     animation: slideInRight 0.3s ease;
     display: none;
@@ -261,7 +260,7 @@
 @media (max-width: 1024px) {
     .clase-grid {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 1.25rem;
     }
     
     .video-column {
@@ -270,19 +269,19 @@
     
     .chat-column {
         order: 2;
-        min-height: 500px; /* Altura mínima en móvil */
+        min-height: 31.25rem;
     }
 }
 
 @media (max-width: 768px) {
     .clase-container {
-        padding: 15px;
+        padding: 0.9375rem;
     }
     
     .clase-header {
         flex-direction: column;
         align-items: flex-start;
-        padding: 20px;
+        padding: 1.25rem;
     }
     
     .header-info {
@@ -296,26 +295,26 @@
     
     .tiempo-numero {
         font-size: 1.3em;
-        min-width: 60px;
+        min-width: 3.75rem;
     }
     
     .user-info-compact {
         font-size: 0.9em;
-        gap: 8px;
+        gap: 0.5rem;
     }
     
     .chat-column {
-        min-height: 450px;
+        min-height: 28.125rem;
     }
 }
 
 @media (max-width: 480px) {
     .clase-container {
-        padding: 10px;
+        padding: 0.625rem;
     }
     
     .clase-header {
-        padding: 15px;
+        padding: 0.9375rem;
     }
     
     .clase-titulo {
@@ -323,17 +322,17 @@
     }
     
     .tiempo-badge {
-        padding: 8px 15px;
+        padding: 0.5rem 0.9375rem;
     }
     
     .tiempo-numero {
         font-size: 1.2em;
-        min-width: 50px;
-        padding: 3px 8px;
+        min-width: 3.125rem;
+        padding: 0.1875rem 0.5rem;
     }
     
     .btn-volver {
-        padding: 8px 15px;
+        padding: 0.5rem 0.9375rem;
     }
     
     .btn-volver span:not(.btn-icon) {
@@ -343,7 +342,7 @@
     .user-info-compact {
         flex-direction: column;
         align-items: flex-start;
-        gap: 5px;
+        gap: 0.3125rem;
     }
     
     .user-info-compact .info-separator {
@@ -351,14 +350,14 @@
     }
     
     .chat-column {
-        min-height: 400px;
+        min-height: 25rem;
     }
 }
 
 /* Para pantallas muy grandes */
 @media (min-width: 1800px) {
     .clase-container {
-        max-width: 1600px;
+        max-width: 100%;
     }
 }
 
