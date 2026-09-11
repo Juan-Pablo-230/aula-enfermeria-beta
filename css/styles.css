@@ -356,12 +356,48 @@ body {
     box-shadow: 0 0 0 0.1875rem rgba(66, 133, 244, 0.2);
 }
 
-/* ===== GRID DE CLASES ===== */
+/* ===== GRID DE CLASES - RESPONSIVE INTELIGENTE (OPCIÓN 3) ===== */
 .classes-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* ✅ auto-fit + minmax: se adapta a cualquier pantalla */
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
     gap: 1.5625rem;
     margin-top: 1.875rem;
+    justify-content: center;
+    max-width: 100%;
+}
+
+/* ✅ Pantallas grandes (≥1400px): limitar ancho máximo de tarjetas */
+@media (min-width: 1400px) {
+    .classes-grid {
+        grid-template-columns: repeat(auto-fit, minmax(20rem, 24rem));
+        justify-content: center;
+        max-width: 95rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ✅ Pantallas muy grandes (≥1800px): máximo 4 columnas centradas */
+@media (min-width: 1800px) {
+    .classes-grid {
+        grid-template-columns: repeat(4, minmax(20rem, 24rem));
+        justify-content: center;
+        max-width: 105rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ✅ Pantallas ultra grandes (≥2200px): máximo 5 columnas centradas */
+@media (min-width: 2200px) {
+    .classes-grid {
+        grid-template-columns: repeat(5, minmax(20rem, 24rem));
+        justify-content: center;
+        max-width: 130rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
 }
 
 .class-card {
@@ -1277,11 +1313,6 @@ footer {
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 1024px) {
-    .classes-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
 @media (max-width: 768px) {
     .header-content {
@@ -1333,11 +1364,6 @@ footer {
         margin: 0.1875rem;
         font-size: 0.9em;
         padding: 0.625rem 0.75rem;
-    }
-
-    .classes-grid {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
     }
 
     .modal-container {
