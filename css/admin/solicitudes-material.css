@@ -2,28 +2,28 @@
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: 0.9375rem;
+    margin-bottom: 1.25rem;
 }
 
 .stat-mini-card {
     background: var(--bg-card);
-    padding: 20px;
-    border-radius: 10px;
+    padding: 1.25rem;
+    border-radius: 0.625rem;
     text-align: center;
-    border: 1px solid var(--border-color);
+    border: 0.0625rem solid var(--border-color);
     transition: transform 0.3s ease;
 }
 
 .stat-mini-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-0.1875rem);
     box-shadow: var(--shadow-md);
 }
 
 .stat-label {
     font-size: 0.9em;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .stat-value {
@@ -34,15 +34,15 @@
 
 .filtros-container {
     background: var(--bg-card);
-    padding: 15px 20px;
-    border-radius: 10px;
-    margin-bottom: 25px;
-    border: 1px solid var(--border-color);
+    padding: 0.9375rem 1.25rem;
+    border-radius: 0.625rem;
+    margin-bottom: 1.5625rem;
+    border: 0.0625rem solid var(--border-color);
 }
 
 .filtros-wrapper {
     display: flex;
-    gap: 15px;
+    gap: 0.9375rem;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -53,8 +53,8 @@
 
 .table-container {
     background: var(--bg-container);
-    padding: 25px;
-    border-radius: 15px;
+    padding: 1.5625rem;
+    border-radius: 0.9375rem;
     box-shadow: var(--shadow-lg);
 }
 
@@ -70,15 +70,15 @@
 .admin-table th {
     background: var(--accent-color);
     color: white;
-    padding: 12px 15px;
+    padding: 0.75rem 0.9375rem;
     text-align: left;
     font-size: 0.9em;
     white-space: nowrap;
 }
 
 .admin-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0.9375rem;
+    border-bottom: 0.0625rem solid var(--border-color);
     color: var(--text-primary);
 }
 
@@ -88,16 +88,16 @@
 
 .material-badge {
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .material-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 5px;
+    gap: 0.3125rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.3125rem;
     text-decoration: none;
     font-size: 0.85em;
     transition: all 0.3s ease;
@@ -110,7 +110,7 @@
 
 .material-link.youtube:hover {
     background: #cc0000;
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
 }
 
 .material-link.powerpoint {
@@ -120,13 +120,13 @@
 
 .material-link.powerpoint:hover {
     background: #b33e1f;
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
 }
 
 .turno-badge {
     display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
+    padding: 0.25rem 0.625rem;
+    border-radius: 1.25rem;
     font-weight: 500;
     font-size: 0.85em;
     white-space: nowrap;
