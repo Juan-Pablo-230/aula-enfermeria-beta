@@ -405,9 +405,20 @@ app.get('/api/auth/check-legajo/:legajo', async (req, res) => {
 // ==================== RUTAS DE INSCRIPCIONES ====================
 app.post('/api/inscripciones', async (req, res) => {
     try {
-        const { usuarioId, clase, fecha, claseId } = req.body; // ← Eliminamos turno
+        const { usuarioId, clase, fecha, claseId } = req.body;
         
-        // Verificar que el usuario existe y obtener su turno (opcional, para validación)
+        console.log('📝 POST /api/inscripciones');
+        console.log('   usuarioId:', usuarioId, '(tipo:', typeof usuarioId, ')');
+        console.log('   clase:', JSON.stringify(clase), '(tipo:', typeof clase, ')');
+        console.log('   claseId:', claseId, '(tipo:', typeof claseId, ')');
+        
+        if (!usuarioId || !clase) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'usuarioId y clase son obligatorios' 
+            });
+        }
+        
         const db = await mongoDB.getDatabaseSafe('formulario');
         const usuario = await db.collection('usuarios').findOne({ 
             _id: new ObjectId(usuarioId) 
@@ -420,22 +431,103 @@ app.post('/api/inscripciones', async (req, res) => {
             });
         }
         
-        // Crear inscripción SIN turno
+        // ============================================
+        // FUNCIÓN PARA NORMALIZAR NOMBRES DE CLASE
+        // ============================================
+        const normalizar = (str) => {
+            if (!str) return '';
+            return str
+                .toString()
+                .trim()                              // Quitar espacios al inicio/final
+                .replace(/\s+/g, ' ')                // Múltiples espacios → 1 espacio
+                .normalize('NFD')                    // Descomponer acentos
+                .replace(/[\u0300-\u036f]/g, '')     // Quitar acentos
+                .toLowerCase();                       // Minúsculas
+        };
+        
+        // ============================================
+        // BUSCAR INSCRIPCIONES PREVIAS DEL USUARIO
+        // ============================================
+        const inscripcionesDelUsuario = await db.collection('inscripciones')
+            .find({ usuarioId: new ObjectId(usuarioId) })
+            .toArray();
+        
+        console.log(`📊 Inscripciones previas del usuario: ${inscripcionesDelUsuario.length}`);
+        
+        const claseIdStr = claseId ? claseId.toString() : null;
+        const claseNormalizada = normalizar(clase);
+        
+        console.log(`🔍 Buscando duplicado:`);
+        console.log(`   claseId a comparar: "${claseIdStr}"`);
+        console.log(`   clase normalizada:  "${claseNormalizada}"`);
+        
+        // Buscar si ya existe la inscripción a esta clase
+        const inscripcionExistente = inscripcionesDelUsuario.find(insc => {
+            // ============ COMPARACIÓN 1: por claseId (prioritaria) ============
+            if (claseIdStr && insc.claseId) {
+                const inscClaseIdStr = insc.claseId.toString();
+                const match = inscClaseIdStr === claseIdStr;
+                if (match) {
+                    console.log(`   ✅ MATCH por claseId: "${inscClaseIdStr}" === "${claseIdStr}"`);
+                    return true;
+                } else {
+                    console.log(`   ❌ NO match claseId: "${inscClaseIdStr}" !== "${claseIdStr}"`);
+                }
+            }
+            
+            // ============ COMPARACIÓN 2: por nombre normalizado ============
+            const inscClaseNormalizada = normalizar(insc.clase);
+            const matchNombre = inscClaseNormalizada === claseNormalizada;
+            
+            if (matchNombre) {
+                console.log(`   ✅ MATCH por nombre normalizado:`);
+                console.log(`      BD:      "${inscClaseNormalizada}"`);
+                console.log(`      Recibido: "${claseNormalizada}"`);
+                return true;
+            } else {
+                console.log(`   ❌ NO match nombre:`);
+                console.log(`      BD:      "${inscClaseNormalizada}"`);
+                console.log(`      Recibido: "${claseNormalizada}"`);
+            }
+            
+            return false;
+        });
+        
+        // ============================================
+        // SI YA EXISTE, NO DUPLICAR
+        // ============================================
+        if (inscripcionExistente) {
+            console.log('ℹ️ Usuario ya inscrito en esta clase, no se duplica');
+            return res.json({ 
+                success: true, 
+                message: 'Ya estabas inscrito en esta clase',
+                alreadyExists: true,
+                data: inscripcionExistente
+            });
+        }
+        
+        // ============================================
+        // CREAR NUEVA INSCRIPCIÓN
+        // ============================================
         const nuevaInscripcion = {
             usuarioId: new ObjectId(usuarioId),
-            clase,
+            clase: clase.trim().replace(/\s+/g, ' '), // ← Guardar nombre LIMPIO
             fecha: new Date(fecha || Date.now())
         };
         
         if (claseId) {
-            nuevaInscripcion.claseId = claseId;
+            nuevaInscripcion.claseId = claseId.toString();
         }
         
-        await db.collection('inscripciones').insertOne(nuevaInscripcion);
+        const result = await db.collection('inscripciones').insertOne(nuevaInscripcion);
+        
+        console.log('✅ Inscripción creada:', result.insertedId);
         
         res.json({ 
             success: true, 
-            message: 'Inscripción registrada exitosamente' 
+            message: 'Inscripción registrada exitosamente',
+            alreadyExists: false,
+            data: { ...nuevaInscripcion, _id: result.insertedId }
         });
         
     } catch (error) {
