@@ -1537,7 +1537,12 @@ app.post('/api/clases-publicas', async (req, res) => {
             });
         }
         
-        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area, auditorio, cafeteria, material, materialEnlaces } = req.body;
+        const { 
+            nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, 
+            enlaceFormulario, publicada, area, auditorio, cafeteria, material, 
+            materialEnlaces, modalidad, ubicacion, plataforma, enlaceVirtual, 
+            enlaceYouTube, youtubeVideoId 
+        } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -1589,6 +1594,9 @@ app.post('/api/clases-publicas', async (req, res) => {
         
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD:', areaFinal);
+        console.log('🎓 Modalidad:', modalidad);
+        console.log('💻 Plataforma:', plataforma);
+        console.log('🎬 YouTube ID:', youtubeVideoId);
         
         const nuevaClase = {
             nombre,
@@ -1600,6 +1608,14 @@ app.post('/api/clases-publicas', async (req, res) => {
             enlaceFormulario: enlaceFormulario || '',
             publicada: publicada === true,
             area: areaFinal,
+            
+            // ===== MODALIDAD =====
+            modalidad: modalidad || '',
+            ubicacion: ubicacion || '',
+            plataforma: plataforma || '',
+            enlaceVirtual: enlaceVirtual || '',
+            enlaceYouTube: enlaceYouTube || '',
+            youtubeVideoId: youtubeVideoId || '',
             
             // ===== CONTROLES INTERNOS =====
             auditorio: auditorio === true || false,
@@ -1620,6 +1636,7 @@ app.post('/api/clases-publicas', async (req, res) => {
         console.log('📅 Fecha clase:', fechaClaseDate);
         console.log('🔒 Fecha cierre:', fechaCierreDate);
         console.log('📎 Enlaces de material:', (materialEnlaces || []).length);
+        console.log('🎬 YouTube ID guardado:', youtubeVideoId);
         
         res.json({ 
             success: true, 
@@ -1659,7 +1676,12 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
             });
         }
         
-        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area, auditorio, cafeteria, material, materialEnlaces } = req.body;
+        const { 
+            nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, 
+            enlaceFormulario, publicada, area, auditorio, cafeteria, material, 
+            materialEnlaces, modalidad, ubicacion, plataforma, enlaceVirtual, 
+            enlaceYouTube, youtubeVideoId 
+        } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -1706,6 +1728,9 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD:', areaFinal);
+        console.log('🎓 Modalidad:', modalidad);
+        console.log('💻 Plataforma:', plataforma);
+        console.log('🎬 YouTube ID:', youtubeVideoId);
         
         const updateData = {
             $set: {
@@ -1717,6 +1742,14 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
                 enlaceFormulario: enlaceFormulario || '',
                 publicada: publicada === true,
                 area: areaFinal,
+                
+                // ===== MODALIDAD =====
+                modalidad: modalidad || '',
+                ubicacion: ubicacion || '',
+                plataforma: plataforma || '',
+                enlaceVirtual: enlaceVirtual || '',
+                enlaceYouTube: enlaceYouTube || '',
+                youtubeVideoId: youtubeVideoId || '',
                 
                 // ===== CONTROLES INTERNOS =====
                 auditorio: auditorio === true || false,
@@ -1745,6 +1778,7 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         
         console.log('✅ Clase actualizada:', id);
         console.log('📎 Enlaces de material actualizados:', (materialEnlaces || []).length);
+        console.log('🎬 YouTube ID actualizado:', youtubeVideoId);
         
         res.json({ success: true, message: 'Clase pública actualizada exitosamente' });
         
