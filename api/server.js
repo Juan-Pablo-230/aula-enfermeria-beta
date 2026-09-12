@@ -3879,89 +3879,9 @@ app.get('/api/logs/test', (req, res) => {
         message: 'Ruta de logs funcionando',
         timestamp: new Date().toISOString()
     });
-});
-
-// ==================== RUTA TEMPORAL: LIMPIAR DUPLICADOS ====================
-app.get('/api/admin/limpiar-duplicados', async (req, res) => {
-    try {
-        const userHeader = req.headers['user-id'];
-        
-        if (!userHeader) {
-            return res.status(401).json({ success: false, message: 'No autenticado' });
-        }
-        
-        const db = await mongoDB.getDatabaseSafe('formulario');
-        const usuario = await db.collection('usuarios').findOne({ 
-            _id: new ObjectId(userHeader) 
-        });
-        
-        if (!usuario || usuario.role !== 'admin') {
-            return res.status(403).json({ success: false, message: 'Solo administradores' });
-        }
-        
-        console.log('🔧 Iniciando limpieza de duplicados...');
-        
-        const collection = db.collection('inscripciones');
-        
-        const normalizar = (str) => {
-            if (!str) return '';
-            return str.toString().trim().replace(/\s+/g, ' ')
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-        };
-        
-        // Traer TODAS las inscripciones
-        const todas = await collection.find({}).toArray();
-        console.log(`📊 Total inscripciones: ${todas.length}`);
-        
-        // Agrupar por usuarioId + (claseId o nombre normalizado)
-        const grupos = new Map();
-        
-        todas.forEach(insc => {
-            const usuarioKey = insc.usuarioId.toString();
-            const clave = insc.claseId ? insc.claseId.toString() : normalizar(insc.clase);
-            const key = `${usuarioKey}__${clave}`;
-            
-            if (!grupos.has(key)) {
-                grupos.set(key, []);
-            }
-            grupos.get(key).push(insc);
-        });
-        
-        // Encontrar duplicados
-        const duplicados = Array.from(grupos.entries()).filter(([k, v]) => v.length > 1);
-        console.log(`📊 Encontrados ${duplicados.length} grupos con duplicados`);
-        
-        let eliminados = 0;
-        
-        for (const [key, items] of duplicados) {
-            // Conservar el más antiguo
-            items.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-            const idsAEliminar = items.slice(1).map(i => i._id);
-            
-            if (idsAEliminar.length > 0) {
-                const result = await collection.deleteMany({
-                    _id: { $in: idsAEliminar }
-                });
-                eliminados += result.deletedCount;
-                console.log(`🗑️ ${key}: ${idsAEliminar.length} duplicados eliminados`);
-            }
-        }
-        
-        console.log(`✅ Total eliminados: ${eliminados}`);
-        
-        res.json({
-            success: true,
-            message: 'Limpieza completada',
-            totalInscripciones: todas.length,
-            gruposConDuplicados: duplicados.length,
-            inscripcionesEliminadas: eliminados
-        });
-        
-    } catch (error) {
-        console.error('❌ Error en limpieza:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
+});fetch('/api/admin/limpiar-duplicados', {
+    headers: { 'user-id': authSystem.getCurrentUser()._id }
+}).then(r => r.json()).then(console.log);
 
 // ==================== EXPORTAR LA APP ====================
 module.exports = app;
