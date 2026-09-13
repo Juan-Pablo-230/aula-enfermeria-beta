@@ -423,7 +423,12 @@ class MaterialHistorico {
     
     select.innerHTML = '<option value="">Seleccione una clase</option>';
     
-    this.clasesFiltradas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    // ✅ Ordenar por fecha de clase DESCENDENTE (más reciente primero)
+    this.clasesFiltradas.sort((a, b) => {
+        const fechaA = a.fechaClase ? new Date(a.fechaClase).getTime() : 0;
+        const fechaB = b.fechaClase ? new Date(b.fechaClase).getTime() : 0;
+        return fechaB - fechaA;
+    });
     
     this.clasesFiltradas.forEach(clase => {
         const option = document.createElement('option');
