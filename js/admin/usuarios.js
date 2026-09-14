@@ -215,86 +215,121 @@ class UsuariosManager {
     }
 
     abrirModal(usuario = null) {
-        const modal = document.getElementById('userModal');
-        const title = document.getElementById('modalTitle');
-        const form = document.getElementById('userForm');
-        const passwordGroup = document.getElementById('passwordGroup');
-        const userIdInput = document.getElementById('userId');
+    const modal = document.getElementById('userModal');
+    const title = document.getElementById('modalTitle');
+    const form = document.getElementById('userForm');
+    const passwordGroup = document.getElementById('passwordGroup');
+    const userIdInput = document.getElementById('userId');
+    const resetCheckbox = document.getElementById('userResetPassword');
+    const resetLabel = document.getElementById('resetPasswordLabel');
+    const resetInfo = document.getElementById('resetPasswordInfo');
+    
+    if (!modal) {
+        console.error('❌ Modal no encontrado');
+        return;
+    }
+    
+    form.reset();
+    
+    if (usuario) {
+        // ========== MODO EDICIÓN ==========
+        title.textContent = '✏️ Editar Usuario';
+        userIdInput.value = usuario._id;
+        document.getElementById('userNombre').value = usuario.apellidoNombre || '';
+        document.getElementById('userLegajo').value = usuario.legajo || '';
+        document.getElementById('userEmail').value = usuario.email || '';
+        document.getElementById('userTurno').value = usuario.turno || '';
+        document.getElementById('userRole').value = usuario.role || 'user';
         
-        if (!modal) {
-            console.error('❌ Modal no encontrado');
-            return;
+        // ✅ Mostrar checkbox de reset con el nombre del usuario
+        if (passwordGroup) passwordGroup.style.display = 'block';
+        if (resetCheckbox) {
+            resetCheckbox.checked = false;
+            resetCheckbox.disabled = false;
+        }
+        if (resetLabel) {
+            resetLabel.innerHTML = `🔐 Restablecer la contraseña de <strong>${this.escapeHtml(usuario.apellidoNombre)}</strong>`;
+        }
+        if (resetInfo) resetInfo.style.display = 'none';
+        
+        // Poblar select de áreas
+        const userAreaSelect = document.getElementById('updateArea');
+        if (userAreaSelect && window.poblarSelectAreas) {
+            window.poblarSelectAreas(userAreaSelect, usuario.area || '');
+        } else if (userAreaSelect && window.area) {
+            this.poblarSelectAreasManual(userAreaSelect, usuario.area || '');
         }
         
-        form.reset();
+        console.log('✏️ Editando usuario:', usuario.apellidoNombre);
         
-        if (usuario) {
-            title.textContent = '✏️ Editar Usuario';
-            userIdInput.value = usuario._id;
-            document.getElementById('userNombre').value = usuario.apellidoNombre || '';
-            document.getElementById('userLegajo').value = usuario.legajo || '';
-            document.getElementById('userEmail').value = usuario.email || '';
-            document.getElementById('userTurno').value = usuario.turno || '';
-            document.getElementById('userRole').value = usuario.role || 'user';
-            
-            document.getElementById('userPassword').required = false;
-            document.getElementById('userPassword').placeholder = 'Dejar en blanco para mantener (máx 15)';
-            if (passwordGroup) passwordGroup.style.display = 'block';
-            
-            // POBLAR SELECT DE ÁREAS con el valor del usuario
-            const userAreaSelect = document.getElementById('userArea');
-            if (userAreaSelect && window.parent && window.parent.areaData) {
-                window.parent.areaData.poblarSelectAreas(userAreaSelect, usuario.area || '');
-            } else if (window.areaData) {
-                window.areaData.poblarSelectAreas(userAreaSelect, usuario.area || '');
-            } else {
-                // Fallback: esperar
-                const checkInterval = setInterval(() => {
-                    if (window.areaData || (window.parent && window.parent.areaData)) {
-                        clearInterval(checkInterval);
-                        const areaData = window.areaData || window.parent.areaData;
-                        areaData.poblarSelectAreas(userAreaSelect, usuario.area || '');
-                    }
-                }, 100);
-                setTimeout(() => clearInterval(checkInterval), 5000);
-            }
-            
-            console.log('✏️ Editando usuario:', usuario.apellidoNombre);
-        } else {
-            title.textContent = '➕ Crear Usuario';
-            userIdInput.value = '';
-            
-            document.getElementById('userPassword').required = true;
-            document.getElementById('userPassword').placeholder = 'Mínimo 8, máximo 15 caracteres';
-            if (passwordGroup) passwordGroup.style.display = 'block';
-            
-            // POBLAR SELECT DE ÁREAS vacío
-            const userAreaSelect = document.getElementById('userArea');
-            if (userAreaSelect && window.parent && window.parent.areaData) {
-                window.parent.areaData.poblarSelectAreas(userAreaSelect, '');
-            } else if (window.areaData) {
-                window.areaData.poblarSelectAreas(userAreaSelect, '');
-            } else {
-                const checkInterval = setInterval(() => {
-                    if (window.areaData || (window.parent && window.parent.areaData)) {
-                        clearInterval(checkInterval);
-                        const areaData = window.areaData || window.parent.areaData;
-                        areaData.poblarSelectAreas(userAreaSelect, '');
-                    }
-                }, 100);
-                setTimeout(() => clearInterval(checkInterval), 5000);
-            }
+    } else {
+        // ========== MODO CREACIÓN ==========
+        title.textContent = '➕ Crear Usuario';
+        userIdInput.value = '';
+        
+        // En creación SÍ se necesita contraseña → ocultamos el checkbox
+        if (passwordGroup) passwordGroup.style.display = 'none';
+        if (resetCheckbox) {
+            resetCheckbox.checked = false;
+            resetCheckbox.disabled = false;
         }
         
-        modal.style.display = 'flex';
-        
-        const modalContainer = modal.querySelector('.modal-container');
-        if (modalContainer) {
-            modalContainer.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+        // Poblar select de áreas vacío
+        const userAreaSelect = document.getElementById('updateArea');
+        if (userAreaSelect && window.poblarSelectAreas) {
+            window.poblarSelectAreas(userAreaSelect, '');
+        } else if (userAreaSelect && window.area) {
+            this.poblarSelectAreasManual(userAreaSelect, '');
         }
     }
+    
+    // Escuchar cambios en el checkbox
+    if (resetCheckbox) {
+        const nuevoCheckbox = resetCheckbox.cloneNode(true);
+        resetCheckbox.parentNode.replaceChild(nuevoCheckbox, resetCheckbox);
+        
+        nuevoCheckbox.addEventListener('change', (e) => {
+            if (resetInfo) resetInfo.style.display = e.target.checked ? 'block' : 'none';
+        });
+    }
+    
+    modal.style.display = 'flex';
+    
+    const modalContainer = modal.querySelector('.modal-container');
+    if (modalContainer) {
+        modalContainer.addEventListener('click', (e) => e.stopPropagation());
+    }
+}
+
+// ✅ Helper: poblar áreas manualmente
+poblarSelectAreasManual(selectElement, valorSeleccionado = '') {
+    if (!selectElement || !window.area) return;
+    
+    selectElement.innerHTML = '<option value="">Seleccione un área</option>';
+    
+    for (const categoria in window.area) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = categoria;
+        
+        window.area[categoria].forEach(areaName => {
+            const option = document.createElement('option');
+            option.value = areaName;
+            option.textContent = areaName;
+            if (valorSeleccionado === areaName) option.selected = true;
+            optgroup.appendChild(option);
+        });
+        
+        selectElement.appendChild(optgroup);
+    }
+}
+
+// ✅ Helper: escapar HTML
+escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
     cerrarModal() {
         const modal = document.getElementById('userModal');
@@ -306,79 +341,102 @@ class UsuariosManager {
     }
 
     async guardarUsuario(event) {
-        event.preventDefault();
+    event.preventDefault();
+    
+    console.log('💾 Guardando usuario...');
+    
+    const userId = document.getElementById('userId').value;
+    const apellidoNombre = document.getElementById('userNombre').value.trim();
+    const legajo = document.getElementById('userLegajo').value.trim();
+    const email = document.getElementById('userEmail').value.trim();
+    const turno = document.getElementById('userTurno').value;
+    const area = document.getElementById('updateArea').value;
+    const role = document.getElementById('userRole').value;
+    const resetPassword = document.getElementById('userResetPassword')?.checked || false;
+    
+    // ========== VALIDACIONES ==========
+    if (!apellidoNombre || !legajo || !email || !turno || !area || !role) {
+        this.mostrarMensajeModal('❌ Todos los campos obligatorios deben estar completos', 'error');
+        return;
+    }
+    
+    // ========== CONFIRMACIÓN SI SE RESETEA CONTRASEÑA ==========
+    if (userId && resetPassword) {
+        const confirmacion = confirm(
+            `⚠️ ¿Estás seguro de que querés restablecer la contraseña de ${apellidoNombre}?\n\n` +
+            `🔐 Se asignará la contraseña temporal: "temporal123"\n\n` +
+            `El usuario deberá cambiarla obligatoriamente al iniciar sesión.`
+        );
         
-        console.log('💾 Guardando usuario...');
-        
-        const userId = document.getElementById('userId').value;
-        const apellidoNombre = document.getElementById('userNombre').value.trim();
-        const legajo = document.getElementById('userLegajo').value.trim();
-        const email = document.getElementById('userEmail').value.trim();
-        const turno = document.getElementById('userTurno').value;
-        const area = document.getElementById('updateArea').value;
-        const role = document.getElementById('userRole').value;
-        const password = document.getElementById('userPassword').value;
-        
-        if (!apellidoNombre || !legajo || !email || !turno || !area || !role) {
-            this.mostrarMensajeModal('❌ Todos los campos obligatorios deben estar completos', 'error');
+        if (!confirmacion) {
             return;
-        }
-        
-        if (!userId && !password) {
-            this.mostrarMensajeModal('❌ La contraseña es obligatoria para nuevos usuarios', 'error');
-            return;
-        }
-        
-        if (password && password.length < 8) {
-            this.mostrarMensajeModal('❌ La contraseña debe tener al menos 8 caracteres', 'error');
-            return;
-        }
-        if (password && password.length > 15) {
-            this.mostrarMensajeModal('❌ La contraseña no puede tener más de 15 caracteres', 'error');
-            return;
-        }
-        
-        const userData = {
-            apellidoNombre: apellidoNombre,
-            legajo: legajo,
-            email: email,
-            turno: turno,
-            area: area,
-            role: role
-        };
-        
-        try {
-            let response;
-            
-            if (userId) {
-                console.log('📤 Actualizando usuario:', userId, userData);
-                response = await authSystem.makeRequest(`/admin/usuarios/${userId}`, userData, 'PUT');
-                
-                if (password) {
-                    console.log('🔐 Actualizando contraseña');
-                    await authSystem.makeRequest(`/admin/usuarios/${userId}/password`, { newPassword: password }, 'PUT');
-                }
-                
-                this.mostrarMensajeModal('✅ Usuario actualizado correctamente', 'success');
-            } else {
-                console.log('📤 Creando nuevo usuario:', userData);
-                userData.password = password;
-                response = await authSystem.makeRequest('/admin/usuarios', userData);
-                this.mostrarMensajeModal('✅ Usuario creado correctamente', 'success');
-            }
-            
-            setTimeout(() => {
-                this.cerrarModal();
-                this.cargarDatos();
-                this.cargarInscripciones();
-                this.cargarSolicitudes();
-            }, 1500);
-            
-        } catch (error) {
-            console.error('❌ Error guardando usuario:', error);
-            this.mostrarMensajeModal('❌ Error: ' + error.message, 'error');
         }
     }
+    
+    // ========== DATOS DEL USUARIO ==========
+    const userData = {
+        apellidoNombre: apellidoNombre,
+        legajo: legajo,
+        email: email,
+        turno: turno,
+        area: area,
+        role: role
+    };
+    
+    try {
+        let response;
+        
+        if (userId) {
+            // ========== ACTUALIZAR ==========
+            console.log('📤 Actualizando usuario:', userId, userData);
+            response = await authSystem.makeRequest(`/admin/usuarios/${userId}`, userData, 'PUT');
+            
+            // ✅ Si el admin marcó "restablecer contraseña", llamar al endpoint
+            if (resetPassword) {
+                console.log('🔐 Restableciendo contraseña a temporal123');
+                await authSystem.makeRequest(`/admin/usuarios/${userId}/reset-password`, {}, 'PUT');
+                this.mostrarMensajeModal('✅ Usuario actualizado y contraseña restablecida', 'success');
+            } else {
+                this.mostrarMensajeModal('✅ Usuario actualizado correctamente', 'success');
+            }
+            
+        } else {
+            // ========== CREAR ==========
+            // En creación siempre pide contraseña (por eso el checkbox está oculto)
+            const password = prompt(
+                '🔐 Ingresá una contraseña temporal para el nuevo usuario:\n' +
+                '(Mínimo 8 caracteres, máximo 15)',
+                'temporal123'
+            );
+            
+            if (!password) {
+                this.mostrarMensajeModal('❌ La contraseña es obligatoria', 'error');
+                return;
+            }
+            
+            if (password.length < 8 || password.length > 15) {
+                this.mostrarMensajeModal('❌ La contraseña debe tener entre 8 y 15 caracteres', 'error');
+                return;
+            }
+            
+            userData.password = password;
+            console.log('📤 Creando nuevo usuario:', userData);
+            response = await authSystem.makeRequest('/admin/usuarios', userData);
+            this.mostrarMensajeModal('✅ Usuario creado correctamente', 'success');
+        }
+        
+        setTimeout(() => {
+            this.cerrarModal();
+            this.cargarDatos();
+            this.cargarInscripciones();
+            this.cargarSolicitudes();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ Error guardando usuario:', error);
+        this.mostrarMensajeModal('❌ Error: ' + error.message, 'error');
+    }
+}
 
     mostrarMensajeModal(mensaje, tipo) {
         const modal = document.getElementById('userModal');

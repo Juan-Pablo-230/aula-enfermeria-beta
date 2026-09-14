@@ -1972,10 +1972,10 @@ app.put('/api/usuarios/perfil', async (req, res) => {
         };
         
         if (password) {
-            if (password.length < 6) {
+            if (password.length < 8) {
                 return res.status(400).json({
                     success: false,
-                    message: 'La nueva contraseña debe tener al menos 6 caracteres'
+                    message: 'La nueva contraseña debe tener al menos 8 caracteres'
                 });
             }
             if (password.length > 15) {
@@ -1987,6 +1987,8 @@ app.put('/api/usuarios/perfil', async (req, res) => {
             // Usar scrypt para nueva contraseña
             updateData.password = hashPasswordScrypt(password);
             updateData.passwordLastUpdated = new Date();
+            updateData.mustChangePassword = false;  // ✅ AGREGAR ESTA LÍNEA
+            updateData.fechaCambioPassword = new Date();  // ✅ Opcional
         }
         
         await db.collection('usuarios').updateOne(
@@ -3748,6 +3750,184 @@ app.get('/api/logs/test', (req, res) => {
         message: 'Ruta de logs funcionando',
         timestamp: new Date().toISOString()
     });
+});
+
+// ==================== RUTA: RESTABLECER CONTRASEÑA A TEMPORAL ====================
+app.put('/api/admin/usuarios/:id/reset-password', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userHeader = req.headers['user-id'];
+        
+        console.log('🔐 Restableciendo contraseña de usuario ID:', id);
+        
+        if (!userHeader || !ObjectId.isValid(id)) {
+            return res.status(401).json({ success: false, message: 'Solicitud inválida' });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        // Verificar que quien ejecuta sea admin
+        const admin = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!admin || admin.role !== 'admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Solo administradores pueden restablecer contraseñas' 
+            });
+        }
+        
+        // Verificar que el usuario a modificar existe
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+        if (!usuario) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
+            });
+        }
+        
+        // ========== CONTRASEÑA TEMPORAL ==========
+        const TEMP_PASSWORD = 'temporal123';
+        const hashedPassword = hashPasswordScrypt(TEMP_PASSWORD);
+        const ahora = new Date();
+        
+        // Actualizar la contraseña + marcar que debe cambiarla
+        const result = await db.collection('usuarios').updateOne(
+            { _id: new ObjectId(id) },
+            { 
+                $set: { 
+                    password: hashedPassword,
+                    passwordLastUpdated: ahora,
+                    mustChangePassword: true,   // ✅ Flag para forzar cambio
+                    fechaResetPassword: ahora,
+                    resetBy: new ObjectId(userHeader)
+                } 
+            }
+        );
+        
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
+            });
+        }
+        
+        console.log(`✅ Contraseña restablecida a "temporal123" para: ${usuario.apellidoNombre}`);
+        
+        res.json({ 
+            success: true, 
+            message: `Contraseña restablecida para ${usuario.apellidoNombre}`,
+            usuario: {
+                nombre: usuario.apellidoNombre,
+                legajo: usuario.legajo,
+                email: usuario.email
+            },
+            tempPassword: TEMP_PASSWORD
+        });
+        
+    } catch (error) {
+        console.error('❌ Error restableciendo contraseña:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
+// ==================== RUTA: CAMBIO DE CONTRASEÑA FORZADO ====================
+// El usuario debe cambiar la contraseña temporal antes de poder usar el sistema
+app.put('/api/usuarios/cambiar-password-forzado', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        const { currentPassword, newPassword } = req.body;
+        
+        console.log('🔐 Cambio de contraseña forzado para usuario:', userHeader);
+        
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ success: false, message: 'No autenticado' });
+        }
+        
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Contraseña actual y nueva son obligatorias' 
+            });
+        }
+        
+        if (newPassword.length < 8 || newPassword.length > 15) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'La nueva contraseña debe tener entre 8 y 15 caracteres' 
+            });
+        }
+        
+        if (newPassword === 'temporal123') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No podés usar la contraseña temporal como nueva' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(userHeader) 
+        });
+        
+        if (!usuario) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        }
+        
+        // Verificar que la contraseña actual sea correcta
+        const passwordMatches = verifyPassword(currentPassword, usuario.password);
+        if (!passwordMatches) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'La contraseña actual es incorrecta' 
+            });
+        }
+        
+        // Actualizar contraseña + limpiar el flag
+        const hashedPassword = hashPasswordScrypt(newPassword);
+        const ahora = new Date();
+        
+        await db.collection('usuarios').updateOne(
+            { _id: new ObjectId(userHeader) },
+            { 
+                $set: { 
+                    password: hashedPassword,
+                    passwordLastUpdated: ahora,
+                    mustChangePassword: false,   // ✅ Limpiar flag
+                    fechaCambioPassword: ahora
+                } 
+            }
+        );
+        
+        console.log(`✅ Contraseña cambiada exitosamente para: ${usuario.apellidoNombre}`);
+        
+        res.json({ 
+            success: true, 
+            message: 'Contraseña cambiada correctamente',
+            usuario: {
+                nombre: usuario.apellidoNombre,
+                legajo: usuario.legajo,
+                email: usuario.email
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en cambio de contraseña forzado:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
 });
 
 // ==================== RUTA TEMPORAL: LIMPIAR INSCRIPCIONES DEL ADMIN ====================

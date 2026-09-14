@@ -29,7 +29,7 @@ if (versionBeta == true) {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.5.16';
+        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.5.17';
         
     }
 }
@@ -1133,19 +1133,31 @@ async validateSessionOnce() {
             };
             
             overlay.querySelector('#loginFormElement').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const identifier = formData.get('identifier');
-                const password = formData.get('password');
-                
-                try {
-                    const user = await this.login(identifier, password);
-                    document.body.removeChild(overlay);
-                    resolve(user);
-                } catch (error) {
-                    showMessage('loginForm', error.message, 'error');
-                }
-            });
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const identifier = formData.get('identifier');
+    const password = formData.get('password');
+    
+    try {
+        const user = await this.login(identifier, password);
+        document.body.removeChild(overlay);
+        
+        // ✅ Verificar si debe cambiar la contraseña
+        if (user.mustChangePassword === true) {
+            console.log('🔐 Usuario debe cambiar la contraseña temporal');
+            
+            // Esperar un momento y mostrar el modal de cambio forzado
+            setTimeout(() => {
+                this.showForcedPasswordChangeModal(user);
+            }, 300);
+        } else {
+            resolve(user);
+        }
+        
+    } catch (error) {
+        showMessage('loginForm', error.message, 'error');
+    }
+});
             
             overlay.querySelector('#registerFormElement').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1174,6 +1186,267 @@ async validateSessionOnce() {
             overlay.offsetHeight;
         });
     }
+
+    // ============================================
+// MODAL DE CAMBIO DE CONTRASEÑA FORZADO
+// ============================================
+async showForcedPasswordChangeModal(user) {
+    return new Promise((resolve, reject) => {
+        console.log('🔐 Mostrando modal de cambio de contraseña forzado');
+        
+        document.body.style.overflow = 'hidden';
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'forced-password-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 25000;
+            font-family: 'Arial', sans-serif;
+            backdrop-filter: blur(5px);
+        `;
+        
+        overlay.innerHTML = `
+            <div style="
+                background: #1e1e2e;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                width: 90%;
+                max-width: 500px;
+                color: #e0e0e0;
+                max-height: 90vh;
+                overflow-y: auto;
+            ">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3em; margin-bottom: 10px;">🔐</div>
+                    <h2 style="color: #fff; margin-bottom: 10px;">Cambio de Contraseña Obligatorio</h2>
+                    <p style="color: #b0b0b0; line-height: 1.6;">
+                        Tu contraseña fue restablecida por un administrador.<br>
+                        Por seguridad, <strong style="color: #ffd166;">DEBES</strong> cambiarla antes de continuar.
+                    </p>
+                </div>
+                
+                <div style="background: #2a2f36; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffd166;">
+                    <p style="margin: 0; color: #b0b0b0; font-size: 0.9em;">
+                        👤 <strong>${user.apellidoNombre || 'Usuario'}</strong><br>
+                        📋 Legajo: ${user.legajo || 'N/A'}
+                    </p>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #e0e0e0;">Contraseña Actual (temporal) *</label>
+                    <div style="position: relative;">
+                        <input type="password" id="forcedCurrentPassword" required style="
+                            width: 100%;
+                            padding: 10px;
+                            padding-right: 45px;
+                            border: 2px solid #3d3d5c;
+                            border-radius: 8px;
+                            background: #1e1e2e;
+                            color: #e0e0e0;
+                            box-sizing: border-box;
+                        ">
+                        <button type="button" class="toggle-forced-password" data-target="forcedCurrentPassword" style="
+                            position: absolute;
+                            right: 10px;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            background: none;
+                            border: none;
+                            cursor: pointer;
+                            color: #b0b0b0;
+                            font-size: 14px;
+                        ">👁️</button>
+                    </div>
+                    <small style="color: #b0b0b0; font-size: 0.85em;">La contraseña temporal es: <strong>temporal123</strong></small>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #e0e0e0;">Nueva Contraseña *</label>
+                    <div style="position: relative;">
+                        <input type="password" id="forcedNewPassword" required maxlength="15" style="
+                            width: 100%;
+                            padding: 10px;
+                            padding-right: 45px;
+                            border: 2px solid #3d3d5c;
+                            border-radius: 8px;
+                            background: #1e1e2e;
+                            color: #e0e0e0;
+                            box-sizing: border-box;
+                        ">
+                        <button type="button" class="toggle-forced-password" data-target="forcedNewPassword" style="
+                            position: absolute;
+                            right: 10px;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            background: none;
+                            border: none;
+                            cursor: pointer;
+                            color: #b0b0b0;
+                            font-size: 14px;
+                        ">👁️</button>
+                    </div>
+                    <small style="color: #b0b0b0; font-size: 0.85em;">Mínimo 8, máximo 15 caracteres</small>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #e0e0e0;">Confirmar Nueva Contraseña *</label>
+                    <div style="position: relative;">
+                        <input type="password" id="forcedConfirmPassword" required maxlength="15" style="
+                            width: 100%;
+                            padding: 10px;
+                            padding-right: 45px;
+                            border: 2px solid #3d3d5c;
+                            border-radius: 8px;
+                            background: #1e1e2e;
+                            color: #e0e0e0;
+                            box-sizing: border-box;
+                        ">
+                        <button type="button" class="toggle-forced-password" data-target="forcedConfirmPassword" style="
+                            position: absolute;
+                            right: 10px;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            background: none;
+                            border: none;
+                            cursor: pointer;
+                            color: #b0b0b0;
+                            font-size: 14px;
+                        ">👁️</button>
+                    </div>
+                </div>
+                
+                <div id="forcedPasswordMessage" style="
+                    display: none;
+                    padding: 12px;
+                    border-radius: 5px;
+                    margin-bottom: 15px;
+                    text-align: center;
+                    font-weight: bold;
+                "></div>
+                
+                <button id="forcedPasswordBtn" style="
+                    width: 100%;
+                    background: linear-gradient(135deg, #34a853 0%, #0f9d58 100%);
+                    color: white;
+                    padding: 15px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: transform 0.2s;
+                ">🔐 Cambiar Contraseña y Continuar</button>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Toggle password visibility
+        overlay.querySelectorAll('.toggle-forced-password').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetId = this.dataset.target;
+                const input = document.getElementById(targetId);
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.textContent = '🙈';
+                } else {
+                    input.type = 'password';
+                    this.textContent = '👁️';
+                }
+            });
+        });
+        
+        // Manejar el submit
+        overlay.querySelector('#forcedPasswordBtn').addEventListener('click', async () => {
+            const currentPassword = overlay.querySelector('#forcedCurrentPassword').value;
+            const newPassword = overlay.querySelector('#forcedNewPassword').value;
+            const confirmPassword = overlay.querySelector('#forcedConfirmPassword').value;
+            const msgDiv = overlay.querySelector('#forcedPasswordMessage');
+            const btn = overlay.querySelector('#forcedPasswordBtn');
+            
+            // Validaciones
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                msgDiv.style.display = 'block';
+                msgDiv.textContent = '❌ Todos los campos son obligatorios';
+                msgDiv.style.background = '#5a2d2d';
+                msgDiv.style.color = '#ff6b6b';
+                return;
+            }
+            
+            if (newPassword.length < 8 || newPassword.length > 15) {
+                msgDiv.style.display = 'block';
+                msgDiv.textContent = '❌ La contraseña debe tener entre 8 y 15 caracteres';
+                msgDiv.style.background = '#5a2d2d';
+                msgDiv.style.color = '#ff6b6b';
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                msgDiv.style.display = 'block';
+                msgDiv.textContent = '❌ Las contraseñas no coinciden';
+                msgDiv.style.background = '#5a2d2d';
+                msgDiv.style.color = '#ff6b6b';
+                return;
+            }
+            
+            if (newPassword === 'temporal123') {
+                msgDiv.style.display = 'block';
+                msgDiv.textContent = '❌ No podés usar la contraseña temporal como nueva';
+                msgDiv.style.background = '#5a2d2d';
+                msgDiv.style.color = '#ff6b6b';
+                return;
+            }
+            
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Procesando...';
+                
+                // Llamar al endpoint de cambio de contraseña
+                const response = await this.makeRequest('/usuarios/cambiar-password-forzado', {
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                }, 'PUT');
+                
+                if (result && result.success) {
+                    msgDiv.style.display = 'block';
+                    msgDiv.textContent = '✅ Contraseña cambiada correctamente. Redirigiendo...';
+                    msgDiv.style.background = '#2d5a2d';
+                    msgDiv.style.color = '#6bff6b';
+                    
+                    // Actualizar el usuario local
+                    this.currentUser.mustChangePassword = false;
+                    localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                    
+                    setTimeout(() => {
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                        resolve(this.currentUser);
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(result.message || 'Error al cambiar contraseña');
+                }
+                
+            } catch (error) {
+                msgDiv.style.display = 'block';
+                msgDiv.textContent = '❌ ' + error.message;
+                msgDiv.style.background = '#5a2d2d';
+                msgDiv.style.color = '#ff6b6b';
+                btn.disabled = false;
+                btn.textContent = '🔐 Cambiar Contraseña y Continuar';
+            }
+        });
+    });
+}
 }
 
 const authSystem = new AuthSystem();
