@@ -29,7 +29,7 @@ if (versionBeta == true) {
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.5.17';
+        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.5.18';
         
     }
 }
@@ -1416,7 +1416,7 @@ async showForcedPasswordChangeModal(user) {
                     newPassword: newPassword
                 }, 'PUT');
                 
-                if (result && result.success) {
+                if (response && response.success) {
                     msgDiv.style.display = 'block';
                     msgDiv.textContent = '✅ Contraseña cambiada correctamente. Redirigiendo...';
                     msgDiv.style.background = '#2d5a2d';
