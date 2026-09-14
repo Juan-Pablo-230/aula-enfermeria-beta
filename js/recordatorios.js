@@ -86,32 +86,33 @@ class RecordatorioManager {
     // ACTUALIZAR DISPLAY DE TIEMPOS SELECCIONADOS
     // ============================================
     actualizarDisplayTiempos() {
-        const display = document.getElementById('tiempoSeleccionadoDisplay');
-        if (!display) return;
-        
-        if (this.tiemposSeleccionados.length === 0) {
-            display.textContent = '⏳ Selecciona uno o más tiempos para recibir notificaciones';
-            display.style.color = 'var(--text-secondary)';
-            display.style.background = 'rgba(66, 133, 244, 0.1)';
-            display.style.border = '1px solid rgba(66, 133, 244, 0.3)';
-            document.getElementById('btnProgramarRecordatorio').disabled = true;
-            return;
-        }
-        
-        const textos = this.tiemposSeleccionados.map(m => this.formatTiempo(m));
-        const cantidad = this.tiemposSeleccionados.length;
-        
-        display.innerHTML = `
-            ✅ <strong>${cantidad}</strong> recordatorio${cantidad > 1 ? 's' : ''} programado${cantidad > 1 ? 's' : ''}:<br>
-            <span style="font-size: 0.9em;">${textos.map(t => `• ${t} antes`).join('<br>')}</span>
-        `;
-        display.style.color = 'var(--text-primary)';
-        display.style.background = 'rgba(52, 168, 83, 0.1)';
-        display.style.border = '1px solid rgba(52, 168, 83, 0.3)';
-        
+    const display = document.getElementById('tiempoSeleccionadoDisplay');
+    if (!display) return;
+    
+    if (this.tiemposSeleccionados.length === 0) {
+        display.textContent = '⏳ Selecciona uno o más tiempos para recibir notificaciones';
+        display.style.color = 'var(--text-secondary)';
+        display.style.background = 'rgba(66, 133, 244, 0.1)';
+        display.style.border = '1px solid rgba(66, 133, 244, 0.3)';
         const btnProgramar = document.getElementById('btnProgramarRecordatorio');
-        if (btnProgramar) btnProgramar.disabled = false;
+        if (btnProgramar) btnProgramar.disabled = true;
+        return;
     }
+    
+    const textos = this.tiemposSeleccionados.map(m => this.formatTiempo(m));
+    const cantidad = this.tiemposSeleccionados.length;
+    
+    display.innerHTML = `
+        ✅ <strong>${cantidad}</strong> recordatorio${cantidad > 1 ? 's' : ''} seleccionado${cantidad > 1 ? 's' : ''}:<br>
+        <span style="font-size: 0.9em;">${textos.map(t => `• ${t} antes`).join('<br>')}</span>
+    `;
+    display.style.color = 'var(--text-primary)';
+    display.style.background = 'rgba(52, 168, 83, 0.1)';
+    display.style.border = '1px solid rgba(52, 168, 83, 0.3)';
+    
+    const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+    if (btnProgramar) btnProgramar.disabled = false;
+}
 
     // ============================================
     // APLICAR TIEMPO PERSONALIZADO (AGREGA AL ARRAY)
@@ -231,71 +232,165 @@ class RecordatorioManager {
     }
 
     // ============================================
-    // ABRIR MODAL
-    // ============================================
-    abrirModal(clase) {
-        if (!clase) return;
-        
-        this.claseSeleccionada = clase;
-        this.tiemposSeleccionados = []; // ✅ Resetear array
-        this.programado = false;
-        
-        // Resetear botones predefinidos
-        document.querySelectorAll('.tiempo-btn:not([data-custom="true"])').forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.background = 'var(--bg-container)';
-            btn.style.color = 'var(--text-primary)';
-            btn.style.borderColor = 'var(--border-color)';
+// ABRIR MODAL
+// ============================================
+abrirModal(clase) {
+    if (!clase) return;
+    
+    this.claseSeleccionada = clase;
+    this.tiemposSeleccionados = []; // Resetear array
+    this.programado = false;
+    
+    // Resetear botones predefinidos
+    document.querySelectorAll('.tiempo-btn:not([data-custom="true"])').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.background = 'var(--bg-container)';
+        btn.style.color = 'var(--text-primary)';
+        btn.style.borderColor = 'var(--border-color)';
+    });
+    
+    // ✅ Eliminar botones personalizados previos
+    document.querySelectorAll('.tiempo-btn[data-custom="true"]').forEach(btn => btn.remove());
+    
+    // ✅ NUEVO: Cargar recordatorios existentes para esta clase
+    this.cargarRecordatoriosDeClase(clase._id);
+    
+    // Mostrar info de la clase
+    document.getElementById('recordatorioClaseNombre').textContent = clase.nombre || 'Clase';
+    
+    let fechaFormateada = 'Fecha no disponible';
+    if (clase.fechaClase) {
+        const fecha = new Date(clase.fechaClase);
+        fechaFormateada = fecha.toLocaleString('es-AR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
         });
+        fechaFormateada = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
+    }
+    document.getElementById('recordatorioClaseFecha').textContent = `📅 ${fechaFormateada}`;
+    
+    // Actualizar display
+    this.actualizarDisplayTiempos();
+    
+    const estado = document.getElementById('recordatorioEstado');
+    if (estado) estado.style.display = 'none';
+    
+    const personalizado = document.getElementById('recordatorioPersonalizado');
+    if (personalizado) personalizado.value = '';
+    
+    const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+    if (btnProgramar) {
+        btnProgramar.disabled = this.tiemposSeleccionados.length === 0;
+        btnProgramar.textContent = '🔔 Programar Notificaciones';
+        btnProgramar.style.opacity = this.tiemposSeleccionados.length === 0 ? '0.6' : '1';
+        btnProgramar.style.cursor = this.tiemposSeleccionados.length === 0 ? 'not-allowed' : 'pointer';
+    }
+    
+    this.ocultarMensaje();
+    this.cambiarTab('notificacion');
+    
+    const modalRecordatorio = document.getElementById('modalRecordatorio');
+    if (modalRecordatorio) {
+        modalRecordatorio.style.display = 'flex';
+        modalRecordatorio.style.zIndex = '20000';
+    }
+}
+
+// ============================================
+// ✅ NUEVO: CARGAR RECORDATORIOS EXISTENTES DE LA CLASE
+// ============================================
+cargarRecordatoriosDeClase(claseId) {
+    try {
+        const data = localStorage.getItem('recordatoriosProgramados');
+        if (!data) return;
         
-        // ✅ Eliminar botones personalizados previos
-        document.querySelectorAll('.tiempo-btn[data-custom="true"]').forEach(btn => btn.remove());
+        const recordatorio = JSON.parse(data);
         
-        // Mostrar info de la clase
-        document.getElementById('recordatorioClaseNombre').textContent = clase.nombre || 'Clase';
+        // ✅ Verificar que sea para esta clase
+        if (recordatorio.claseId !== claseId) return;
+        if (!recordatorio.programado || !recordatorio.tiempos) return;
         
-        let fechaFormateada = 'Fecha no disponible';
-        if (clase.fechaClase) {
-            const fecha = new Date(clase.fechaClase);
-            fechaFormateada = fecha.toLocaleString('es-AR', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-            fechaFormateada = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
-        }
-        document.getElementById('recordatorioClaseFecha').textContent = `📅 ${fechaFormateada}`;
+        console.log(`📥 Recordatorios encontrados para esta clase: ${recordatorio.tiempos.length}`);
         
-        // Resetear display
+        // ✅ Cargar los tiempos en el array
+        this.tiemposSeleccionados = [...recordatorio.tiempos];
+        this.programado = true;
+        
+        // ✅ Marcar los botones predefinidos que coincidan
+        this.tiemposSeleccionados.forEach(minutos => {
+            // Buscar si hay un botón predefinido con ese tiempo
+            const btnPredefinido = document.querySelector(`.tiempo-btn[data-minutos="${minutos}"]:not([data-custom="true"])`);
+            
+            if (btnPredefinido) {
+                // Marcar el botón predefinido
+                btnPredefinido.classList.add('active');
+                btnPredefinido.style.background = 'var(--accent-color)';
+                btnPredefinido.style.color = 'white';
+                btnPredefinido.style.borderColor = 'var(--accent-color)';
+                console.log(`✅ Botón marcado: ${minutos} min`);
+            } else {
+                // ✅ Crear botón personalizado para este tiempo
+                const btnCustom = this.crearBotonTiempo(minutos);
+                const gridTiempos = document.querySelector('#panelNotificacion .tiempo-btn')?.parentElement;
+                if (gridTiempos && btnCustom) {
+                    gridTiempos.appendChild(btnCustom);
+                    console.log(`✅ Botón personalizado creado: ${minutos} min`);
+                }
+            }
+        });
+
+        // ✅ Mostrar el estado verde si hay recordatorios activos
+if (this.tiemposSeleccionados.length > 0) {
+    const textos = this.tiemposSeleccionados.map(m => this.formatTiempo(m));
+    const estado = document.getElementById('recordatorioEstado');
+    if (estado) {
+        estado.style.display = 'block';
+        estado.innerHTML = `
+            🔔 <strong>${this.tiemposSeleccionados.length}</strong> recordatorio${this.tiemposSeleccionados.length > 1 ? 's' : ''} ya programado${this.tiemposSeleccionados.length > 1 ? 's' : ''}:
+            <br>
+            <div style="text-align: left; margin-top: 8px; font-size: 0.9em; line-height: 1.6;">
+                ${textos.map(t => `• ${t} antes de la clase`).join('<br>')}
+            </div>
+            <button onclick="recordatorioManager.cancelar()" style="
+                margin-top: 10px;
+                padding: 6px 16px;
+                border: 1px solid var(--error-500);
+                border-radius: 4px;
+                background: transparent;
+                color: var(--error-500);
+                cursor: pointer;
+                font-size: 0.85em;
+                font-weight: bold;
+            ">❌ Cancelar todos</button>
+        `;
+        estado.style.background = 'rgba(52, 168, 83, 0.1)';
+        estado.style.color = 'var(--success-500)';
+        estado.style.border = '1px solid rgba(52, 168, 83, 0.3)';
+        estado.style.padding = '12px';
+        estado.style.borderRadius = '8px';
+    }
+    
+    // Cambiar el texto del botón
+    const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+    if (btnProgramar) {
+        btnProgramar.textContent = '💾 Guardar cambios';
+    }
+}
+        
+        // ✅ Actualizar el display
         this.actualizarDisplayTiempos();
         
-        const estado = document.getElementById('recordatorioEstado');
-        if (estado) estado.style.display = 'none';
+        console.log(`✅ Recordatorios cargados: ${this.tiemposSeleccionados.join(', ')} min`);
         
-        const personalizado = document.getElementById('recordatorioPersonalizado');
-        if (personalizado) personalizado.value = '';
-        
-        const btnProgramar = document.getElementById('btnProgramarRecordatorio');
-        if (btnProgramar) {
-            btnProgramar.disabled = true;
-            btnProgramar.textContent = '🔔 Programar Notificaciones';
-            btnProgramar.style.opacity = '1';
-            btnProgramar.style.cursor = 'pointer';
-        }
-        
-        this.ocultarMensaje();
-        this.cambiarTab('notificacion');
-        
-        const modalRecordatorio = document.getElementById('modalRecordatorio');
-        if (modalRecordatorio) {
-            modalRecordatorio.style.display = 'flex';
-            modalRecordatorio.style.zIndex = '20000';
-        }
+    } catch (e) {
+        console.error('❌ Error cargando recordatorios de la clase:', e);
     }
+}
 
     // ============================================
     // PROGRAMAR MÚLTIPLES RECORDATORIOS
@@ -438,7 +533,12 @@ class RecordatorioManager {
         }
         
         this.mostrarMensaje(`✅ ${tiemposOrdenados.length} notificación${tiemposOrdenados.length > 1 ? 'es' : ''} programada${tiemposOrdenados.length > 1 ? 's' : ''}`, 'success');
-        this.reproducirSonido('confirmacion');
+this.reproducirSonido('confirmacion');
+
+// ✅ Cerrar el modal automáticamente después de 2.5 segundos
+setTimeout(() => {
+    this.cerrarModal();
+}, 2500);
     }
 
     // ============================================
