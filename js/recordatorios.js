@@ -485,6 +485,102 @@ actualizarDisplayTiempos() {
     }
 
     // ============================================
+// DESCARGAR .ICS
+// ============================================
+descargarICS() {
+    if (!this.claseSeleccionada) {
+        this.mostrarMensaje('❌ No hay clase seleccionada', 'error');
+        return;
+    }
+    
+    const clase = this.claseSeleccionada;
+    const icsContent = this.generarICS(clase);
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recordatorio_${(clase.nombre || 'clase').replace(/[^a-z0-9]/gi, '_')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    this.mostrarMensaje('✅ Archivo .ICS descargado correctamente', 'success');
+    this.reproducirSonido('confirmacion');
+}
+
+// ============================================
+// GENERAR CONTENIDO ICS
+// ============================================
+generarICS(clase) {
+    // Determinar fecha de inicio
+    let inicio;
+    if (clase.fechaApertura) {
+        inicio = new Date(clase.fechaApertura);
+    } else if (clase.fechaClase) {
+        inicio = new Date(clase.fechaClase);
+    } else {
+        inicio = new Date();
+    }
+    
+    // Duración de la clase (1 hora por defecto)
+    const duracion = 60 * 60 * 1000;
+    const fin = new Date(inicio.getTime() + duracion);
+    
+    // Formatear fechas para ICS
+    function formatDateForICS(date) {
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    }
+    
+    const now = new Date();
+    const dtstamp = formatDateForICS(now);
+    const dtstart = formatDateForICS(inicio);
+    const dtend = formatDateForICS(fin);
+    
+    // Escapar texto para ICS
+    function escapeICS(text) {
+        if (!text) return '';
+        return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    }
+    
+    const summary = escapeICS(clase.nombre || 'Clase');
+    const description = escapeICS(clase.descripcion || '');
+    const location = escapeICS(clase.lugar || '');
+    
+    // Agregar instructores a la descripción
+    let fullDescription = description;
+    if (clase.instructores && clase.instructores.length > 0) {
+        const instructoresText = 'Instructores: ' + clase.instructores.join(', ');
+        fullDescription = fullDescription ? `${fullDescription}\n\n${instructoresText}` : instructoresText;
+    }
+    
+    // Generar UID único
+    const uid = `${clase._id || Date.now()}@recordatorio-enfermeria.com`;
+    
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Mi Aula de Enfermería//Recordatorio Clase//ES',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${dtstamp}`,
+        `DTSTART:${dtstart}`,
+        `DTEND:${dtend}`,
+        `SUMMARY:${summary}`,
+        `DESCRIPTION:${escapeICS(fullDescription)}`,
+        `LOCATION:${location}`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\r\n');
+    
+    return icsContent;
+}
+
+    // ============================================
     // ELIMINAR TIEMPO PERSONALIZADO
     // ============================================
     eliminarTiempoPersonalizado(minutos, btn) {
