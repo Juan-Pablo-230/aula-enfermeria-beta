@@ -1,3 +1,5 @@
+// /js/profile-updater.js
+
 class ProfileUpdater {
     constructor() {
         this.availableLegajos = new Set();
@@ -52,25 +54,29 @@ class ProfileUpdater {
         if (guestInfo) guestInfo.style.display = 'none';
     }
 
-showUserInfo() {
-    const user = authSystem.getCurrentUser();
-    const userInfo = document.getElementById('userInfo');
-    const userName = document.getElementById('userName');
-    if (user && userInfo && userName) {
-        let roleBadge = '';
-        if (user.role === 'admin') roleBadge = ' 👑';
-        else if (user.role === 'advanced') roleBadge = ' ⭐';
-        userName.textContent = `👤 ${user.apellidoNombre} - Legajo: ${user.legajo}${roleBadge}`;
-        userInfo.style.display = 'block';
-        if (this.materialButtonContainer) this.materialButtonContainer.style.display = 'block';
-        this.showAdminPanelButton(user);
-        const userActions = document.querySelector('.user-actions');
-        if (userActions) {
-            this.showCalendarButton(userActions);
-            this.showReportButtons(userActions);  // ← Esta línea debe existir
+    showUserInfo() {
+        const user = authSystem.getCurrentUser();
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        if (user && userInfo && userName) {
+            let roleBadge = '';
+            if (user.role === 'admin') roleBadge = ' 👑';
+            else if (user.role === 'advanced') roleBadge = ' ⭐';
+            userName.textContent = `👤 ${user.apellidoNombre} - Legajo: ${user.legajo}${roleBadge}`;
+            userInfo.style.display = 'block';
+            if (this.materialButtonContainer) this.materialButtonContainer.style.display = 'block';
+            this.showAdminPanelButton(user);
+            const userActions = document.querySelector('.user-actions');
+            if (userActions) {
+                // Limpiar botones existentes de reportes y calendario para evitar duplicados
+                const existingCalendarBtn = document.getElementById('calendarBtn');
+                if (existingCalendarBtn) existingCalendarBtn.remove();
+
+                this.showCalendarButton(userActions);
+                this.showReportButton(userActions);
+            }
         }
     }
-}
 
     showCalendarButton(userActions) {
         const existingCalendarBtn = document.getElementById('calendarBtn');
@@ -199,7 +205,7 @@ showUserInfo() {
             document.getElementById('updatePassword').value = '';
             document.getElementById('updateConfirmPassword').value = '';
             document.getElementById('deleteCurrentPassword').value = '';
-            
+
             // ========== POBLAR SELECT DE ÁREAS - VERSIÓN CORREGIDA ==========
             const updateAreaSelect = document.getElementById('updateArea');
             if (updateAreaSelect && window.poblarSelectAreas) {
@@ -225,7 +231,7 @@ showUserInfo() {
                 console.warn('⚠️ No se pudo poblar áreas');
             }
             // ========== FIN POBLAR SELECT DE ÁREAS ==========
-            
+
             const deleteConfirmation = document.getElementById('deleteConfirmation');
             if (deleteConfirmation) deleteConfirmation.checked = false;
             this.hideLegajoWarning();
@@ -458,37 +464,25 @@ showUserInfo() {
         }
     }
 
-    // /js/profile-updater.js - Método showReportButtons CORREGIDO
+    // ============================================
+    // BOTÓN DE REPORTAR ERROR (para TODOS los usuarios)
+    // ============================================
+    showReportButton(userActions) {
+        // Esperar a que authSystem esté listo
+        if (!authSystem || !authSystem.getCurrentUser()) {
+            console.log('⏳ Esperando authSystem para mostrar botón de reportes');
+            setTimeout(() => this.showReportButton(userActions), 500);
+            return;
+        }
 
-showReportButtons(userActions) {
-    // Esperar a que authSystem esté listo
-    if (!authSystem || !authSystem.getCurrentUser()) {
-        console.log('⏳ Esperando authSystem para mostrar botones de reportes');
-        setTimeout(() => this.showReportButtons(userActions), 500);
-        return;
-    }
-    
-    const user = authSystem.getCurrentUser();
-    if (!user) return;
-    
-    // Eliminar botones existentes para evitar duplicados
-    const existingReportBtn = document.getElementById('reportErrorBtn');
-    const existingViewReportsBtn = document.getElementById('viewReportsBtn');
-    if (existingReportBtn) existingReportBtn.remove();
-    if (existingViewReportsBtn) existingViewReportsBtn.remove();
-    
-    // Determinar qué botones mostrar según el rol
-    const showReportBtn = (user.role === 'user');
-    const showViewReportsBtn = (user.role === 'advanced' || user.role === 'admin');
-    
-    // Si no hay botones que mostrar, salir
-    if (!showReportBtn && !showViewReportsBtn) return;
-    
-    // Crear los botones individualmente y agregarlos DIRECTAMENTE a userActions
-    // (sin contenedor extra para evitar problemas de alineación)
-    
-    // Botón "Reportar un error" (solo para usuarios estándar)
-    if (showReportBtn) {
+        const user = authSystem.getCurrentUser();
+        if (!user) return;
+
+        // Eliminar botón existente para evitar duplicados
+        const existingReportBtn = document.getElementById('reportErrorBtn');
+        if (existingReportBtn) existingReportBtn.remove();
+
+        // ✅ El botón aparece para TODOS los usuarios (sin importar el rol)
         const reportBtn = document.createElement('button');
         reportBtn.id = 'reportErrorBtn';
         reportBtn.className = 'report-error-btn';
@@ -511,7 +505,7 @@ showReportButtons(userActions) {
             white-space: nowrap;
             width: 100%;
         `;
-        
+
         reportBtn.onmouseover = () => {
             reportBtn.style.transform = 'translateY(-3px)';
             reportBtn.style.boxShadow = '0 4px 12px rgba(243, 156, 18, 0.4)';
@@ -522,247 +516,59 @@ showReportButtons(userActions) {
         };
         reportBtn.onclick = (e) => {
             e.preventDefault();
-            this.showReportModal();
+            // ✅ Abrir ventana emergente para reportar error
+            this.openReportWindow();
         };
-        
-        const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    // Insertar ANTES del botón de cerrar sesión
-    userActions.insertBefore(reportBtn, logoutBtn);
-} else {
-    userActions.appendChild(reportBtn);
-}
 
-    }
-    
-    // Botón "Ver reportes" (solo para advanced y admin)
-    if (showViewReportsBtn) {
-        const viewReportsBtn = document.createElement('button');
-        viewReportsBtn.id = 'viewReportsBtn';
-        viewReportsBtn.className = 'view-reports-btn';
-        viewReportsBtn.innerHTML = '📋 Ver reportes';
-        viewReportsBtn.title = 'Ver todos los reportes de errores';
-        viewReportsBtn.style.cssText = `
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-            border: none;
-            padding: 12px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 0.95em;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            white-space: nowrap;
-            width: 100%;
-        `;
-        
-        viewReportsBtn.onmouseover = () => {
-            viewReportsBtn.style.transform = 'translateY(-3px)';
-            viewReportsBtn.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.4)';
-        };
-        viewReportsBtn.onmouseout = () => {
-            viewReportsBtn.style.transform = 'translateY(0)';
-            viewReportsBtn.style.boxShadow = 'none';
-        };
-        viewReportsBtn.onclick = (e) => {
-            e.preventDefault();
-            window.location.href = '/reports.html';
-        };
-        
+        // Insertar antes del botón de cerrar sesión
         const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    userActions.insertBefore(viewReportsBtn, logoutBtn);
-} else {
-    userActions.appendChild(viewReportsBtn);
-}
-    }
-}
-  
-  // /js/profile-updater.js - Método showReportModal modificado
-
-showReportModal() {
-    // Verificar si ya existe un modal
-    const existingModal = document.getElementById('reportErrorModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    const user = authSystem.getCurrentUser();
-    
-    const modalHTML = `
-        <div id="reportErrorModal" class="modal-overlay" style="display: flex;">
-            <div class="modal-container" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2>🐛 Reportar un error</h2>
-                    <button class="close-modal" onclick="document.getElementById('reportErrorModal').remove()">&times;</button>
-                </div>
-                <form id="reportErrorForm" class="modal-form">
-                    <div id="reportModalMessage" class="message" style="display: none;"></div>
-                    
-                    <div class="form-group">
-                        <label for="reportTitle">Título del problema *</label>
-                        <input type="text" id="reportTitle" name="title" required maxlength="100" 
-                               placeholder="Ej: No puedo inscribirme a una clase">
-                        <small class="field-info">Breve descripción del problema</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="reportDescription">Descripción detallada *</label>
-                        <textarea id="reportDescription" name="description" rows="5" required maxlength="2000"
-                                  placeholder="Describe detalladamente qué estaba haciendo cuando ocurrió el error..."></textarea>
-                        <small class="field-info">Máximo 2000 caracteres</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="reportSteps">Pasos para reproducir (opcional)</label>
-                        <textarea id="reportSteps" name="steps" rows="3" maxlength="1000"
-                                  placeholder="1. Hice clic en...&#10;2. Luego seleccioné...&#10;3. Apareció el error..."></textarea>
-                    </div>
-                    
-                    <!-- ⚠️ Campo oculto: los logs se incluyen SIEMPRE de forma obligatoria -->
-                    <input type="hidden" id="includeLogs" value="true">
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="submit-btn">📤 Enviar reporte</button>
-                        <button type="button" class="cancel-btn" onclick="document.getElementById('reportErrorModal').remove()">❌ Cancelar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    const modal = document.getElementById('reportErrorModal');
-    const form = document.getElementById('reportErrorForm');
-    
-    // Cerrar modal al hacer clic fuera
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
+        if (logoutBtn) {
+            userActions.insertBefore(reportBtn, logoutBtn);
+        } else {
+            userActions.appendChild(reportBtn);
         }
-    });
-    
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await this.submitReport();
-    });
-}
-  
-  // Enviar reporte al servidor
-  async submitReport() {
-    const title = document.getElementById('reportTitle').value.trim();
-    const description = document.getElementById('reportDescription').value.trim();
-    const steps = document.getElementById('reportSteps').value.trim();
-    const includeLogs = document.getElementById('includeLogs').checked;
-    
-    if (!title || !description) {
-      this.showReportModalMessage('❌ Título y descripción son obligatorios', 'error');
-      return;
-    }
-    
-    const user = authSystem.getCurrentUser();
-    if (!user) {
-      this.showReportModalMessage('❌ Debes iniciar sesión para reportar un error', 'error');
-      return;
-    }
-    
-    // Obtener logs recientes si se solicita
-    let logs = [];
-    if (includeLogs && window.browserLogger) {
-      logs = window.browserLogger.getCurrentLogs();
-    }
-    
-    // Mostrar loading
-    const submitBtn = document.querySelector('#reportErrorForm .submit-btn');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Enviando...';
-    submitBtn.disabled = true;
-    
-    try {
-      const response = await fetch('/api/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': user._id
-        },
-        body: JSON.stringify({
-          title: title,
-          description: description,
-          steps: steps || null,
-          logs: logs,
-          includeLogs: includeLogs,
-          url: window.location.href,
-          userAgent: navigator.userAgent
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        this.showReportModalMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
-        setTimeout(() => {
-          const modal = document.getElementById('reportErrorModal');
-          if (modal) modal.remove();
-        }, 2000);
-      } else {
-        throw new Error(result.message || 'Error al enviar el reporte');
-      }
-      
-    } catch (error) {
-      console.error('Error enviando reporte:', error);
-      this.showReportModalMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
-    } finally {
-      submitBtn.textContent = originalText;
-      submitBtn.disabled = false;
-    }
-  }
-  
-  showReportModalMessage(message, type) {
-    const msgDiv = document.getElementById('reportModalMessage');
-    if (!msgDiv) return;
-    
-    msgDiv.textContent = message;
-    msgDiv.className = `message ${type}`;
-    msgDiv.style.display = 'block';
-    
-    if (type === 'success') {
-      setTimeout(() => {
-        msgDiv.style.display = 'none';
-      }, 3000);
-    }
-  }
 
-  // /js/profile-updater.js - Método showUserInfo CORREGIDO
+        console.log('✅ Botón "Reportar un error" agregado para:', user.apellidoNombre, `(rol: ${user.role})`);
+    }
 
-showUserInfo() {
-    const user = authSystem.getCurrentUser();
-    const userInfo = document.getElementById('userInfo');
-    const userName = document.getElementById('userName');
-    if (user && userInfo && userName) {
-        let roleBadge = '';
-        if (user.role === 'admin') roleBadge = ' 👑';
-        else if (user.role === 'advanced') roleBadge = ' ⭐';
-        userName.textContent = `👤 ${user.apellidoNombre} - Legajo: ${user.legajo}${roleBadge}`;
-        userInfo.style.display = 'block';
-        if (this.materialButtonContainer) this.materialButtonContainer.style.display = 'block';
-        this.showAdminPanelButton(user);
-        const userActions = document.querySelector('.user-actions');
-        if (userActions) {
-            // Limpiar botones existentes de reportes y calendario para evitar duplicados
-            const existingCalendarBtn = document.getElementById('calendarBtn');
-            if (existingCalendarBtn) existingCalendarBtn.remove();
-            
-            this.showCalendarButton(userActions);
-            this.showReportButtons(userActions);
+    /**
+     * ✅ Abre la ventana emergente de reportar error
+     * Carga /sendreports.html con dimensiones y posición centradas
+     */
+    openReportWindow() {
+        console.log('🪟 Abriendo ventana de reportar error...');
+
+        const width = 620;
+        const height = 780;
+
+        // Calcular posición centrada en pantalla
+        const left = Math.max(0, (window.screen.width / 2) - (width / 2));
+        const top = Math.max(0, (window.screen.height / 2) - (height / 2));
+
+        const features = [
+            `width=${width}`,
+            `height=${height}`,
+            `left=${left}`,
+            `top=${top}`,
+            'resizable=yes',
+            'scrollbars=yes',
+            'status=no',
+            'menubar=no',
+            'toolbar=no',
+            'location=no'
+        ].join(',');
+
+        const reportWindow = window.open('/sendreports.html', 'reportErrorWindow', features);
+
+        if (reportWindow) {
+            reportWindow.focus();
+            console.log('✅ Ventana de reporte abierta correctamente');
+        } else {
+            console.warn('⚠️ No se pudo abrir la ventana (posible bloqueador de pop-ups)');
+            alert('⚠️ Por favor, permití las ventanas emergentes para poder reportar un error.\n\n' +
+                  'En Chrome: Configuración → Privacidad → Configuración de sitios → Ventanas emergentes');
         }
     }
-}
-
 }
 
 document.addEventListener('DOMContentLoaded', function() {

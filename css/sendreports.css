@@ -1,0 +1,398 @@
+/* ============================================
+   SENREPORTS.CSS - Ventana de Reportar Error
+   ============================================ */
+
+:root {
+    --sr-bg-primary: #0f1419;
+    --sr-bg-secondary: #1a1f25;
+    --sr-bg-card: #1e2328;
+    --sr-bg-input: #252b32;
+    --sr-text-primary: #e8e6e3;
+    --sr-text-secondary: #b8b6b3;
+    --sr-text-muted: #8a8885;
+    --sr-border-color: #3a3f46;
+    --sr-border-hover: #4a5058;
+    --sr-accent: #f39c12;
+    --sr-accent-hover: #e67e22;
+    --sr-success: #2ecc71;
+    --sr-error: #e74c3c;
+    --sr-radius-sm: 6px;
+    --sr-radius-md: 10px;
+    --sr-radius-lg: 16px;
+    --sr-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --sr-transition: all 0.25s ease;
+}
+
+/* Modo claro */
+@media (prefers-color-scheme: light) {
+    :root {
+        --sr-bg-primary: #f5f7fa;
+        --sr-bg-secondary: #ffffff;
+        --sr-bg-card: #ffffff;
+        --sr-bg-input: #f0f2f5;
+        --sr-text-primary: #1a1a2e;
+        --sr-text-secondary: #4a4a5a;
+        --sr-text-muted: #7a7a8a;
+        --sr-border-color: #d0d5dd;
+        --sr-border-hover: #b0b8c4;
+        --sr-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100vh;
+}
+
+.sendreports-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: var(--sr-bg-primary);
+    color: var(--sr-text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+.sendreports-container {
+    width: 100%;
+    max-width: 560px;
+    background: var(--sr-bg-secondary);
+    border-radius: var(--sr-radius-lg);
+    box-shadow: var(--sr-shadow);
+    border: 1px solid var(--sr-border-color);
+    overflow: hidden;
+    animation: srSlideIn 0.3s ease;
+}
+
+@keyframes srSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== HEADER ===== */
+.sendreports-header {
+    position: relative;
+    text-align: center;
+    padding: 30px 25px 25px;
+    background: linear-gradient(135deg, var(--sr-accent) 0%, var(--sr-accent-hover) 100%);
+    color: white;
+}
+
+.sendreports-icon {
+    font-size: 3em;
+    margin-bottom: 10px;
+    animation: srBounce 2s infinite;
+}
+
+@keyframes srBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.sendreports-header h1 {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sendreports-header p {
+    font-size: 0.9em;
+    opacity: 0.95;
+    line-height: 1.4;
+}
+
+.sendreports-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.4em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--sr-transition);
+    line-height: 1;
+}
+
+.sendreports-close:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: rotate(90deg);
+}
+
+/* ===== MENSAJES ===== */
+.sendreports-mensaje {
+    padding: 14px 20px;
+    margin: 0;
+    font-weight: 600;
+    text-align: center;
+    font-size: 0.95em;
+    animation: srFadeIn 0.3s ease;
+}
+
+.sendreports-mensaje.success {
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--sr-success);
+    border-bottom: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.sendreports-mensaje.error {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--sr-error);
+    border-bottom: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+@keyframes srFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ===== FORMULARIO ===== */
+.sendreports-form {
+    padding: 25px;
+}
+
+.sendreports-group {
+    margin-bottom: 20px;
+}
+
+.sendreports-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.95em;
+    color: var(--sr-text-primary);
+}
+
+.label-icon {
+    font-size: 1.1em;
+}
+
+.sendreports-group input[type="text"],
+.sendreports-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--sr-border-color);
+    border-radius: var(--sr-radius-md);
+    background: var(--sr-bg-input);
+    color: var(--sr-text-primary);
+    font-size: 0.95em;
+    font-family: inherit;
+    transition: var(--sr-transition);
+    resize: vertical;
+}
+
+.sendreports-group input[type="text"]:focus,
+.sendreports-group textarea:focus {
+    outline: none;
+    border-color: var(--sr-accent);
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
+    background: var(--sr-bg-card);
+}
+
+.sendreports-group input[type="text"]::placeholder,
+.sendreports-group textarea::placeholder {
+    color: var(--sr-text-muted);
+    opacity: 0.7;
+}
+
+.sendreports-group textarea {
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+.sendreports-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8em;
+    color: var(--sr-text-muted);
+    font-style: italic;
+}
+
+/* ===== INFO BOX ===== */
+.sendreports-info-box {
+    background: var(--sr-bg-card);
+    border: 1px solid var(--sr-border-color);
+    border-radius: var(--sr-radius-md);
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.info-box-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--sr-border-color);
+    font-size: 0.9em;
+    color: var(--sr-text-secondary);
+}
+
+.info-icon {
+    font-size: 1.1em;
+}
+
+.info-box-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.82em;
+    color: var(--sr-text-muted);
+}
+
+.info-item span {
+    flex-shrink: 0;
+    min-width: 140px;
+}
+
+.info-item code {
+    background: var(--sr-bg-input);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.9em;
+    color: var(--sr-text-secondary);
+    word-break: break-all;
+    flex: 1;
+}
+
+/* ===== BOTONES ===== */
+.sendreports-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.sendreports-btn {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: var(--sr-radius-md);
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--sr-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+}
+
+.sendreports-btn.submit {
+    background: linear-gradient(135deg, var(--sr-accent) 0%, var(--sr-accent-hover) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+    flex: 2;
+}
+
+.sendreports-btn.submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.sendreports-btn.submit:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.sendreports-btn.submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sendreports-btn.cancel {
+    background: var(--sr-bg-input);
+    color: var(--sr-text-secondary);
+    border: 2px solid var(--sr-border-color);
+    flex: 1;
+}
+
+.sendreports-btn.cancel:hover {
+    background: var(--sr-bg-card);
+    border-color: var(--sr-border-hover);
+    color: var(--sr-text-primary);
+}
+
+/* ===== FOOTER ===== */
+.sendreports-footer {
+    padding: 15px 25px 20px;
+    text-align: center;
+    border-top: 1px solid var(--sr-border-color);
+    background: var(--sr-bg-card);
+}
+
+.sendreports-footer p {
+    font-size: 0.8em;
+    color: var(--sr-text-muted);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+    .sendreports-body {
+        padding: 10px;
+    }
+
+    .sendreports-container {
+        border-radius: var(--sr-radius-md);
+    }
+
+    .sendreports-header {
+        padding: 25px 20px 20px;
+    }
+
+    .sendreports-header h1 {
+        font-size: 1.3em;
+    }
+
+    .sendreports-form {
+        padding: 20px 15px;
+    }
+
+    .sendreports-actions {
+        flex-direction: column;
+    }
+
+    .sendreports-btn.submit,
+    .sendreports-btn.cancel {
+        flex: 1;
+    }
+
+    .info-item {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .info-item span {
+        min-width: auto;
+    }
+}

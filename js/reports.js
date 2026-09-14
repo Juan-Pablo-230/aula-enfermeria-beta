@@ -409,7 +409,7 @@ class ReportsManager {
         const btnVolver = document.getElementById('btnVolver');
         if (btnVolver) {
             btnVolver.addEventListener('click', () => {
-                window.location.href = '/index.html';
+                window.location.href = '/admin/dashboard.html';
             });
         }
     }
