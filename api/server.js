@@ -1689,35 +1689,40 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         console.log('🎬 YouTube ID:', youtubeVideoId);
         
         const updateData = {
-            $set: {
-                nombre,
-                descripcion: descripcion || '',
-                fechaClase: fechaClaseDate,
-                instructores: instructores || [],
-                lugar: lugar || '',
-                enlaceFormulario: enlaceFormulario || '',
-                publicada: publicada === true,
-                area: areaFinal,
-                
-                // ===== MODALIDAD =====
-                modalidad: modalidad || '',
-                ubicacion: ubicacion || '',
-                plataforma: plataforma || '',
-                enlaceVirtual: enlaceVirtual || '',
-                enlaceYouTube: enlaceYouTube || '',
-                youtubeVideoId: youtubeVideoId || '',
-                
-                // ===== CONTROLES INTERNOS =====
-                auditorio: auditorio === true || false,
-                cafeteria: cafeteria === true || false,
-                material: material === true || false,
-                
-                // ===== MATERIAL ENLACES =====
-                materialEnlaces: materialEnlaces || [],
-                
-                fechaActualizacion: new Date()
-            }
-        };
+    $set: {
+        nombre,
+        descripcion: descripcion || '',
+        fechaClase: fechaClaseDate,
+        instructores: instructores || [],
+        lugar: lugar || '',
+        enlaceFormulario: enlaceFormulario || '',
+        publicada: publicada === true,
+        area: areaFinal,
+        
+        // ===== MODALIDAD =====
+        modalidad: modalidad || '',
+        ubicacion: ubicacion || '',
+        plataforma: plataforma || '',
+        enlaceVirtual: enlaceVirtual || '',
+        enlaceYouTube: enlaceYouTube || '',
+        youtubeVideoId: youtubeVideoId || '',
+        
+        // ===== CONTROLES INTERNOS =====
+        auditorio: auditorio === true || false,
+        cafeteria: cafeteria === true || false,
+        material: material === true || false,
+        
+        fechaActualizacion: new Date()
+    }
+};
+// Solo actualizar materialEnlaces si se enviaron explícitamente
+// y NO están vacíos. Caso contrario, mantener los existentes.
+if (Array.isArray(materialEnlaces) && materialEnlaces.length > 0) {
+    updateData.$set.materialEnlaces = materialEnlaces;
+    console.log('📎 Actualizando materialEnlaces:', materialEnlaces.length, 'enlaces');
+} else {
+    console.log('📎 Preservando materialEnlaces existentes (no se enviaron o están vacíos)');
+}
         
         if (fechaCierreDate) {
             updateData.$set.fechaCierre = fechaCierreDate;

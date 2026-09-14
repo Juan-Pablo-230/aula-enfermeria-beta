@@ -13,7 +13,7 @@ const versionBeta = isLocalhost || isBetaDomain || !isProdDomain;
 
 if (versionBeta == true) {
     console.warn("Esta es una versión BETA del Aula Virtual. Puede contener errores o funcionalidades incompletas. Por favor, utilícelo con precaución y reporte cualquier problema al desarrollador.");
-    document.title = 'Mi Aula de Enfermería - BETA';
+    document.title = 'Mi Aula Virtual - BETA';
     const faviconUrl = '/img/logo-beta.png';
     const link = document.createElement('link');
     link.rel = 'shortcut icon';
@@ -25,16 +25,16 @@ if (versionBeta == true) {
     document.head.appendChild(link);
     const h1 = document.querySelector('.header-text h1');
      if (h1) {
-        h1.textContent = 'Mi Aula de Enfermería - BETA';
+        h1.textContent = 'Mi Aula Virtual - BETA';
     }
     const footer = document.querySelector('footer');
     if (footer) {
-        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.5.14';
+        footer.innerHTML = '<a href="https://www.enfermeriaenaccion.com.ar/" style="color: #667eea; text-decoration: none;">Ir a la versión estable del sistema.</a>' + '<br>' + '<span style="color: #ff6b6b; font-weight: bold;">Versión:</span> 3.5.15';
         
     }
 }
 else {
-    document.title = 'Mi Aula de Enfermería';
+    document.title = 'Mi Aula Virtual';
     const faviconUrl = '/img/logo-oficial.png';
     const link = document.createElement('link');
     link.rel = 'shortcut icon';
