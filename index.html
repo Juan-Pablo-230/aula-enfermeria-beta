@@ -103,7 +103,7 @@
     </div>
 
     <!-- ===== MODAL DE RECORDATORIO (CON .ICS) ===== -->
-    <div id="modalRecordatorio" class="modal-overlay" style="display: none;">
+    <div id="modalRecordatorio" class="modal-overlay" style="display: none; z-index: 20000;">
         <div class="modal-container" style="max-width: 480px;">
             <div class="modal-header">
                 <h2>⏰ Configurar Recordatorio</h2>
@@ -147,54 +147,77 @@
                 <!-- ===== PANEL DE NOTIFICACIÓN ===== -->
                 <div id="panelNotificacion">
                     <!-- Selector de tiempo -->
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-primary);">📅 ¿Cuándo quieres ser notificado?</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                            <button class="tiempo-btn" data-minutos="60" onclick="recordatorioManager.seleccionarTiempo(60, this)" style="
-                                padding: 10px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">1 Hora</button>
-                            
-                            <button class="tiempo-btn" data-minutos="120" onclick="recordatorioManager.seleccionarTiempo(120, this)" style="
-                                padding: 10px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">2 Horas</button>
-                            
-                            <button class="tiempo-btn" data-minutos="1440" onclick="recordatorioManager.seleccionarTiempo(1440, this)" style="
-                                padding: 10px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">1 Día</button>
-                            
-                            <button class="tiempo-btn" data-minutos="10080" onclick="recordatorioManager.seleccionarTiempo(10080, this)" style="
-                                padding: 10px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">1 Semana</button>
-                        </div>
-                    </div>
+                    <!-- Selector de tiempo -->
+<div class="form-group" style="margin-bottom: 15px;">
+    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-primary);">📅 ¿Cuándo quieres ser notificado?</label>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+        <button class="tiempo-btn" data-minutos="10" onclick="recordatorioManager.seleccionarTiempo(10, this)" style="
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        ">10 min</button>
+        
+        <button class="tiempo-btn" data-minutos="30" onclick="recordatorioManager.seleccionarTiempo(30, this)" style="
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        ">30 min</button>
+        
+        <button class="tiempo-btn" data-minutos="60" onclick="recordatorioManager.seleccionarTiempo(60, this)" style="
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        ">1 Hora</button>
+        
+        <button class="tiempo-btn" data-minutos="120" onclick="recordatorioManager.seleccionarTiempo(120, this)" style="
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        ">2 Horas</button>
+        
+        <button class="tiempo-btn" data-minutos="1440" onclick="recordatorioManager.seleccionarTiempo(1440, this)" style="
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        ">1 Día</button>
+        
+        <button class="tiempo-btn" data-minutos="10080" onclick="recordatorioManager.seleccionarTiempo(10080, this)" style="
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-container);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        ">1 Semana</button>
+    </div>
+</div>
                     
                     <!-- Tiempo personalizado -->
                     <div class="form-group" style="margin-bottom: 15px;">

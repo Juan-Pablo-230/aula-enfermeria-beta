@@ -187,12 +187,21 @@ class RecordatorioManager {
         
         // Limpiar mensajes
         this.ocultarMensaje();
+
+        // ✅ Cambiar al tab de Notificación por defecto
+this.cambiarTab('notificacion');
         
         // ✅ NO pedir permiso aquí, solo al programar
         
         // Mostrar modal
-        document.getElementById('modalRecordatorio').style.display = 'flex';
-        console.log('📅 Modal de recordatorio abierto para:', clase.nombre);
+const modalRecordatorio = document.getElementById('modalRecordatorio');
+if (modalRecordatorio) {
+    modalRecordatorio.style.display = 'flex';
+    modalRecordatorio.style.zIndex = '20000';
+    console.log('📅 Modal de recordatorio abierto para:', clase.nombre);
+} else {
+    console.error('❌ No se encontró #modalRecordatorio');
+}
     }
 
     // Seleccionar tiempo predefinido
