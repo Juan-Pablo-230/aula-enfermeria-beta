@@ -1352,9 +1352,9 @@
                     const esPresencialOHibrido = clase.modalidad === 'Presencial' || clase.modalidad === 'Híbrido';
                     let lugarHtml = '';
                     if (esPresencialOHibrido && ubicacionTexto) {
-                        lugarHtml = `<p><small class="class-lugar">📍 <strong>Ubicación:</strong> ${escapeHtml(ubicacionTexto)}</small></p>`;
+                        lugarHtml = `<p><small class="class-lugar"> <strong>Ubicación:</strong> ${escapeHtml(ubicacionTexto)}</small></p>`;
                     } else if (ubicacionTexto) {
-                        lugarHtml = `<p><small class="class-lugar">📍 ${escapeHtml(ubicacionTexto)}</small></p>`;
+                        lugarHtml = `<p><small class="class-lugar"> ${escapeHtml(ubicacionTexto)}</small></p>`;
                     }
 
                     htmlString += `
