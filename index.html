@@ -1017,59 +1017,46 @@ estadoClase.style.display = 'block';
         // CONFIGURACIÓN DEL BOTÓN DE RECORDATORIO
         // ============================================
         function configurarBotonRecordatorio() {
-            const btnRecordatorio = document.getElementById('btnRecordatorio');
-            if (!btnRecordatorio) {
-                console.log('⏳ Botón de recordatorio no encontrado, reintentando...');
-                setTimeout(configurarBotonRecordatorio, 500);
-                return;
-            }
-            
-            console.log('✅ Configurando botón de recordatorio');
-            
-            const nuevoBtn = btnRecordatorio.cloneNode(true);
-            btnRecordatorio.parentNode.replaceChild(nuevoBtn, btnRecordatorio);
-            
-            nuevoBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('🔔 Click en botón de recordatorio');
-                
-                if (!claseSeleccionada) {
-                    console.warn('⚠️ No hay clase seleccionada');
-                    return;
-                }
-                
-                if (window.recordatorioManager) {
-                    console.log('📅 Abriendo modal de recordatorio para:', claseSeleccionada.nombre);
-                    window.recordatorioManager.abrirModal(claseSeleccionada);
-                } else {
-                    console.error('❌ RecordatorioManager no disponible');
-                    alert('Error: El sistema de recordatorios no está disponible. Por favor, recargue la página.');
-                }
-            });
-            
-            window.btnRecordatorioConfigurado = true;
-            console.log('✅ Botón de recordatorio configurado correctamente');
+    const btn = document.getElementById('btnRecordatorio');
+    if (!btn) {
+        console.log('⏳ Botón de recordatorio no encontrado, reintentando...');
+        setTimeout(configurarBotonRecordatorio, 500);
+        return;
+    }
+    
+    // ✅ Si ya está configurado, no hacer nada
+    if (btn.dataset.configurado === 'true') {
+        console.log('✅ Botón ya estaba configurado');
+        return;
+    }
+    
+    console.log('✅ Configurando botón de recordatorio');
+    
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('🔔 Click en botón de recordatorio');
+        
+        if (!claseSeleccionada) {
+            console.warn('⚠️ No hay clase seleccionada');
+            return;
         }
+        
+        if (window.recordatorioManager) {
+            console.log('📅 Abriendo modal de recordatorio para:', claseSeleccionada.nombre);
+            window.recordatorioManager.abrirModal(claseSeleccionada);
+        } else {
+            console.error('❌ RecordatorioManager no disponible');
+            alert('Error: El sistema de recordatorios no está disponible. Por favor, recargue la página.');
+        }
+    });
+    
+    btn.dataset.configurado = 'true';
+    console.log('✅ Botón de recordatorio configurado correctamente');
+}
 
         document.addEventListener('DOMContentLoaded', function() {
-            configurarBotonRecordatorio();
-            
-            const modalObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList' && mutation.target.id === 'modalBody') {
-                        const btn = document.getElementById('btnRecordatorio');
-                        if (btn && !window.btnRecordatorioConfigurado) {
-                            configurarBotonRecordatorio();
-                        }
-                    }
-                });
-            });
-            
-            const modalBody = document.getElementById('modalBody');
-            if (modalBody) {
-                modalObserver.observe(modalBody, { childList: true, subtree: true });
-            }
-        });
+    configurarBotonRecordatorio();
+});
 
         // ============================================
         // CONFIGURACIÓN DE FECHAS ESPECIALES
