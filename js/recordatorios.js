@@ -83,9 +83,87 @@ class RecordatorioManager {
     }
 
     // ============================================
-    // ACTUALIZAR DISPLAY DE TIEMPOS SELECCIONADOS
+// ✅ NUEVO: ELIMINAR UN TIEMPO INDIVIDUAL
+// ============================================
+eliminarTiempo(minutos) {
+    console.log(`🗑️ Eliminando tiempo: ${minutos} min`);
+    
+    // ✅ Quitar del array
+    const index = this.tiemposSeleccionados.indexOf(minutos);
+    if (index > -1) {
+        this.tiemposSeleccionados.splice(index, 1);
+    }
+    
+    // ✅ Desmarcar botón predefinido si existe
+    const btnPredefinido = document.querySelector(`.tiempo-btn[data-minutos="${minutos}"]:not([data-custom="true"])`);
+    if (btnPredefinido) {
+        btnPredefinido.classList.remove('active');
+        btnPredefinido.style.background = 'var(--bg-container)';
+        btnPredefinido.style.color = 'var(--text-primary)';
+        btnPredefinido.style.borderColor = 'var(--border-color)';
+    }
+    
+    // ✅ Eliminar botón personalizado si existe
+    const btnCustom = document.querySelector(`.tiempo-btn[data-custom="true"][data-minutos="${minutos}"]`);
+    if (btnCustom) {
+        btnCustom.remove();
+    }
+    
+    // ✅ Actualizar display
+    this.actualizarDisplayTiempos();
+    
+    // ✅ Si ya no hay tiempos, limpiar el estado verde
+    if (this.tiemposSeleccionados.length === 0) {
+        const estado = document.getElementById('recordatorioEstado');
+        if (estado) estado.style.display = 'none';
+    }
+    
+    console.log(`✅ Tiempo eliminado. Quedan: ${this.tiemposSeleccionados.length}`);
+}
+
+// ============================================
+// ✅ NUEVO: ELIMINAR TODOS LOS TIEMPOS SELECCIONADOS
+// ============================================
+eliminarTodosLosTiempos() {
+    console.log('🗑️ Eliminando todos los tiempos seleccionados');
+    
+    if (this.tiemposSeleccionados.length === 0) return;
+    
+    // ✅ Desmarcar todos los botones predefinidos
+    document.querySelectorAll('.tiempo-btn:not([data-custom="true"])').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.background = 'var(--bg-container)';
+        btn.style.color = 'var(--text-primary)';
+        btn.style.borderColor = 'var(--border-color)';
+    });
+    
+    // ✅ Eliminar todos los botones personalizados
+    document.querySelectorAll('.tiempo-btn[data-custom="true"]').forEach(btn => btn.remove());
+    
+    // ✅ Vaciar el array
+    this.tiemposSeleccionados = [];
+    
+    // ✅ Actualizar display
+    this.actualizarDisplayTiempos();
+    
+    // ✅ Limpiar estado verde
+    const estado = document.getElementById('recordatorioEstado');
+    if (estado) estado.style.display = 'none';
+    
+    // ✅ Resetear botón programar
+    const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+    if (btnProgramar) {
+        btnProgramar.textContent = '🔔 Programar Notificaciones';
+        btnProgramar.disabled = true;
+    }
+    
+    console.log('✅ Todos los tiempos eliminados');
+}
+
     // ============================================
-    actualizarDisplayTiempos() {
+// ACTUALIZAR DISPLAY DE TIEMPOS SELECCIONADOS
+// ============================================
+actualizarDisplayTiempos() {
     const display = document.getElementById('tiempoSeleccionadoDisplay');
     if (!display) return;
     
@@ -99,16 +177,87 @@ class RecordatorioManager {
         return;
     }
     
-    const textos = this.tiemposSeleccionados.map(m => this.formatTiempo(m));
     const cantidad = this.tiemposSeleccionados.length;
     
+    // ✅ Crear la lista con botones ✕ por cada tiempo
+    const tiemposHTML = this.tiemposSeleccionados.map(minutos => {
+        const texto = this.formatTiempo(minutos);
+        return `
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                padding: 6px 10px;
+                background: var(--bg-container);
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                margin-bottom: 4px;
+            ">
+                <span style="font-size: 0.9em;">⏰ ${texto} antes</span>
+                <button 
+                    type="button"
+                    onclick="recordatorioManager.eliminarTiempo(${minutos})" 
+                    title="Eliminar este recordatorio"
+                    style="
+                        background: transparent;
+                        border: 1px solid var(--error-500);
+                        color: var(--error-500);
+                        border-radius: 50%;
+                        width: 24px;
+                        height: 24px;
+                        min-width: 24px;
+                        cursor: pointer;
+                        font-size: 0.8em;
+                        font-weight: bold;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s ease;
+                        padding: 0;
+                    "
+                    onmouseover="this.style.background='var(--error-500)'; this.style.color='white';"
+                    onmouseout="this.style.background='transparent'; this.style.color='var(--error-500)';">
+                    ✕
+                </button>
+            </div>
+        `;
+    }).join('');
+    
     display.innerHTML = `
-        ✅ <strong>${cantidad}</strong> recordatorio${cantidad > 1 ? 's' : ''} seleccionado${cantidad > 1 ? 's' : ''}:<br>
-        <span style="font-size: 0.9em;">${textos.map(t => `• ${t} antes`).join('<br>')}</span>
+        <div style="text-align: left;">
+            ✅ <strong>${cantidad}</strong> recordatorio${cantidad > 1 ? 's' : ''} seleccionado${cantidad > 1 ? 's' : ''}:
+            <div style="margin-top: 8px;">
+                ${tiemposHTML}
+            </div>
+            ${cantidad > 1 ? `
+                <button 
+                    type="button"
+                    onclick="recordatorioManager.eliminarTodosLosTiempos()" 
+                    style="
+                        width: 100%;
+                        margin-top: 8px;
+                        padding: 6px 12px;
+                        background: transparent;
+                        border: 1px solid var(--error-500);
+                        color: var(--error-500);
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.85em;
+                        font-weight: bold;
+                        transition: all 0.2s ease;
+                    "
+                    onmouseover="this.style.background='var(--error-500)'; this.style.color='white';"
+                    onmouseout="this.style.background='transparent'; this.style.color='var(--error-500)';">
+                    🗑️ Eliminar todos
+                </button>
+            ` : ''}
+        </div>
     `;
     display.style.color = 'var(--text-primary)';
     display.style.background = 'rgba(52, 168, 83, 0.1)';
     display.style.border = '1px solid rgba(52, 168, 83, 0.3)';
+    display.style.padding = '12px';
     
     const btnProgramar = document.getElementById('btnProgramarRecordatorio');
     if (btnProgramar) btnProgramar.disabled = false;
