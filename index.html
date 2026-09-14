@@ -64,7 +64,7 @@
             <div class="video-container">
                 <div class="video-header">
                     <h2>Video instructivo del sistema.</h2>
-                    <p>Mira este tutorial para aprender a usar correctamente el sistema de inscripciones</p>
+                    <p>Mira este tutorial para aprender a usar correctamente el aula virtual</p>
                 </div>
                 <div class="video-wrapper">
                     <iframe width="560" height="315" 
@@ -93,6 +93,7 @@
                 <div class="fechas-modal">
                     <p><strong>Apertura:</strong> <span id="modalFechaApertura"></span></p>
                     <p><strong>Cierre:</strong> <span id="modalFechaCierre"></span></p>
+                    <p id="modalUbicacionRow" style="display: none;"><strong>Ubicación:</strong> <span id="modalUbicacion"></span></p>
                 </div>
                 <p id="estadoClase" class="estado-clase" style="display: none;"></p>
                 <button id="btnUnirse" class="btn-unirse" style="display: none;">Unirse a la clase</button>
@@ -222,54 +223,54 @@
                     </div>
                     
                     <!-- Tiempo personalizado -->
-<div class="form-group" style="margin-bottom: 15px;">
-    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-primary);">
-        ⏱️ Personalizado <small style="font-weight: normal; color: var(--text-muted);">(agregar otro tiempo)</small>
-    </label>
-    
-    <!-- Fila 1: input + select -->
-    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <input type="number" id="recordatorioPersonalizado" min="1" placeholder="Ej: 45" style="
-            flex: 1;
-            min-width: 0;
-            padding: 10px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            box-sizing: border-box;
-        ">
-        <select id="recordatorioUnidad" style="
-            flex: 0 0 auto;
-            min-width: 0;
-            padding: 10px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            box-sizing: border-box;
-        ">
-            <option value="minutos">Minutos</option>
-            <option value="horas">Horas</option>
-            <option value="dias">Días</option>
-        </select>
-    </div>
-    
-    <!-- Fila 2: botón agregar (ancho completo) -->
-    <button onclick="recordatorioManager.aplicarTiempoPersonalizado()" style="
-        width: 100%;
-        padding: 10px 15px;
-        border: 2px solid var(--accent-color);
-        border-radius: 8px;
-        background: var(--accent-color);
-        color: white;
-        cursor: pointer;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        box-sizing: border-box;
-    ">➕ Agregar tiempo personalizado</button>
-</div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-primary);">
+                            ⏱️ Personalizado <small style="font-weight: normal; color: var(--text-muted);">(agregar otro tiempo)</small>
+                        </label>
+                        
+                        <!-- Fila 1: input + select -->
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="number" id="recordatorioPersonalizado" min="1" placeholder="Ej: 45" style="
+                                flex: 1;
+                                min-width: 0;
+                                padding: 10px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                box-sizing: border-box;
+                            ">
+                            <select id="recordatorioUnidad" style="
+                                flex: 0 0 auto;
+                                min-width: 0;
+                                padding: 10px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                box-sizing: border-box;
+                            ">
+                                <option value="minutos">Minutos</option>
+                                <option value="horas">Horas</option>
+                                <option value="dias">Días</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Fila 2: botón agregar (ancho completo) -->
+                        <button onclick="recordatorioManager.aplicarTiempoPersonalizado()" style="
+                            width: 100%;
+                            padding: 10px 15px;
+                            border: 2px solid var(--accent-color);
+                            border-radius: 8px;
+                            background: var(--accent-color);
+                            color: white;
+                            cursor: pointer;
+                            font-weight: bold;
+                            transition: all 0.3s ease;
+                            box-sizing: border-box;
+                        ">➕ Agregar tiempo personalizado</button>
+                    </div>
                     
                     <!-- Tiempo seleccionado -->
                     <div id="tiempoSeleccionadoDisplay" style="
@@ -601,7 +602,7 @@
 
             const summary = escapeICS(clase.nombre || 'Clase');
             const description = escapeICS(clase.descripcion || '');
-            const location = escapeICS(clase.lugar || '');
+            const location = escapeICS(clase.ubicacion || clase.lugar || '');
 
             const icsContent = [
                 'BEGIN:VCALENDAR',
@@ -692,6 +693,21 @@
 
                 claseSeleccionada = clase;
                 modalClaseNombre.textContent = clase.nombre || 'Clase';
+
+                // ===== MOSTRAR U OCULTAR UBICACIÓN SI ES PRESENCIAL O HÍBRIDA =====
+                const modalUbicacionRow = document.getElementById('modalUbicacionRow');
+                const modalUbicacion = document.getElementById('modalUbicacion');
+                const modalidadClase = (clase.modalidad || '').trim();
+                const ubicacionClase = clase.ubicacion || clase.lugar || '';
+
+                if (modalUbicacionRow && modalUbicacion) {
+                    if (modalidadClase === 'Presencial' || modalidadClase === 'Híbrido') {
+                        modalUbicacion.textContent = ubicacionClase || 'Ubicación no especificada';
+                        modalUbicacionRow.style.display = 'block';
+                    } else {
+                        modalUbicacionRow.style.display = 'none';
+                    }
+                }
 
                 const { apertura, cierre } = obtenerTimestampsClase(clase);
 
@@ -925,7 +941,7 @@
                                 <div>
                                     <div style="font-weight: bold; margin-bottom: 4px;">Presencial</div>
                                     <div style="font-size: 0.85em; color: var(--text-muted);">
-                                        ${escapeHtml(clase.ubicacion || 'Ubicación no especificada')}
+                                        ${escapeHtml(clase.ubicacion || clase.lugar || 'Ubicación no especificada')}
                                     </div>
                                 </div>
                             </button>
@@ -1332,11 +1348,20 @@
                         modalidadBadge = `<span class="class-modalidad-badge" style="display: inline-block; background: var(--accent-color); color: white; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-top: 5px; margin-left: 5px;">${iconoMod} ${clase.modalidad}</span>`;
                     }
 
+                    const ubicacionTexto = clase.ubicacion || clase.lugar || '';
+                    const esPresencialOHibrido = clase.modalidad === 'Presencial' || clase.modalidad === 'Híbrido';
+                    let lugarHtml = '';
+                    if (esPresencialOHibrido && ubicacionTexto) {
+                        lugarHtml = `<p><small class="class-lugar">📍 <strong>Ubicación:</strong> ${escapeHtml(ubicacionTexto)}</small></p>`;
+                    } else if (ubicacionTexto) {
+                        lugarHtml = `<p><small class="class-lugar">📍 ${escapeHtml(ubicacionTexto)}</small></p>`;
+                    }
+
                     htmlString += `
                         <div class="class-card" onclick="abrirModalClase('${clase._id}')">
                             <h3>${escapeHtml(clase.nombre)}</h3>
                             <p>${instructoresTexto}</p>
-                            ${clase.lugar ? `<p><small class="class-lugar"> ${escapeHtml(clase.lugar)}</small></p>` : ''}
+                            ${lugarHtml}
                             <div class="class-datetime">
                                 <span class="class-date">📅 ${fechaFormateada}</span>
                                 <span class="class-time">⏰ ${horaInicio} hs</span>
