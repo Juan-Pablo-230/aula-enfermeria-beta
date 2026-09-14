@@ -66,25 +66,36 @@ class AuthSystem {
     }
 
     async init() {
-        console.log('Inicializando sistema de auth con MongoDB...');
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            this.currentUser = JSON.parse(savedUser);
-            console.log('Usuario encontrado en localStorage:', this.currentUser);
-            console.log('📅 passwordLastUpdated guardado:', this.currentUser.passwordLastUpdated);
-            
-            // ✅ Verificar sesión UNA sola vez al cargar la página
+    console.log('Inicializando sistema de auth con MongoDB...');
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        this.currentUser = JSON.parse(savedUser);
+        console.log('Usuario encontrado en localStorage:', this.currentUser);
+        console.log('📅 passwordLastUpdated guardado:', this.currentUser.passwordLastUpdated);
+        console.log('🔐 mustChangePassword:', this.currentUser.mustChangePassword);
+        
+        // ✅ 1. Verificar si debe cambiar contraseña PRIMERO (bloqueante)
+        if (this.currentUser.mustChangePassword === true) {
+            console.log('🔐 Usuario debe cambiar contraseña - Mostrando modal forzado');
             setTimeout(() => {
-                this.validateSessionOnce();
-            }, 500);
-            
-            setTimeout(() => {
-                this.checkMigrationNeeded();
-            }, 1000);
-        } else {
-            console.log('No hay usuario en localStorage');
+                this.showForcedPasswordChangeModal(this.currentUser);
+            }, 300);
+            return; // ← No seguir con las otras verificaciones
         }
+        
+        // ✅ 2. Verificar sesión UNA sola vez al cargar la página
+        setTimeout(() => {
+            this.validateSessionOnce();
+        }, 500);
+        
+        // ✅ 3. Verificar migración
+        setTimeout(() => {
+            this.checkMigrationNeeded();
+        }, 1000);
+    } else {
+        console.log('No hay usuario en localStorage');
     }
+}
 
     // ✅ Validar sesión UNA sola vez - Cierre automático silencioso
 async validateSessionOnce() {
