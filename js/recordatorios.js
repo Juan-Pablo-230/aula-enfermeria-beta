@@ -83,10 +83,23 @@ class RecordatorioManager {
     }
 
     // ============================================
-// ✅ NUEVO: ELIMINAR UN TIEMPO INDIVIDUAL
+// ✅ ELIMINAR UN TIEMPO INDIVIDUAL (CON CONFIRMACIÓN)
 // ============================================
 eliminarTiempo(minutos) {
-    console.log(`🗑️ Eliminando tiempo: ${minutos} min`);
+    console.log(`🗑️ Solicitud de eliminación: ${minutos} min`);
+    
+    const texto = this.formatTiempo(minutos);
+    
+    // ✅ Pedir confirmación
+    const confirmar = confirm(
+        `⚠️ ¿Eliminar el recordatorio de "${texto} antes"?\n\n` +
+        `Esta acción no se puede deshacer.`
+    );
+    
+    if (!confirmar) {
+        console.log('❌ Eliminación cancelada por el usuario');
+        return;
+    }
     
     // ✅ Quitar del array
     const index = this.tiemposSeleccionados.indexOf(minutos);
@@ -109,6 +122,9 @@ eliminarTiempo(minutos) {
         btnCustom.remove();
     }
     
+    // ✅ IMPORTANTE: Eliminar el timer correspondiente y actualizar localStorage
+    this.eliminarTimerDeStorage(minutos);
+    
     // ✅ Actualizar display
     this.actualizarDisplayTiempos();
     
@@ -118,16 +134,33 @@ eliminarTiempo(minutos) {
         if (estado) estado.style.display = 'none';
     }
     
+    // ✅ Refrescar la lista visual de timers activos
+    this.actualizarEstadoRecordatorios();
+    
+    this.mostrarMensaje(`✅ Recordatorio de ${texto} eliminado`, 'success');
     console.log(`✅ Tiempo eliminado. Quedan: ${this.tiemposSeleccionados.length}`);
 }
 
 // ============================================
-// ✅ NUEVO: ELIMINAR TODOS LOS TIEMPOS SELECCIONADOS
+// ✅ ELIMINAR TODOS LOS TIEMPOS (CON CONFIRMACIÓN)
 // ============================================
 eliminarTodosLosTiempos() {
-    console.log('🗑️ Eliminando todos los tiempos seleccionados');
+    console.log('🗑️ Solicitud de eliminación de TODOS los tiempos');
     
     if (this.tiemposSeleccionados.length === 0) return;
+    
+    const cantidad = this.tiemposSeleccionados.length;
+    
+    // ✅ Pedir confirmación
+    const confirmar = confirm(
+        `⚠️ ¿Eliminar los ${cantidad} recordatorio${cantidad > 1 ? 's' : ''}?\n\n` +
+        `Esta acción no se puede deshacer.`
+    );
+    
+    if (!confirmar) {
+        console.log('❌ Eliminación cancelada por el usuario');
+        return;
+    }
     
     // ✅ Desmarcar todos los botones predefinidos
     document.querySelectorAll('.tiempo-btn:not([data-custom="true"])').forEach(btn => {
@@ -143,6 +176,19 @@ eliminarTodosLosTiempos() {
     // ✅ Vaciar el array
     this.tiemposSeleccionados = [];
     
+    // ✅ Limpiar TODOS los timers programados
+    this.timers.forEach(t => clearTimeout(t));
+    this.timers = [];
+    this.programado = false;
+    
+    // ✅ Eliminar de localStorage
+    try {
+        localStorage.removeItem('recordatoriosProgramados');
+        console.log('💾 Recordatorios eliminados de localStorage');
+    } catch (e) {
+        console.warn('No se pudo eliminar de localStorage:', e);
+    }
+    
     // ✅ Actualizar display
     this.actualizarDisplayTiempos();
     
@@ -157,7 +203,103 @@ eliminarTodosLosTiempos() {
         btnProgramar.disabled = true;
     }
     
+    this.mostrarMensaje('✅ Todos los recordatorios eliminados', 'success');
     console.log('✅ Todos los tiempos eliminados');
+}
+
+// ============================================
+// ✅ NUEVO: ELIMINAR UN TIMER ESPECÍFICO DEL STORAGE
+// ============================================
+eliminarTimerDeStorage(minutos) {
+    try {
+        const data = localStorage.getItem('recordatoriosProgramados');
+        if (!data) return;
+        
+        const recordatorio = JSON.parse(data);
+        if (!recordatorio.tiempos) return;
+        
+        // ✅ Quitar este tiempo del array de tiempos guardados
+        const index = recordatorio.tiempos.indexOf(minutos);
+        if (index > -1) {
+            recordatorio.tiempos.splice(index, 1);
+        }
+        
+        // ✅ Si ya no quedan tiempos, eliminar todo
+        if (recordatorio.tiempos.length === 0) {
+            localStorage.removeItem('recordatoriosProgramados');
+            this.programado = false;
+            console.log('💾 Recordatorio eliminado de localStorage (era el último)');
+            return;
+        }
+        
+        // ✅ Guardar la lista actualizada
+        localStorage.setItem('recordatoriosProgramados', JSON.stringify(recordatorio));
+        console.log(`💾 localStorage actualizado: quedan ${recordatorio.tiempos.length} tiempos`);
+        
+        // ✅ Cancelar el timer correspondiente si está activo
+        // Nota: no podemos saber cuál timer corresponde a cuál tiempo sin un mapeo,
+        // así que limpiamos TODOS y reprogramamos los que quedan
+        this.timers.forEach(t => clearTimeout(t));
+        this.timers = [];
+        
+        // Reprogramar los que quedan
+        const ahora = Date.now();
+        const fechaClaseMs = new Date(recordatorio.fechaClase).getTime();
+        
+        recordatorio.tiempos.forEach(min => {
+            const tiempoRestante = (fechaClaseMs - ahora) - (min * 60 * 1000);
+            
+            if (tiempoRestante > 0) {
+                const timerId = setTimeout(() => {
+                    this.enviarNotificacion(this.claseSeleccionada, min);
+                    const idx = this.timers.indexOf(timerId);
+                    if (idx > -1) this.timers.splice(idx, 1);
+                    
+                    if (this.timers.length === 0) {
+                        this.programado = false;
+                        localStorage.removeItem('recordatoriosProgramados');
+                    }
+                }, tiempoRestante);
+                
+                this.timers.push(timerId);
+            }
+        });
+        
+        console.log(`🔄 ${this.timers.length} timers reprogramados`);
+        
+    } catch (e) {
+        console.error('❌ Error eliminando timer del storage:', e);
+    }
+}
+
+// ============================================
+// ✅ NUEVO: ACTUALIZAR EL ESTADO VISUAL DE RECORDATORIOS ACTIVOS
+// ============================================
+actualizarEstadoRecordatorios() {
+    const estado = document.getElementById('recordatorioEstado');
+    if (!estado) return;
+    
+    if (this.tiemposSeleccionados.length === 0) {
+        estado.style.display = 'none';
+        return;
+    }
+    
+    const textos = this.tiemposSeleccionados.map(m => this.formatTiempo(m));
+    const cantidad = this.tiemposSeleccionados.length;
+    
+    estado.style.display = 'block';
+    estado.innerHTML = `
+        ✅ <strong>${cantidad}</strong> notificación${cantidad > 1 ? 'es' : ''} activa${cantidad > 1 ? 's' : ''}:
+        <br>
+        <div style="text-align: left; margin-top: 8px; font-size: 0.9em; line-height: 1.6;">
+            ${textos.map(t => `• ${t} antes de la clase`).join('<br>')}
+        </div>
+    `;
+    estado.style.background = 'rgba(52, 168, 83, 0.1)';
+    estado.style.color = 'var(--success-500)';
+    estado.style.border = '1px solid rgba(52, 168, 83, 0.3)';
+    estado.style.padding = '12px';
+    estado.style.borderRadius = '8px';
 }
 
     // ============================================
