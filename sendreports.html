@@ -3,38 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportar un Error - Mi Aula de Enfermería</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <title>Reportar un Error</title>
     <link rel="stylesheet" href="/css/sendreports.css">
     <link rel="shortcut icon" href="/img/logo.png" type="image/x-icon">
 </head>
-<body class="sendreports-body">
-    <div class="sendreports-container">
+<body class="sendreports-body iframe-mode">
+    <div class="sendreports-container" style="max-width: 100%; height: 100vh; border-radius: 0; border: none; box-shadow: none;">
         <div class="sendreports-header">
             <div class="sendreports-icon">🐛</div>
             <h1>Reportar un Error</h1>
             <p>Ayudanos a mejorar el sistema reportando cualquier problema que encuentres</p>
-            <button class="sendreports-close" onclick="window.close()" title="Cerrar ventana">&times;</button>
+            <button class="sendreports-close" id="btnCloseReport" title="Cerrar">&times;</button>
         </div>
 
         <div id="sendreportsMensaje" class="sendreports-mensaje" style="display: none;"></div>
 
         <form id="sendreportForm" class="sendreports-form">
-            <!-- Información del usuario (oculta) -->
             <input type="hidden" id="reportUserId" value="">
             <input type="hidden" id="reportUserEmail" value="">
-            
-            <!-- Título del problema -->
+
             <div class="sendreports-group">
                 <label for="reportTitle">
                     <span class="label-icon">📌</span>
                     Título del problema *
                 </label>
-                <input 
-                    type="text" 
-                    id="reportTitle" 
-                    name="title" 
-                    required 
+                <input
+                    type="text"
+                    id="reportTitle"
+                    name="title"
+                    required
                     maxlength="100"
                     placeholder="Ej: No puedo inscribirme a una clase"
                     autocomplete="off"
@@ -42,17 +39,16 @@
                 <small class="sendreports-hint">Breve descripción del problema (máx. 100 caracteres)</small>
             </div>
 
-            <!-- Descripción detallada -->
             <div class="sendreports-group">
                 <label for="reportDescription">
                     <span class="label-icon">📝</span>
                     Descripción detallada *
                 </label>
-                <textarea 
-                    id="reportDescription" 
-                    name="description" 
-                    rows="5" 
-                    required 
+                <textarea
+                    id="reportDescription"
+                    name="description"
+                    rows="5"
+                    required
                     maxlength="2000"
                     placeholder="Describe detalladamente qué estabas haciendo cuando ocurrió el error..."
                 ></textarea>
@@ -61,22 +57,20 @@
                 </small>
             </div>
 
-            <!-- Pasos para reproducir -->
             <div class="sendreports-group">
                 <label for="reportSteps">
                     <span class="label-icon">🔁</span>
                     Pasos para reproducir (opcional)
                 </label>
-                <textarea 
-                    id="reportSteps" 
-                    name="steps" 
-                    rows="3" 
+                <textarea
+                    id="reportSteps"
+                    name="steps"
+                    rows="3"
                     maxlength="1000"
                     placeholder="1. Hice clic en...&#10;2. Luego seleccioné...&#10;3. Apareció el error..."
                 ></textarea>
             </div>
 
-            <!-- Información técnica (siempre incluida) -->
             <div class="sendreports-info-box">
                 <div class="info-box-header">
                     <span class="info-icon">ℹ️</span>
@@ -98,12 +92,11 @@
                 </div>
             </div>
 
-            <!-- Botones de acción -->
             <div class="sendreports-actions">
                 <button type="submit" class="sendreports-btn submit" id="sendreportSubmitBtn">
                     📤 Enviar reporte
                 </button>
-                <button type="button" class="sendreports-btn cancel" onclick="window.close()">
+                <button type="button" class="sendreports-btn cancel" id="btnCancelReport">
                     ❌ Cancelar
                 </button>
             </div>
@@ -116,6 +109,5 @@
 
     <script src="/logs/browser-logger.js"></script>
     <script src="/js/sendreports.js"></script>
-    <script src="/js/auth.js"></script>
 </body>
 </html>

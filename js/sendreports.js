@@ -1,31 +1,60 @@
 /**
  * SENREPORTS.JS
- * Maneja la ventana emergente de reportar errores
- * Se abre desde index.html (u otras páginas) mediante window.open()
+ * Maneja la ventana de reportar errores.
+ * Se carga dentro de un iframe superpuesto por profile-updater.js
+ * Se comunica con la ventana padre mediante postMessage()
  */
 
-console.log('📝 sendreports.js cargado');
+console.log('📝 sendreports.js cargado (modo iframe)');
 
 class SendReportsManager {
     constructor() {
         this.user = null;
         this.browserLogger = window.browserLogger || null;
+        this.isIframe = window.self !== window.top;
+        this.parentOrigin = window.location.origin;
         this.init();
     }
 
     init() {
         console.log('🚀 Inicializando SendReportsManager...');
-        
-        // Obtener usuario desde localStorage (viene de la ventana padre)
+        console.log('📦 Modo iframe:', this.isIframe);
+
         this.loadUserFromStorage();
-        
-        // Configurar la UI
         this.setupUI();
-        
-        // Configurar event listeners
         this.setupEventListeners();
-        
+
+        // Notificar al padre que estamos listos
+        this.notifyParent({ type: 'REPORT_IFRAME_READY' });
+
         console.log('✅ SendReportsManager inicializado');
+    }
+
+    /**
+     * Envía un mensaje a la ventana padre (para que cierre el modal)
+     */
+    notifyParent(data) {
+        if (this.isIframe) {
+            try {
+                window.parent.postMessage(data, this.parentOrigin);
+                console.log('📤 postMessage enviado al padre:', data);
+            } catch (e) {
+                console.warn('⚠️ No se pudo enviar postMessage:', e.message);
+            }
+        }
+    }
+
+    /**
+     * Solicita al padre que cierre el modal
+     */
+    requestClose() {
+        console.log('🚪 Solicitando cerrar modal al padre...');
+        this.notifyParent({ type: 'CLOSE_REPORT_MODAL' });
+
+        // Fallback: si no estamos en iframe, intentar cerrar ventana
+        if (!this.isIframe) {
+            window.close();
+        }
     }
 
     loadUserFromStorage() {
@@ -34,11 +63,10 @@ class SendReportsManager {
             if (userStr) {
                 this.user = JSON.parse(userStr);
                 console.log('👤 Usuario cargado:', this.user.apellidoNombre);
-                
-                // Llenar campos ocultos
+
                 const userIdInput = document.getElementById('reportUserId');
                 const userEmailInput = document.getElementById('reportUserEmail');
-                
+
                 if (userIdInput) userIdInput.value = this.user._id || '';
                 if (userEmailInput) userEmailInput.value = this.user.email || '';
             } else {
@@ -50,30 +78,30 @@ class SendReportsManager {
     }
 
     setupUI() {
-        // Mostrar URL actual
         const urlElement = document.getElementById('currentUrl');
         if (urlElement) {
-            urlElement.textContent = window.location.href;
+            // Si estamos en iframe, mostramos la URL del padre (que es donde está el usuario)
+            const urlToShow = this.isIframe && document.referrer
+                ? document.referrer
+                : window.location.href;
+            urlElement.textContent = urlToShow;
         }
 
-        // Mostrar User Agent
         const uaElement = document.getElementById('currentUserAgent');
         if (uaElement) {
             const ua = navigator.userAgent;
             uaElement.textContent = ua.length > 60 ? ua.substring(0, 60) + '...' : ua;
         }
 
-        // Mostrar cantidad de logs disponibles
         const logsCountElement = document.getElementById('logsCount');
         if (logsCountElement && this.browserLogger) {
             const logs = this.browserLogger.getCurrentLogs?.() || [];
             logsCountElement.textContent = `${logs.length} logs disponibles`;
         }
 
-        // Contador de caracteres para descripción
         const descriptionTextarea = document.getElementById('reportDescription');
         const descriptionCounter = document.getElementById('descriptionCounter');
-        
+
         if (descriptionTextarea && descriptionCounter) {
             descriptionTextarea.addEventListener('input', () => {
                 descriptionCounter.textContent = descriptionTextarea.value.length;
@@ -90,10 +118,22 @@ class SendReportsManager {
             });
         }
 
-        // Cerrar con Escape
+        // Botón X de cerrar
+        const btnClose = document.getElementById('btnCloseReport');
+        if (btnClose) {
+            btnClose.addEventListener('click', () => this.requestClose());
+        }
+
+        // Botón Cancelar
+        const btnCancel = document.getElementById('btnCancelReport');
+        if (btnCancel) {
+            btnCancel.addEventListener('click', () => this.requestClose());
+        }
+
+        // Cerrar con ESC
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                window.close();
+                this.requestClose();
             }
         });
     }
@@ -103,7 +143,6 @@ class SendReportsManager {
         const description = document.getElementById('reportDescription')?.value.trim();
         const steps = document.getElementById('reportSteps')?.value.trim() || null;
 
-        // Validaciones
         if (!title || !description) {
             this.showMessage('❌ Título y descripción son obligatorios', 'error');
             return;
@@ -114,7 +153,7 @@ class SendReportsManager {
             return;
         }
 
-        // Obtener logs del navegador (SIEMPRE se incluyen)
+        // Obtener logs del navegador
         let logs = [];
         if (this.browserLogger && typeof this.browserLogger.getCurrentLogs === 'function') {
             try {
@@ -125,16 +164,20 @@ class SendReportsManager {
             }
         }
 
-        // Deshabilitar botón mientras se envía
         const submitBtn = document.getElementById('sendreportSubmitBtn');
         const originalText = submitBtn?.textContent || '📤 Enviar reporte';
-        
+
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.textContent = '⏳ Enviando...';
         }
 
         try {
+            // Si estamos en iframe, usar la URL del padre para el campo "url"
+            const reportUrl = this.isIframe && document.referrer
+                ? document.referrer
+                : window.location.href;
+
             const response = await fetch('/api/reports', {
                 method: 'POST',
                 headers: {
@@ -146,8 +189,8 @@ class SendReportsManager {
                     description: description,
                     steps: steps,
                     logs: logs,
-                    includeLogs: true, // ✅ SIEMPRE incluir logs
-                    url: window.location.href,
+                    includeLogs: true,
+                    url: reportUrl,
                     userAgent: navigator.userAgent
                 })
             });
@@ -156,10 +199,10 @@ class SendReportsManager {
 
             if (result.success) {
                 this.showMessage('✅ Reporte enviado correctamente. ¡Gracias por ayudarnos a mejorar!', 'success');
-                
-                // Cerrar ventana después de 2 segundos
+
+                // Cerrar modal después de 2 segundos
                 setTimeout(() => {
-                    window.close();
+                    this.requestClose();
                 }, 2000);
             } else {
                 throw new Error(result.message || 'Error al enviar el reporte');
@@ -168,8 +211,7 @@ class SendReportsManager {
         } catch (error) {
             console.error('❌ Error enviando reporte:', error);
             this.showMessage('❌ Error al enviar el reporte: ' + error.message, 'error');
-            
-            // Rehabilitar botón
+
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
@@ -184,11 +226,8 @@ class SendReportsManager {
         msgDiv.textContent = message;
         msgDiv.className = `sendreports-mensaje ${type}`;
         msgDiv.style.display = 'block';
-
-        // Scroll al mensaje
         msgDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-        // Auto-ocultar mensajes de error después de 5 segundos
         if (type === 'error') {
             setTimeout(() => {
                 msgDiv.style.display = 'none';
@@ -197,7 +236,6 @@ class SendReportsManager {
     }
 }
 
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     window.sendReportsManager = new SendReportsManager();
 });

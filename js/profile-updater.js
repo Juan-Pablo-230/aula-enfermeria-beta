@@ -516,8 +516,8 @@ class ProfileUpdater {
         };
         reportBtn.onclick = (e) => {
             e.preventDefault();
-            // ✅ Abrir ventana emergente para reportar error
-            this.openReportWindow();
+            // ✅ Abrir modal emergente (misma ventana, estilo overlay)
+            this.openReportModal();
         };
 
         // Insertar antes del botón de cerrar sesión
@@ -532,41 +532,238 @@ class ProfileUpdater {
     }
 
     /**
-     * ✅ Abre la ventana emergente de reportar error
-     * Carga /sendreports.html con dimensiones y posición centradas
+ * ✅ Abre el modal superpuesto cargando /sendreports.html en un iframe
+ * Se muestra como overlay sobre la página actual (sin abrir ventana nueva)
+ */
+openReportModal() {
+    console.log('🪟 Abriendo modal de reportar error (iframe)...');
+
+    // Eliminar modal previo si existe
+    const existingModal = document.getElementById('reportErrorModal');
+    if (existingModal) existingModal.remove();
+
+    const user = authSystem.getCurrentUser();
+    if (!user) {
+        alert('Debés iniciar sesión para reportar un error');
+        return;
+    }
+
+    // Detectar tema para el fondo del overlay
+    const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // Crear overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'reportErrorModal';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, ${isDark ? '0.85' : '0.6'});
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 30000;
+        backdrop-filter: blur(6px);
+        padding: 15px;
+        animation: reportFadeIn 0.25s ease;
+    `;
+
+    // Contenedor del iframe
+    const container = document.createElement('div');
+    container.style.cssText = `
+        width: 100%;
+        max-width: 600px;
+        height: 90vh;
+        max-height: 820px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        border: 1px solid ${isDark ? '#3a3f46' : '#d0d5dd'};
+        background: ${isDark ? '#1e2328' : '#ffffff'};
+        animation: reportSlideUp 0.3s ease;
+        position: relative;
+    `;
+
+    // Iframe que carga el HTML externo
+    const iframe = document.createElement('iframe');
+    iframe.id = 'reportErrorIframe';
+    iframe.src = '/sendreports.html';
+    iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    `;
+    iframe.setAttribute('allowtransparency', 'true');
+    iframe.setAttribute('frameborder', '0');
+
+    container.appendChild(iframe);
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    // ===== ESTILOS DE ANIMACIÓN =====
+    if (!document.getElementById('reportModalStyles')) {
+        const style = document.createElement('style');
+        style.id = 'reportModalStyles';
+        style.textContent = `
+            @keyframes reportFadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes reportSlideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // ===== FUNCIÓN PARA CERRAR =====
+    const cerrar = () => {
+        overlay.remove();
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+        window.removeEventListener('message', messageHandler);
+    };
+
+    // Cerrar con ESC
+    const escHandler = (e) => {
+        if (e.key === 'Escape') cerrar();
+    };
+    document.addEventListener('keydown', escHandler);
+
+    // Cerrar al hacer clic fuera del contenedor
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) cerrar();
+    });
+
+    // ===== COMUNICACIÓN CON EL IFRAME =====
+    // El iframe puede pedir cerrarse o indicar éxito mediante postMessage
+    const messageHandler = (event) => {
+        if (event.data && event.data.type === 'CLOSE_REPORT_MODAL') {
+            console.log('📨 Iframe solicitó cerrar el modal');
+            cerrar();
+        }
+    };
+    window.addEventListener('message', messageHandler);
+
+    console.log('✅ Modal de reportar error abierto (iframe)');
+}
+
+    /**
+     * Envía el reporte al servidor
      */
-    openReportWindow() {
-        console.log('🪟 Abriendo ventana de reportar error...');
+    async enviarReporte(overlay) {
+        const titleInput = overlay.querySelector('#reportTitleInput');
+        const descInput = overlay.querySelector('#reportDescriptionInput');
+        const stepsInput = overlay.querySelector('#reportStepsInput');
+        const submitBtn = overlay.querySelector('#reportSubmitBtn');
+        const msgDiv = overlay.querySelector('#reportErrorMsg');
 
-        const width = 620;
-        const height = 780;
+        const title = titleInput.value.trim();
+        const description = descInput.value.trim();
+        const steps = stepsInput.value.trim() || null;
 
-        // Calcular posición centrada en pantalla
-        const left = Math.max(0, (window.screen.width / 2) - (width / 2));
-        const top = Math.max(0, (window.screen.height / 2) - (height / 2));
+        // Validaciones
+        if (!title || !description) {
+            this.mostrarMensajeReporte(msgDiv, '❌ Título y descripción son obligatorios', 'error');
+            return;
+        }
 
-        const features = [
-            `width=${width}`,
-            `height=${height}`,
-            `left=${left}`,
-            `top=${top}`,
-            'resizable=yes',
-            'scrollbars=yes',
-            'status=no',
-            'menubar=no',
-            'toolbar=no',
-            'location=no'
-        ].join(',');
+        const user = authSystem.getCurrentUser();
+        if (!user || !user._id) {
+            this.mostrarMensajeReporte(msgDiv, '❌ No se pudo identificar al usuario', 'error');
+            return;
+        }
 
-        const reportWindow = window.open('/sendreports.html', 'reportErrorWindow', features);
+        // Obtener logs del navegador (SIEMPRE se incluyen)
+        let logs = [];
+        try {
+            if (window.browserLogger && typeof window.browserLogger.getCurrentLogs === 'function') {
+                logs = window.browserLogger.getCurrentLogs();
+                console.log(`📊 ${logs.length} logs obtenidos para incluir en el reporte`);
+            }
+        } catch (err) {
+            console.warn('⚠️ No se pudieron obtener logs:', err.message);
+        }
 
-        if (reportWindow) {
-            reportWindow.focus();
-            console.log('✅ Ventana de reporte abierta correctamente');
+        // Deshabilitar botón mientras se envía
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Enviando...';
+        submitBtn.style.opacity = '0.7';
+        submitBtn.style.cursor = 'not-allowed';
+
+        try {
+            const response = await fetch('/api/reports', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'user-id': user._id
+                },
+                body: JSON.stringify({
+                    title: title,
+                    description: description,
+                    steps: steps,
+                    logs: logs,
+                    includeLogs: true,
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.mostrarMensajeReporte(msgDiv, '✅ Reporte enviado correctamente. ¡Gracias!', 'success');
+
+                // Cerrar modal después de 2 segundos
+                setTimeout(() => {
+                    overlay.remove();
+                    document.body.style.overflow = '';
+                }, 2000);
+            } else {
+                throw new Error(result.message || 'Error al enviar el reporte');
+            }
+
+        } catch (error) {
+            console.error('❌ Error enviando reporte:', error);
+            this.mostrarMensajeReporte(msgDiv, '❌ ' + error.message, 'error');
+
+            // Rehabilitar botón
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+    }
+
+    /**
+     * Muestra un mensaje dentro del modal de reporte
+     */
+    mostrarMensajeReporte(msgDiv, message, type) {
+        if (!msgDiv) return;
+        msgDiv.textContent = message;
+        msgDiv.style.display = 'block';
+
+        if (type === 'error') {
+            msgDiv.style.background = 'rgba(231, 76, 60, 0.15)';
+            msgDiv.style.color = '#e74c3c';
+            msgDiv.style.borderBottom = '1px solid rgba(231, 76, 60, 0.3)';
         } else {
-            console.warn('⚠️ No se pudo abrir la ventana (posible bloqueador de pop-ups)');
-            alert('⚠️ Por favor, permití las ventanas emergentes para poder reportar un error.\n\n' +
-                  'En Chrome: Configuración → Privacidad → Configuración de sitios → Ventanas emergentes');
+            msgDiv.style.background = 'rgba(46, 204, 113, 0.15)';
+            msgDiv.style.color = '#2ecc71';
+            msgDiv.style.borderBottom = '1px solid rgba(46, 204, 113, 0.3)';
+        }
+
+        // Auto-ocultar errores después de 5 segundos
+        if (type === 'error') {
+            setTimeout(() => {
+                if (msgDiv.parentNode) msgDiv.style.display = 'none';
+            }, 5000);
         }
     }
 }
