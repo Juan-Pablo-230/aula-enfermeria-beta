@@ -692,19 +692,29 @@
 
                 const ahora = serverTime || Date.now();
 
-                if (apertura && ahora < apertura) {
-                    estadoClase.textContent = '📅 La clase no comenzo. Agrega un recordatorio a tu calendario personal para ser notificado de su apertura.';
-                    estadoClase.className = 'estado-clase proximamente';
-                    btnRecordatorio.style.display = 'block';
-                } else if (cierre && ahora > cierre) {
-                    estadoClase.textContent = '🔒 La clase a finalizado, no se aceptan nuevas inscripciones.';
-                    estadoClase.className = 'estado-clase cerrada';
-                } else {
-                    estadoClase.textContent = '✅ Haz clic aqui para unirte a la clase.';
-                    estadoClase.className = 'estado-clase abierta';
-                    btnUnirse.style.display = 'block';
-                }
-                estadoClase.style.display = 'block';
+if (apertura && ahora < apertura) {
+    // ===== LA CLASE NO COMENZÓ (aún no abrió) =====
+    estadoClase.textContent = '📅 La clase no comenzó. Agregá un recordatorio a tu calendario personal para ser notificado de su apertura.';
+    estadoClase.className = 'estado-clase proximamente';
+    btnRecordatorio.style.display = 'block';  // ✅ Mostrar recordatorio
+    btnUnirse.style.display = 'none';         // ❌ No se puede unir todavía
+    
+} else if (cierre && ahora > cierre) {
+    // ===== LA CLASE YA TERMINÓ =====
+    estadoClase.textContent = '🔒 La clase finalizó, no se aceptan nuevas inscripciones.';
+    estadoClase.className = 'estado-clase cerrada';
+    btnRecordatorio.style.display = 'none';   // ❌ No mostrar recordatorio (ya pasó)
+    btnUnirse.style.display = 'none';         // ❌ No se puede unir (ya terminó)
+    
+} else {
+    // ===== LA CLASE ESTÁ EN CURSO (abierta) =====
+    estadoClase.textContent = '✅ Hacé clic aquí para unirte a la clase.';
+    estadoClase.className = 'estado-clase abierta';
+    btnUnirse.style.display = 'block';        // ✅ Mostrar "Unirse"
+    btnRecordatorio.style.display = 'none';   // ❌ No mostrar recordatorio (ya empezó)
+}
+
+estadoClase.style.display = 'block';
 
             } catch (error) {
                 console.error('Error al cargar clase:', error);
