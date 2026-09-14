@@ -3750,5 +3750,134 @@ app.get('/api/logs/test', (req, res) => {
     });
 });
 
+// ==================== RUTA TEMPORAL: LIMPIAR INSCRIPCIONES DEL ADMIN ====================
+// ⚠️ Ejecutar manualmente desde el navegador cuando el admin se inscriba a clases de prueba
+// Elimina las inscripciones/solicitudes/tiempos del PROPIO admin que ejecuta la acción
+app.get('/api/admin/limpiar-mis-inscripciones', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+        
+        console.log('🧹 Iniciando limpieza de inscripciones del admin...');
+        
+        if (!userHeader) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No autenticado' 
+            });
+        }
+        
+        if (!ObjectId.isValid(userHeader)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID de usuario inválido' 
+            });
+        }
+        
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        
+        const adminObjectId = new ObjectId(userHeader);
+        
+        // Verificar que quien ejecuta sea admin (o advanced)
+        const admin = await db.collection('usuarios').findOne({ 
+            _id: adminObjectId 
+        });
+        
+        if (!admin) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
+            });
+        }
+        
+        if (admin.role !== 'admin' && admin.role !== 'advanced') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Solo administradores pueden ejecutar esta acción' 
+            });
+        }
+        
+        console.log(`👤 Admin encontrado: ${admin.apellidoNombre} (Legajo: ${admin.legajo})`);
+        
+        // ============================================
+        // Contar inscripciones antes de borrar
+        // ============================================
+        const inscripcionesAntes = await db.collection('inscripciones')
+            .countDocuments({ usuarioId: adminObjectId });
+        
+        console.log(`📊 Inscripciones encontradas: ${inscripcionesAntes}`);
+        
+        if (inscripcionesAntes === 0) {
+            return res.json({ 
+                success: true, 
+                message: 'No tenés inscripciones registradas',
+                admin: {
+                    nombre: admin.apellidoNombre,
+                    legajo: admin.legajo
+                },
+                eliminados: {
+                    inscripciones: 0,
+                    solicitudesMaterial: 0,
+                    tiemposEnClase: 0
+                },
+                total: 0
+            });
+        }
+        
+        // ============================================
+        // Eliminar inscripciones del admin
+        // ============================================
+        const resultado = await db.collection('inscripciones').deleteMany({
+            usuarioId: adminObjectId
+        });
+        
+        console.log(`🗑️ ${resultado.deletedCount} inscripciones eliminadas`);
+        
+        // ============================================
+        // También eliminar solicitudes de material del admin
+        // ============================================
+        const solicitudesResultado = await db.collection('solicitudMaterial').deleteMany({
+            usuarioId: adminObjectId
+        });
+        
+        console.log(`🗑️ ${solicitudesResultado.deletedCount} solicitudes de material eliminadas`);
+        
+        // ============================================
+        // También eliminar tiempos en clase del admin
+        // ============================================
+        const tiemposResultado = await db.collection('tiempo-en-clases').deleteMany({
+            usuarioId: adminObjectId
+        });
+        
+        console.log(`🗑️ ${tiemposResultado.deletedCount} registros de tiempo eliminados`);
+        
+        // ============================================
+        // Respuesta
+        // ============================================
+        res.json({ 
+            success: true, 
+            message: `Limpieza completada para ${admin.apellidoNombre}`,
+            admin: {
+                nombre: admin.apellidoNombre,
+                legajo: admin.legajo,
+                email: admin.email
+            },
+            eliminados: {
+                inscripciones: resultado.deletedCount,
+                solicitudesMaterial: solicitudesResultado.deletedCount,
+                tiemposEnClase: tiemposResultado.deletedCount
+            },
+            total: resultado.deletedCount + solicitudesResultado.deletedCount + tiemposResultado.deletedCount
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en limpieza del admin:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
+
 // ==================== EXPORTAR LA APP ====================
 module.exports = app;
