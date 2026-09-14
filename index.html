@@ -64,7 +64,7 @@
             <div class="video-container">
                 <div class="video-header">
                     <h2>Video instructivo del sistema.</h2>
-                    <p>Mira este tutorial para aprender a usar correctamente el aula virtual</p>
+                    <p>Mira este tutorial para aprender a usar correctamente el sistema de inscripciones</p>
                 </div>
                 <div class="video-wrapper">
                     <iframe width="560" height="315" 
@@ -93,7 +93,6 @@
                 <div class="fechas-modal">
                     <p><strong>Apertura:</strong> <span id="modalFechaApertura"></span></p>
                     <p><strong>Cierre:</strong> <span id="modalFechaCierre"></span></p>
-                    <p id="modalUbicacionRow" style="display: none;"><strong>Ubicación:</strong> <span id="modalUbicacion"></span></p>
                 </div>
                 <p id="estadoClase" class="estado-clase" style="display: none;"></p>
                 <button id="btnUnirse" class="btn-unirse" style="display: none;">Unirse a la clase</button>
@@ -103,294 +102,8 @@
         </div>
     </div>
 
-    <!-- ===== MODAL DE RECORDATORIO (CON MÚLTIPLES TIEMPOS) ===== -->
-    <div id="modalRecordatorio" class="modal-overlay" style="display: none; z-index: 20000;">
-        <div class="modal-container" style="max-width: 480px;">
-            <div class="modal-header">
-                <h2>⏰ Configurar Recordatorio</h2>
-                <button class="close-modal" onclick="recordatorioManager.cerrarModal()">&times;</button>
-            </div>
-            <div class="modal-body" style="padding: 20px;">
-                <div id="recordatorioMensaje" class="mensaje" style="display: none;"></div>
-                
-                <!-- Información de la clase -->
-                <div id="recordatorioClaseInfo" style="background: var(--bg-card); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h4 id="recordatorioClaseNombre" style="margin: 0 0 8px 0; color: var(--text-primary);"></h4>
-                    <p id="recordatorioClaseFecha" style="margin: 0; color: var(--text-secondary); font-size: 0.9em;"></p>
-                </div>
-                
-                <!-- Tabs: Notificación vs .ICS -->
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">
-                    <button id="tabNotificacion" onclick="recordatorioManager.cambiarTab('notificacion')" style="
-                        flex: 1;
-                        padding: 10px;
-                        border: none;
-                        border-radius: 8px 8px 0 0;
-                        background: var(--accent-color);
-                        color: white;
-                        cursor: pointer;
-                        font-weight: bold;
-                        transition: all 0.3s ease;
-                    ">🔔 Notificación</button>
-                    <button id="tabICS" onclick="recordatorioManager.cambiarTab('ics')" style="
-                        flex: 1;
-                        padding: 10px;
-                        border: none;
-                        border-radius: 8px 8px 0 0;
-                        background: var(--bg-card);
-                        color: var(--text-secondary);
-                        cursor: pointer;
-                        font-weight: bold;
-                        transition: all 0.3s ease;
-                    ">📅 Archivo .ICS</button>
-                </div>
-                
-                <!-- ===== PANEL DE NOTIFICACIÓN ===== -->
-                <div id="panelNotificacion">
-                    <!-- Selector de tiempo (MÚLTIPLE) -->
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-primary);">
-                            📅 ¿Cuándo quieres ser notificado? 
-                            <small style="font-weight: normal; color: var(--text-muted);">(seleccioná uno o varios)</small>
-                        </label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
-                            <button class="tiempo-btn" data-minutos="10" onclick="recordatorioManager.toggleTiempo(10, this)" style="
-                                padding: 12px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">10 min</button>
-                            
-                            <button class="tiempo-btn" data-minutos="30" onclick="recordatorioManager.toggleTiempo(30, this)" style="
-                                padding: 12px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">30 min</button>
-                            
-                            <button class="tiempo-btn" data-minutos="60" onclick="recordatorioManager.toggleTiempo(60, this)" style="
-                                padding: 12px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">1 Hora</button>
-                            
-                            <button class="tiempo-btn" data-minutos="120" onclick="recordatorioManager.toggleTiempo(120, this)" style="
-                                padding: 12px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">2 Horas</button>
-                            
-                            <button class="tiempo-btn" data-minutos="1440" onclick="recordatorioManager.toggleTiempo(1440, this)" style="
-                                padding: 12px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">1 Día</button>
-                            
-                            <button class="tiempo-btn" data-minutos="10080" onclick="recordatorioManager.toggleTiempo(10080, this)" style="
-                                padding: 12px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                font-weight: 600;
-                            ">1 Semana</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Tiempo personalizado -->
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-primary);">
-                            ⏱️ Personalizado <small style="font-weight: normal; color: var(--text-muted);">(agregar otro tiempo)</small>
-                        </label>
-                        
-                        <!-- Fila 1: input + select -->
-                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <input type="number" id="recordatorioPersonalizado" min="1" placeholder="Ej: 45" style="
-                                flex: 1;
-                                min-width: 0;
-                                padding: 10px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                box-sizing: border-box;
-                            ">
-                            <select id="recordatorioUnidad" style="
-                                flex: 0 0 auto;
-                                min-width: 0;
-                                padding: 10px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 8px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                box-sizing: border-box;
-                            ">
-                                <option value="minutos">Minutos</option>
-                                <option value="horas">Horas</option>
-                                <option value="dias">Días</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Fila 2: botón agregar (ancho completo) -->
-                        <button onclick="recordatorioManager.aplicarTiempoPersonalizado()" style="
-                            width: 100%;
-                            padding: 10px 15px;
-                            border: 2px solid var(--accent-color);
-                            border-radius: 8px;
-                            background: var(--accent-color);
-                            color: white;
-                            cursor: pointer;
-                            font-weight: bold;
-                            transition: all 0.3s ease;
-                            box-sizing: border-box;
-                        ">➕ Agregar tiempo personalizado</button>
-                    </div>
-                    
-                    <!-- Tiempo seleccionado -->
-                    <div id="tiempoSeleccionadoDisplay" style="
-                        text-align: center;
-                        padding: 12px;
-                        background: rgba(66, 133, 244, 0.1);
-                        border-radius: 8px;
-                        margin-bottom: 15px;
-                        border: 1px solid rgba(66, 133, 244, 0.3);
-                        color: var(--text-secondary);
-                        font-weight: 500;
-                        line-height: 1.6;
-                    ">
-                        ⏳ Selecciona uno o más tiempos para recibir notificaciones
-                    </div>
-                    
-                    <!-- Botón programar -->
-                    <div style="display: flex; gap: 10px;">
-                        <button id="btnProgramarRecordatorio" onclick="recordatorioManager.programar()" disabled style="
-                            flex: 2;
-                            padding: 12px;
-                            border: none;
-                            border-radius: 8px;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            color: white;
-                            font-weight: bold;
-                            cursor: pointer;
-                            font-size: 1em;
-                            transition: all 0.3s ease;
-                            opacity: 0.6;
-                        ">🔔 Programar Notificaciones</button>
-                        
-                        <button onclick="recordatorioManager.cerrarModal()" style="
-                            flex: 1;
-                            padding: 12px;
-                            border: 2px solid var(--border-color);
-                            border-radius: 8px;
-                            background: var(--bg-container);
-                            color: var(--text-secondary);
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        ">❌ Cerrar</button>
-                    </div>
-                    
-                    <div id="recordatorioEstado" style="
-                        margin-top: 15px;
-                        text-align: center;
-                        font-size: 0.85em;
-                        color: var(--text-muted);
-                        padding: 8px;
-                        border-radius: 6px;
-                        background: var(--bg-card);
-                        display: none;
-                    "></div>
-                </div>
-                
-                <!-- ===== PANEL DE .ICS ===== -->
-                <div id="panelICS" style="display: none;">
-                    <div style="text-align: center; padding: 20px 0;">
-                        <div style="font-size: 3em; margin-bottom: 15px;">📅</div>
-                        <h3 style="color: var(--text-primary); margin-bottom: 10px;">Descargar recordatorio en .ICS</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
-                            Descarga un archivo de calendario (.ics) para importarlo en:
-                            <br>
-                            📱 Google Calendar • 📧 Outlook • 📱 Apple Calendar • 📅 Otros
-                        </p>
-                        
-                        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
-                            <button onclick="recordatorioManager.descargarICS()" style="
-                                padding: 14px 30px;
-                                border: none;
-                                border-radius: 8px;
-                                background: linear-gradient(135deg, #34a853 0%, #0f9d58 100%);
-                                color: white;
-                                font-weight: bold;
-                                font-size: 1.1em;
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                display: flex;
-                                align-items: center;
-                                gap: 10px;
-                            "
-                            onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(52, 168, 83, 0.4)';"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                📥 Descargar .ICS
-                            </button>
-                        </div>
-                        
-                        <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; margin-top: 15px; text-align: left; font-size: 0.85em; color: var(--text-muted);">
-                            <div>📌 El archivo incluirá:</div>
-                            <div style="margin-top: 5px; padding-left: 15px;">
-                                <div>• Nombre de la clase</div>
-                                <div>• Fecha y hora de inicio</div>
-                                <div>• Duración: 1 hora</div>
-                                <div>• Lugar / Modalidad</div>
-                                <div>• Instructores</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button onclick="recordatorioManager.cerrarModal()" style="
-                            flex: 1;
-                            padding: 12px;
-                            border: 2px solid var(--border-color);
-                            border-radius: 8px;
-                            background: var(--bg-container);
-                            color: var(--text-secondary);
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        ">❌ Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="updateProfileModal" class="modal-overlay" style="display: none;">
+        <!-- Contenido del modal de perfil (sin cambios) -->
         <div class="modal-container">
             <div class="modal-header">
                 <h2>✏️ Mi perfil.</h2>
@@ -526,7 +239,6 @@
     <script src="/js/area.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/profile-updater.js"></script>
-    <script src="/js/recordatorios.js"></script>
     <script>
         if (versionBeta == true) {
             alert("Esta es una versión BETA del sistema de inscripciones. Puede contener errores o funcionalidades incompletas. Por favor, utilícelo con precaución y reporte cualquier problema al desarrollador.")
@@ -602,7 +314,7 @@
 
             const summary = escapeICS(clase.nombre || 'Clase');
             const description = escapeICS(clase.descripcion || '');
-            const location = escapeICS(clase.ubicacion || clase.lugar || '');
+            const location = escapeICS(clase.lugar || '');
 
             const icsContent = [
                 'BEGIN:VCALENDAR',
@@ -694,21 +406,6 @@
                 claseSeleccionada = clase;
                 modalClaseNombre.textContent = clase.nombre || 'Clase';
 
-                // ===== MOSTRAR U OCULTAR UBICACIÓN SI ES PRESENCIAL O HÍBRIDA =====
-                const modalUbicacionRow = document.getElementById('modalUbicacionRow');
-                const modalUbicacion = document.getElementById('modalUbicacion');
-                const modalidadClase = (clase.modalidad || '').trim();
-                const ubicacionClase = clase.ubicacion || clase.lugar || '';
-
-                if (modalUbicacionRow && modalUbicacion) {
-                    if (modalidadClase === 'Presencial' || modalidadClase === 'Híbrido') {
-                        modalUbicacion.textContent = ubicacionClase || 'Ubicación no especificada';
-                        modalUbicacionRow.style.display = 'block';
-                    } else {
-                        modalUbicacionRow.style.display = 'none';
-                    }
-                }
-
                 const { apertura, cierre } = obtenerTimestampsClase(clase);
 
                 const opcionesFormato = {
@@ -726,27 +423,17 @@
                 const ahora = serverTime || Date.now();
 
                 if (apertura && ahora < apertura) {
-                    // ===== LA CLASE NO COMENZÓ (aún no abrió) =====
-                    estadoClase.textContent = '📅 La clase no comenzó. Agregá un recordatorio a tu calendario personal para ser notificado de su apertura.';
+                    estadoClase.textContent = '📅 La clase no comenzo. Agrega un recordatorio a tu calendario personal para ser notificado de su apertura.';
                     estadoClase.className = 'estado-clase proximamente';
                     btnRecordatorio.style.display = 'block';
-                    btnUnirse.style.display = 'none';
-                    
                 } else if (cierre && ahora > cierre) {
-                    // ===== LA CLASE YA TERMINÓ =====
-                    estadoClase.textContent = '🔒 La clase finalizó, no se aceptan nuevas inscripciones.';
+                    estadoClase.textContent = '🔒 La clase a finalizado, no se aceptan nuevas inscripciones.';
                     estadoClase.className = 'estado-clase cerrada';
-                    btnRecordatorio.style.display = 'none';
-                    btnUnirse.style.display = 'none';
-                    
                 } else {
-                    // ===== LA CLASE ESTÁ EN CURSO (abierta) =====
-                    estadoClase.textContent = '✅ Hacé clic aquí para unirte a la clase.';
+                    estadoClase.textContent = '✅ Haz clic aqui para unirte a la clase.';
                     estadoClase.className = 'estado-clase abierta';
                     btnUnirse.style.display = 'block';
-                    btnRecordatorio.style.display = 'none';
                 }
-
                 estadoClase.style.display = 'block';
 
             } catch (error) {
@@ -756,9 +443,6 @@
             }
         }
 
-        // ============================================
-        // INSCRIPCIÓN CON REDIRECCIÓN SEGÚN MODALIDAD
-        // ============================================
         async function inscribirse() {
             if (!claseSeleccionada) return;
 
@@ -802,224 +486,23 @@
                 });
                 const result = await response.json();
 
-                if (!result.success && !(result.message && result.message.includes('Ya estás inscrito'))) {
+                if (result.success || (result.message && result.message.includes('Ya estás inscrito'))) {
+                    const enlace = claseSeleccionada.enlaceFormulario || claseSeleccionada.enlaces?.youtube || '';
+                    if (enlace) {
+                        window.location.href = enlace;
+                    } else {
+                        alert('Inscripción registrada, pero no hay enlace disponible.');
+                        cerrarModal();
+                    }
+                } else {
                     throw new Error(result.message || 'Error al inscribirse');
                 }
-
-                console.log('✅ Inscripción registrada');
-
-                redirigirSegunModalidad(claseSeleccionada);
-
             } catch (error) {
                 console.error('Error al inscribirse:', error);
                 mostrarMensajeModal(error.message, 'error');
                 btnUnirse.disabled = false;
                 btnUnirse.textContent = 'Unirse a la clase';
             }
-        }
-
-        // ============================================
-        // REDIRECCIÓN SEGÚN MODALIDAD
-        // ============================================
-        function redirigirSegunModalidad(clase) {
-            const modalidad = (clase.modalidad || '').trim();
-
-            console.log('🎓 Modalidad de la clase:', modalidad);
-
-            if (modalidad === 'Presencial') {
-                console.log('🏛️ Redirigiendo a asistencia presencial');
-                window.location.href = '/asistenciapres.html';
-                return;
-            }
-
-            if (modalidad === 'Virtual') {
-                redirigirVirtual(clase);
-                return;
-            }
-
-            if (modalidad === 'Híbrido') {
-                console.log('🔄 Clase híbrida - Mostrando selector');
-                abrirModalHibrido(clase);
-                return;
-            }
-
-            console.log('⚠️ Modalidad no reconocida, usando enlaceFormulario');
-            const enlace = clase.enlaceFormulario || clase.enlaces?.youtube || '';
-            if (enlace) {
-                window.location.href = enlace;
-            } else {
-                alert('Inscripción registrada, pero no hay enlace disponible.');
-                cerrarModal();
-            }
-        }
-
-        // ============================================
-        // REDIRECCIÓN VIRTUAL (REUNIÓN O YOUTUBE)
-        // ============================================
-        function redirigirVirtual(clase) {
-            const plataforma = (clase.plataforma || '').trim();
-
-            console.log('💻 Plataforma virtual:', plataforma);
-
-            if (plataforma === 'Reunión virtual') {
-                const enlace = clase.enlaceVirtual || clase.enlaceFormulario || '';
-                if (enlace) {
-                    console.log('🎥 Redirigiendo a reunión virtual:', enlace);
-                    window.location.href = enlace;
-                } else {
-                    alert('No hay enlace de reunión configurado.');
-                    cerrarModal();
-                }
-                return;
-            }
-
-            if (plataforma === 'YouTube') {
-                console.log('📺 Redirigiendo a clasesYT.html');
-                if (clase.youtubeVideoId) {
-                    try {
-                        localStorage.setItem('claseYT_videoId', clase.youtubeVideoId);
-                        localStorage.setItem('claseYT_nombre', clase.nombre || '');
-                        console.log('💾 videoId guardado en localStorage:', clase.youtubeVideoId);
-                    } catch (e) {
-                        console.warn('⚠️ No se pudo guardar en localStorage:', e);
-                    }
-                }
-                window.location.href = '/clasesYT.html';
-                return;
-            }
-
-            const enlace = clase.enlaceFormulario || '';
-            if (enlace) {
-                window.location.href = enlace;
-            } else {
-                alert('No hay enlace virtual configurado.');
-                cerrarModal();
-            }
-        }
-
-        // ============================================
-        // MODAL DE SELECCIÓN HÍBRIDA
-        // ============================================
-        function abrirModalHibrido(clase) {
-            cerrarModal();
-
-            const modalHibrido = document.createElement('div');
-            modalHibrido.id = 'modalHibrido';
-            modalHibrido.className = 'modal-overlay';
-            modalHibrido.style.display = 'flex';
-
-            modalHibrido.innerHTML = `
-                <div class="modal-container" style="max-width: 480px;">
-                    <div class="modal-header">
-                        <h2>🔄 ¿Cómo vas a asistir?</h2>
-                        <button class="close-modal" onclick="cerrarModalHibrido()">&times;</button>
-                    </div>
-                    <div class="modal-body" style="padding: 20px;">
-                        <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
-                            La clase <strong>${escapeHtml(clase.nombre)}</strong> se dicta en modalidad <strong>Híbrida</strong>.
-                            <br>Elegí cómo querés asistir:
-                        </p>
-
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <button onclick="elegirModalidadHibrida('Presencial')" style="
-                                display: flex;
-                                align-items: center;
-                                gap: 15px;
-                                padding: 16px 20px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 12px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                text-align: left;
-                                font-size: 1em;
-                            "
-                            onmouseover="this.style.borderColor='#4285f4'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(66, 133, 244, 0.2)';"
-                            onmouseout="this.style.borderColor='var(--border-color)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                <span style="font-size: 2em;">🏛️</span>
-                                <div>
-                                    <div style="font-weight: bold; margin-bottom: 4px;">Presencial</div>
-                                    <div style="font-size: 0.85em; color: var(--text-muted);">
-                                        ${escapeHtml(clase.ubicacion || clase.lugar || 'Ubicación no especificada')}
-                                    </div>
-                                </div>
-                            </button>
-
-                            <button onclick="elegirModalidadHibrida('Virtual')" style="
-                                display: flex;
-                                align-items: center;
-                                gap: 15px;
-                                padding: 16px 20px;
-                                border: 2px solid var(--border-color);
-                                border-radius: 12px;
-                                background: var(--bg-container);
-                                color: var(--text-primary);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                text-align: left;
-                                font-size: 1em;
-                            "
-                            onmouseover="this.style.borderColor='#4285f4'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(66, 133, 244, 0.2)';"
-                            onmouseout="this.style.borderColor='var(--border-color)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                <span style="font-size: 2em;">💻</span>
-                                <div>
-                                    <div style="font-weight: bold; margin-bottom: 4px;">Virtual</div>
-                                    <div style="font-size: 0.85em; color: var(--text-muted);">
-                                        ${escapeHtml(clase.plataforma || 'Plataforma no especificada')}
-                                    </div>
-                                </div>
-                            </button>
-                        </div>
-
-                        <button onclick="cerrarModalHibrido()" style="
-                            margin-top: 20px;
-                            width: 100%;
-                            padding: 12px;
-                            border: 2px solid var(--border-color);
-                            border-radius: 8px;
-                            background: var(--bg-container);
-                            color: var(--text-secondary);
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        ">❌ Cancelar</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modalHibrido);
-
-            window.claseHibridaActual = clase;
-        }
-
-        function elegirModalidadHibrida(tipo) {
-            const clase = window.claseHibridaActual;
-            if (!clase) {
-                cerrarModalHibrido();
-                return;
-            }
-
-            console.log(`🔄 Usuario eligió: ${tipo}`);
-
-            if (tipo === 'Presencial') {
-                cerrarModalHibrido();
-                console.log('🏛️ Redirigiendo a asistencia presencial');
-                window.location.href = '/asistenciapres.html';
-                return;
-            }
-
-            if (tipo === 'Virtual') {
-                cerrarModalHibrido();
-                redirigirVirtual(clase);
-                return;
-            }
-        }
-
-        function cerrarModalHibrido() {
-            const modal = document.getElementById('modalHibrido');
-            if (modal) modal.remove();
-            window.claseHibridaActual = null;
         }
 
         // Eventos del modal
@@ -1030,376 +513,349 @@
             if (e.target === modal) cerrarModal();
         });
         btnUnirse.addEventListener('click', inscribirse);
-
-        // ============================================
-        // CONFIGURACIÓN DEL BOTÓN DE RECORDATORIO
-        // ============================================
-        function configurarBotonRecordatorio() {
-            const btn = document.getElementById('btnRecordatorio');
-            if (!btn) {
-                console.log('⏳ Botón de recordatorio no encontrado, reintentando...');
-                setTimeout(configurarBotonRecordatorio, 500);
-                return;
-            }
-            
-            if (btn.dataset.configurado === 'true') {
-                console.log('✅ Botón ya estaba configurado');
-                return;
-            }
-            
-            console.log('✅ Configurando botón de recordatorio');
-            
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('🔔 Click en botón de recordatorio');
-                
-                if (!claseSeleccionada) {
-                    console.warn('⚠️ No hay clase seleccionada');
-                    return;
-                }
-                
-                if (window.recordatorioManager) {
-                    console.log('📅 Abriendo modal de recordatorio para:', claseSeleccionada.nombre);
-                    window.recordatorioManager.abrirModal(claseSeleccionada);
-                } else {
-                    console.error('❌ RecordatorioManager no disponible');
-                    alert('Error: El sistema de recordatorios no está disponible. Por favor, recargue la página.');
-                }
-            });
-            
-            btn.dataset.configurado = 'true';
-            console.log('✅ Botón de recordatorio configurado correctamente');
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            configurarBotonRecordatorio();
+        btnRecordatorio.addEventListener('click', () => {
+            if (claseSeleccionada) descargarICS(claseSeleccionada);
         });
 
         // ============================================
-        // CONFIGURACIÓN DE FECHAS ESPECIALES
-        // ============================================
-        const FECHAS_ESPECIALES = {
-            "1-1": {
-                imagen: "https://topnavidad.com/wp-content/uploads/Frases-Feliz-Ano-Nuevo-Mejores-frases-para-saludar.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Año_nuevo",
-                alt: "Año nuevo - 1 de Enero",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "24-3": {
-                imagen: "https://colodontsalta.org/wp-content/uploads/2025/03/dia-de-la-memoria-2025-web.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Día_Nacional_de_la_Memoria_por_la_Verdad_y_la_Justicia",
-                alt: "Día de la memoria por la verdad y la justicia - 24 de Marzo",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "26-3": {
-                imagen: "https://imagenes.excelsior.com.mx/files/image_449_252/uploads/2026/04/02/69ceff634dfe7.jpeg",
-                enlace: "https://www.significados.com/viernes-santo/",
-                alt: "Viernes santo - 26 de Marzo",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "2-4": {
-                imagen: "https://media.airedesantafe.com.ar/p/6655e1996d24f808047ddfabf0c3e988/adjuntos/268/imagenes/003/618/0003618241/1200x0/smart/10-junio-dia-la-afirmacion-los-derechos-argentinos-las-malvinas-islas-y-sector-antartico.png",
-                alt: "Día de las Islas Malvinas - 2 de Abril",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "1-5": {
-                imagen: "https://noticias-pe.laiglesiadejesucristo.org/media/960x540/1-Mayo-Dia-Trabajador-0.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Día_Internacional_de_los_Trabajadores",
-                alt: "Dia del trabajador - 1 de Mayo",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "25-5": {
-                imagen: "https://www.diarioelnorte.com.ar/wp-content/uploads/2022/05/argentina-revolucion-de-mayo-territorio-compressor_1.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Revolución_de_Mayo",
-                alt: "Revolución de Mayo - 25 de Mayo",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "17-6": {
-                imagen: "https://www.lanacion.com.ar/resizer/v2/el-general-martin-miguel-de-guemes-y-sus-IAUVMR2M2FE4XMO6E3U5UEVVLM.jpg?auth=7b62bb46a404ea341679a3ce6722a6c6faa86a9adb15f05d795e3f2382dd529f&width=420&height=280&quality=70&smart=true",
-                enlace: "https://es.wikipedia.org/wiki/Martín_Miguel_de_Güemes",
-                alt: "Martín Miguel de Güemes - 17 de Junio",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "20-6": {
-                imagen: "https://www.cultura.gob.ar/media/uploads/manuel_belgrano1.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Manuel_Belgrano",
-                alt: "Manuel Belgrano - 20 de Junio",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "9-7": {
-                imagen: "https://calendarena.com/wp-content/uploads/2024/11/Dia-de-la-Independencia-argentina-1.webp",
-                enlace: "https://es.wikipedia.org/wiki/Día_de_la_Independencia_de_la_República_Argentina",
-                alt: "Día de la Independencia - 9 de Julio",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "12-9": {
-                imagen: "https://s3.amazonaws.com/prod-wp-tunota/wp-content/uploads/2022/09/principal-que-se-celebra-el-12-de-octubre-en-honduras.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Día_de_la_Raza",
-                alt: "Día de la Raza - 12 de Septiembre",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "20-11": {
-                imagen: "https://canal12web.com/wp-content/uploads/2025/11/20-11_soberania-nacional-web.jpg",
-                enlace: "https://www.argentina.gob.ar/noticias/dia-de-la-soberania-nacional",
-                alt: "Día de la Soberanía Nacional - 20 de Noviembre",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "8-12": {
-                imagen: "https://media.airedesantafe.com.ar/p/a0da1e93e622df64b173b0e8713322ca/adjuntos/268/imagenes/003/690/0003690837/1200x0/smart/imagepng.png",
-                enlace: "https://es.wikipedia.org/wiki/8_de_diciembre",
-                alt: "8 de Diciembre - Día de la Virgen Inmaculada Concepción",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "25-12": {
-                imagen: "https://mmedia.eluniversal.com/19716/navidad-origen-y-por-que-se-celebra-el-25-de-diciembre-139934.jpg",
-                enlace: "https://es.wikipedia.org/wiki/25_de_diciembre",
-                alt: "25 de Diciembre - Navidad",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
-            },
-            "31-12": {
-                imagen: "https://estaticos-cdn.prensaiberica.es/clip/e19755b7-0b12-416f-b08f-cb872a6e9da1_16-9-discover-aspect-ratio_default_0.jpg",
-                enlace: "https://es.wikipedia.org/wiki/Nochevieja",
-                alt: "31 de Diciembre - Nochevieja",
-                estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+// CONFIGURACIÓN DE FECHAS ESPECIALES
+// ============================================
+const FECHAS_ESPECIALES = {
+    // Formato: "dia-mes" (día y mes sin cero adelante)
+
+    "1-1": {
+        imagen: "https://topnavidad.com/wp-content/uploads/Frases-Feliz-Ano-Nuevo-Mejores-frases-para-saludar.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Año_nuevo",
+        alt: "Año nuevo - 1 de Enero",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "24-3": {
+        imagen: "https://colodontsalta.org/wp-content/uploads/2025/03/dia-de-la-memoria-2025-web.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Día_Nacional_de_la_Memoria_por_la_Verdad_y_la_Justicia",
+        alt: "Día de la memoria por la verdad y la justicia - 24 de Marzo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "26-3": {
+        imagen: "https://imagenes.excelsior.com.mx/files/image_449_252/uploads/2026/04/02/69ceff634dfe7.jpeg",
+        enlace: "https://www.significados.com/viernes-santo/",
+        alt: "Viernes santo - 26 de Marzo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "2-4": {
+        imagen: "https://media.airedesantafe.com.ar/p/6655e1996d24f808047ddfabf0c3e988/adjuntos/268/imagenes/003/618/0003618241/1200x0/smart/10-junio-dia-la-afirmacion-los-derechos-argentinos-las-malvinas-islas-y-sector-antartico.png",
+        alt: "Día de las Islas Malvinas - 2 de Abril",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "1-5": {
+        imagen: "https://noticias-pe.laiglesiadejesucristo.org/media/960x540/1-Mayo-Dia-Trabajador-0.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Día_Internacional_de_los_Trabajadores",
+        alt: "Dia del trabajador - 1 de Mayo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "25-5": {
+        imagen: "https://www.diarioelnorte.com.ar/wp-content/uploads/2022/05/argentina-revolucion-de-mayo-territorio-compressor_1.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Revolución_de_Mayo",
+        alt: "Revolución de Mayo - 25 de Mayo",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "17-6": {
+        imagen: "https://www.lanacion.com.ar/resizer/v2/el-general-martin-miguel-de-guemes-y-sus-IAUVMR2M2FE4XMO6E3U5UEVVLM.jpg?auth=7b62bb46a404ea341679a3ce6722a6c6faa86a9adb15f05d795e3f2382dd529f&width=420&height=280&quality=70&smart=true",
+        enlace: "https://es.wikipedia.org/wiki/Martín_Miguel_de_Güemes",
+        alt: "Martín Miguel de Güemes - 17 de Junio",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "20-6": {
+        imagen: "https://www.cultura.gob.ar/media/uploads/manuel_belgrano1.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Manuel_Belgrano",
+        alt: "Manuel Belgrano - 20 de Junio",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "9-7": {
+        imagen: "https://calendarena.com/wp-content/uploads/2024/11/Dia-de-la-Independencia-argentina-1.webp",
+        enlace: "https://es.wikipedia.org/wiki/Día_de_la_Independencia_de_la_República_Argentina",
+        alt: "Día de la Independencia - 9 de Julio",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "12-9": {
+        imagen: "https://s3.amazonaws.com/prod-wp-tunota/wp-content/uploads/2022/09/principal-que-se-celebra-el-12-de-octubre-en-honduras.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Día_de_la_Raza",
+        alt: "Día de la Raza - 12 de Septiembre",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "20-11": {
+        imagen: "https://canal12web.com/wp-content/uploads/2025/11/20-11_soberania-nacional-web.jpg",
+        enlace: "https://www.argentina.gob.ar/noticias/dia-de-la-soberania-nacional",
+        alt: "Día de la Soberanía Nacional - 20 de Noviembre",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "8-12": {
+        imagen: "https://media.airedesantafe.com.ar/p/a0da1e93e622df64b173b0e8713322ca/adjuntos/268/imagenes/003/690/0003690837/1200x0/smart/imagepng.png",
+        enlace: "https://es.wikipedia.org/wiki/8_de_diciembre",
+        alt: "8 de Diciembre - Día de la Virgen Inmaculada Concepción",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "25-12": {
+        imagen: "https://mmedia.eluniversal.com/19716/navidad-origen-y-por-que-se-celebra-el-25-de-diciembre-139934.jpg",
+        enlace: "https://es.wikipedia.org/wiki/25_de_diciembre",
+        alt: "25 de Diciembre - Navidad",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+    "31-12": {
+        imagen: "https://estaticos-cdn.prensaiberica.es/clip/e19755b7-0b12-416f-b08f-cb872a6e9da1_16-9-discover-aspect-ratio_default_0.jpg",
+        enlace: "https://es.wikipedia.org/wiki/Nochevieja",
+        alt: "31 de Diciembre - Nochevieja",
+        estilo: "background: linear-gradient(135deg, #1a472a 0%, #0a2a1a 100%); border: 2px solid #2e7d32;"
+    },
+
+};
+
+// ============================================
+// FUNCIÓN PARA MOSTRAR IMAGEN SEGÚN FECHA (CON DEBUG)
+// ============================================
+async function mostrarImagenMalvinas() {
+    const container = document.getElementById('malvinasContainer');
+    if (!container) {
+        console.error('❌ No se encontró el contenedor #malvinasContainer');
+        return;
+    }
+
+    try {
+        console.log('🕒 Obteniendo fecha del servidor...');
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        const serverDate = new Date(data.timestamp);
+        const dia = serverDate.getDate();
+        const mes = serverDate.getMonth() + 1;
+        console.log(`📅 Fecha del servidor: ${serverDate.toISOString()} - Día: ${dia}, Mes: ${mes}`);
+
+        // Construir clave "mes-dia"
+        const clave = `${dia}-${mes}`;
+        console.log(`🔑 Clave generada: "${clave}"`);
+
+        // Buscar si existe configuración para esta fecha
+        const evento = FECHAS_ESPECIALES[clave];
+
+        if (evento) {
+            console.log(`✅ Evento especial encontrado: ${evento.alt}`);
+            const { imagen, enlace, alt, estilo } = evento;
+
+            // Verificar si la imagen existe (al menos que no sea undefined)
+            if (!imagen) {
+                console.warn('⚠️ La imagen no está definida en la configuración');
             }
-        };
 
-        async function mostrarImagenMalvinas() {
-            const container = document.getElementById('malvinasContainer');
-            if (!container) {
-                console.error('❌ No se encontró el contenedor #malvinasContainer');
-                return;
-            }
-
-            try {
-                console.log('🕒 Obteniendo fecha del servidor...');
-                const response = await fetch('/api/health');
-                const data = await response.json();
-                const serverDate = new Date(data.timestamp);
-                const dia = serverDate.getDate();
-                const mes = serverDate.getMonth() + 1;
-                console.log(`📅 Fecha del servidor: ${serverDate.toISOString()} - Día: ${dia}, Mes: ${mes}`);
-
-                const clave = `${dia}-${mes}`;
-                console.log(`🔑 Clave generada: "${clave}"`);
-
-                const evento = FECHAS_ESPECIALES[clave];
-
-                if (evento) {
-                    console.log(`✅ Evento especial encontrado: ${evento.alt}`);
-                    const { imagen, enlace, alt, estilo } = evento;
-
-                    if (!imagen) {
-                        console.warn('⚠️ La imagen no está definida en la configuración');
-                    }
-
-                    container.innerHTML = `
-                        <a href="${enlace || '#'}" 
-                           target="_blank" 
-                           rel="noopener noreferrer" 
-                           style="text-decoration: none; display: block;">
-                            <div class="class-card" style="
-                                ${estilo || ''}
-                                cursor: pointer;
-                                text-align: center;
-                                padding: 0;
-                                overflow: hidden;
-                                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                            "
-                            onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.3)';"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                <img src="${imagen}" 
-                                     alt="${alt || 'Imagen especial'}" 
-                                     style="
-                                        width: 100%;
-                                        height: 100%;
-                                        object-fit: cover;
-                                        display: block;
-                                        pointer-events: none;
-                                     "
-                                     onerror="console.error('❌ Error al cargar la imagen:', this.src); this.style.display='none';">
-                            </div>
-                        </a>
-                    `;
-                    container.style.display = 'grid';
-                    console.log('✅ Contenedor mostrado con la imagen especial.');
-                } else {
-                    console.log(`ℹ️ No hay evento para la fecha ${clave}, ocultando contenedor.`);
-                    container.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('❌ Error al obtener fecha o mostrar imagen:', error);
-                container.style.display = 'none';
-            }
+            container.innerHTML = `
+                <a href="${enlace || '#'}" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   style="text-decoration: none; display: block;">
+                    <div class="class-card" style="
+                        ${estilo || ''}
+                        cursor: pointer;
+                        text-align: center;
+                        padding: 0;
+                        overflow: hidden;
+                        transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    "
+                    onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.3)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <img src="${imagen}" 
+                             alt="${alt || 'Imagen especial'}" 
+                             style="
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                display: block;
+                                pointer-events: none;
+                             "
+                             onerror="console.error('❌ Error al cargar la imagen:', this.src); this.style.display='none';">
+                    </div>
+                </a>
+            `;
+            container.style.display = 'grid';
+            console.log('✅ Contenedor mostrado con la imagen especial.');
+        } else {
+            console.log(`ℹ️ No hay evento para la fecha ${clave}, ocultando contenedor.`);
+            container.style.display = 'none';
         }
+    } catch (error) {
+        console.error('❌ Error al obtener fecha o mostrar imagen:', error);
+        container.style.display = 'none';
+    }
+}
 
         async function cargarClasesPublicas(forzar = false) {
-            const gridContainer = document.getElementById('dynamic-classes-grid');
-            if (!gridContainer) return;
+    const gridContainer = document.getElementById('dynamic-classes-grid');
+    if (!gridContainer) return;
 
-            if (clasesCargadas && !forzar) {
-                console.log('ℹ️ Clases ya cargadas previamente, omitiendo...');
-                return;
-            }
+    if (clasesCargadas && !forzar) {
+        console.log('ℹ️ Clases ya cargadas previamente, omitiendo...');
+        return;
+    }
 
-            if (timeoutCarga) clearTimeout(timeoutCarga);
+    if (timeoutCarga) clearTimeout(timeoutCarga);
 
-            console.log('🔄 Iniciando carga de clases...');
-            gridContainer.innerHTML = '<div class="loading-classes">Cargando clases disponibles...</div>';
+    console.log('🔄 Iniciando carga de clases...');
+    gridContainer.innerHTML = '<div class="loading-classes">Cargando clases disponibles...</div>';
 
-            try {
-                const response = await fetch('/api/clases-publicas/publicadas');
-                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-                const result = await response.json();
-                if (!result.success || !result.data) throw new Error(result.message || 'Error al cargar las clases');
+    try {
+        const response = await fetch('/api/clases-publicas/publicadas');
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        const result = await response.json();
+        if (!result.success || !result.data) throw new Error(result.message || 'Error al cargar las clases');
 
-                let clases = result.data;
-                const ahora = result.serverTime;
+        let clases = result.data;
+        const ahora = result.serverTime;
 
-                console.log(`📊 Clases encontradas (sin filtrar): ${clases.length}`);
-                console.log(`🕒 Hora del servidor: ${new Date(ahora).toLocaleString()}`);
+        console.log(`📊 Clases encontradas (sin filtrar): ${clases.length}`);
+        console.log(`🕒 Hora del servidor: ${new Date(ahora).toLocaleString()}`);
 
-                const clasesVisiblesPorFecha = clases.filter(clase => {
-                    const { cierre } = obtenerTimestampsClase(clase);
-                    if (!cierre) return true;
-                    return ahora < cierre;
-                });
+        // Filtrar clases no expiradas
+        const clasesVisiblesPorFecha = clases.filter(clase => {
+            const { cierre } = obtenerTimestampsClase(clase);
+            if (!cierre) return true;
+            return ahora < cierre;
+        });
 
-                console.log(`📊 Clases visibles por fecha: ${clasesVisiblesPorFecha.length}`);
+        console.log(`📊 Clases visibles por fecha: ${clasesVisiblesPorFecha.length}`);
 
-                const user = authSystem.isLoggedIn() ? authSystem.getCurrentUser() : null;
-                const userArea = user?.area || null;
-                
-                console.log(`👤 Usuario: ${user?.apellidoNombre || 'Invitado'}, Área: ${userArea || 'No definida'}`);
+        // ========== FILTRAR POR ÁREA DEL USUARIO ==========
+        const user = authSystem.isLoggedIn() ? authSystem.getCurrentUser() : null;
+        const userArea = user?.area || null;
+        
+        console.log(`👤 Usuario: ${user?.apellidoNombre || 'Invitado'}, Área: ${userArea || 'No definida'}`);
 
-                let clasesVisibles = clasesVisiblesPorFecha;
+        let clasesVisibles = clasesVisiblesPorFecha;
 
-                if (userArea && userArea !== '') {
-                    console.log(`🔍 Filtrando clases para el área: "${userArea}"`);
-                    
-                    clasesVisibles = clasesVisiblesPorFecha.filter(clase => {
-                        if (!clase.area || clase.area === 'todas') {
-                            console.log(`✅ Clase general: ${clase.nombre}`);
-                            return true;
-                        }
-                        const coincide = clase.area === userArea;
-                        if (coincide) {
-                            console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
-                        } else {
-                            console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
-                        }
-                        return coincide;
-                    });
+        if (userArea && userArea !== '') {
+            console.log(`🔍 Filtrando clases para el área: "${userArea}"`);
+            
+            clasesVisibles = clasesVisiblesPorFecha.filter(clase => {
+                // Si la clase no tiene área definida o es 'todas', se muestra (clase general)
+                if (!clase.area || clase.area === 'todas') {
+                    console.log(`✅ Clase general: ${clase.nombre}`);
+                    return true;
+                }
+                // Si el área de la clase coincide con el área del usuario
+                const coincide = clase.area === userArea;
+                if (coincide) {
+                    console.log(`✅ Clase específica: ${clase.nombre} (Área: ${clase.area})`);
                 } else {
-                    console.log('👤 Usuario sin área definida o invitado - Mostrando todas las clases');
+                    console.log(`❌ Clase excluida: ${clase.nombre} (Área: ${clase.area}) - Usuario área: ${userArea}`);
                 }
+                return coincide;
+            });
+        } else {
+            console.log('👤 Usuario sin área definida o invitado - Mostrando todas las clases');
+        }
 
-                console.log(`📊 Clases visibles después de filtrar por área: ${clasesVisibles.length}`);
+        console.log(`📊 Clases visibles después de filtrar por área: ${clasesVisibles.length}`);
 
-                if (clasesVisibles.length === 0) {
-                    if (userArea) {
-                        gridContainer.innerHTML = `<div class="no-classes-message">No hay clases disponibles para el área "${userArea}" en este momento.</div>`;
-                    } else {
-                        gridContainer.innerHTML = '<div class="no-classes-message">No hay clases disponibles en este momento.</div>';
-                    }
-                    clasesCargadas = true;
-                    await mostrarImagenMalvinas();
-                    return;
-                }
-
-                clasesVisibles.sort((a, b) => {
-                    const { apertura: aApertura } = obtenerTimestampsClase(a);
-                    const { apertura: bApertura } = obtenerTimestampsClase(b);
-                    return (aApertura || 0) - (bApertura || 0);
-                });
-
-                let htmlString = '';
-                clasesVisibles.forEach(clase => {
-                    let fechaFormateada = 'Fecha no disponible';
-                    let horaInicio = 'Hora no disponible';
-                    
-                    if (clase.fechaClase) {
-                        const fecha = new Date(clase.fechaClase);
-                        fechaFormateada = fecha.toLocaleDateString('es-AR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                        });
-                        horaInicio = fecha.toLocaleTimeString('es-AR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false
-                        });
-                    }
-
-                    let instructoresTexto = 'Instructor no especificado';
-                    if (clase.instructores && clase.instructores.length > 0) {
-                        instructoresTexto = clase.instructores.join('<br>');
-                    }
-
-                    const areaBadge = (clase.area && clase.area !== 'todas') 
-                        ? `<span class="class-area-badge" style="display: inline-block; background: #4a90e2; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-top: 5px;">👥 ${clase.area}</span>`
-                        : '';
-
-                    let modalidadBadge = '';
-                    if (clase.modalidad) {
-                        const iconoMod = clase.modalidad === 'Presencial' ? '🏛️' : 
-                                          clase.modalidad === 'Virtual' ? '💻' : '🔄';
-                        modalidadBadge = `<span class="class-modalidad-badge" style="display: inline-block; background: var(--accent-color); color: white; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-top: 5px; margin-left: 5px;">${iconoMod} ${clase.modalidad}</span>`;
-                    }
-
-                    const ubicacionTexto = clase.ubicacion || clase.lugar || '';
-                    const esPresencialOHibrido = clase.modalidad === 'Presencial' || clase.modalidad === 'Híbrido';
-                    let lugarHtml = '';
-                    if (esPresencialOHibrido && ubicacionTexto) {
-                        lugarHtml = `<p><small class="class-lugar"> <strong>Ubicación:</strong> ${escapeHtml(ubicacionTexto)}</small></p>`;
-                    } else if (ubicacionTexto) {
-                        lugarHtml = `<p><small class="class-lugar"> ${escapeHtml(ubicacionTexto)}</small></p>`;
-                    }
-
-                    htmlString += `
-                        <div class="class-card" onclick="abrirModalClase('${clase._id}')">
-                            <h3>${escapeHtml(clase.nombre)}</h3>
-                            <p>${instructoresTexto}</p>
-                            ${lugarHtml}
-                            <div class="class-datetime">
-                                <span class="class-date">📅 ${fechaFormateada}</span>
-                                <span class="class-time">⏰ ${horaInicio} hs</span>
-                            </div>
-                            ${areaBadge}
-                            ${modalidadBadge}
-                        </div>
-                    `;
-                });
-
-                gridContainer.innerHTML = htmlString;
-                clasesCargadas = true;
-                await mostrarImagenMalvinas();
-
-            } catch (error) {
-                console.error('❌ Error cargando clases:', error);
-                gridContainer.innerHTML = '<div class="error-message">Error al cargar las clases. Por favor, recargue la página.</div>';
+        if (clasesVisibles.length === 0) {
+            if (userArea) {
+                gridContainer.innerHTML = `<div class="no-classes-message">No hay clases disponibles para el área "${userArea}" en este momento.</div>`;
+            } else {
+                gridContainer.innerHTML = '<div class="no-classes-message">No hay clases disponibles en este momento.</div>';
             }
+            clasesCargadas = true;
+            await mostrarImagenMalvinas();
+            return;
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        document.addEventListener('userLoggedIn', function() {
-            console.log('👤 Evento userLoggedIn detectado - Recargando clases con filtro por área');
-            clasesCargadas = false;
-            setTimeout(() => cargarClasesPublicas(true), 500);
+        clasesVisibles.sort((a, b) => {
+            const { apertura: aApertura } = obtenerTimestampsClase(a);
+            const { apertura: bApertura } = obtenerTimestampsClase(b);
+            return (aApertura || 0) - (bApertura || 0);
         });
 
-        document.addEventListener('userLoggedOut', function() {
-            console.log('👤 Evento userLoggedOut detectado - Recargando clases');
-            clasesCargadas = false;
-            setTimeout(() => cargarClasesPublicas(true), 500);
+        let htmlString = '';
+        clasesVisibles.forEach(clase => {
+            let fechaFormateada = 'Fecha no disponible';
+            let horaInicio = 'Hora no disponible';
+            
+            if (clase.fechaClase) {
+                const fecha = new Date(clase.fechaClase);
+                fechaFormateada = fecha.toLocaleDateString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+                horaInicio = fecha.toLocaleTimeString('es-AR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+
+            let instructoresTexto = 'Instructor no especificado';
+            if (clase.instructores && clase.instructores.length > 0) {
+                instructoresTexto = clase.instructores.join('<br>');
+            }
+
+            // Mostrar badge del área (opcional)
+            const areaBadge = (clase.area && clase.area !== 'todas') 
+                ? `<span class="class-area-badge" style="display: inline-block; background: #4a90e2; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-top: 5px;">👥 ${clase.area}</span>`
+                : '';
+
+            htmlString += `
+                <div class="class-card" onclick="abrirModalClase('${clase._id}')">
+                    <h3>${escapeHtml(clase.nombre)}</h3>
+                    <p>${instructoresTexto}</p>
+                    ${clase.lugar ? `<p><small class="class-lugar"> ${escapeHtml(clase.lugar)}</small></p>` : ''}
+                    <div class="class-datetime">
+                        <span class="class-date">📅 ${fechaFormateada}</span>
+                        <span class="class-time">⏰ ${horaInicio} hs</span>
+                    </div>
+                    ${areaBadge}
+                </div>
+            `;
         });
+
+        gridContainer.innerHTML = htmlString;
+        clasesCargadas = true;
+        await mostrarImagenMalvinas();
+
+    } catch (error) {
+        console.error('❌ Error cargando clases:', error);
+        gridContainer.innerHTML = '<div class="error-message">Error al cargar las clases. Por favor, recargue la página.</div>';
+    }
+}
+
+// Función auxiliar para escapar HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Después de la función cargarClasesPublicas, agregar:
+
+document.addEventListener('userLoggedIn', function() {
+    console.log('👤 Evento userLoggedIn detectado - Recargando clases con filtro por área');
+    clasesCargadas = false; // Forzar recarga
+    setTimeout(() => cargarClasesPublicas(true), 500);
+});
+
+// También cuando se cierra sesión
+document.addEventListener('userLoggedOut', function() {
+    console.log('👤 Evento userLoggedOut detectado - Recargando clases');
+    clasesCargadas = false;
+    setTimeout(() => cargarClasesPublicas(true), 500);
+});
 
         function verificarClasesExpiradas() {
             cargarClasesPublicas(true);
@@ -1411,6 +867,11 @@
                 cargarClasesPublicas();
                 intervaloVerificacion = setInterval(verificarClasesExpiradas, 60000);
             }, 100);
+        });
+
+        document.addEventListener('userLoggedIn', function() {
+            console.log('👤 Evento userLoggedIn detectado');
+            setTimeout(() => cargarClasesPublicas(true), 500);
         });
 
         const observer = new MutationObserver(function(mutations) {
@@ -1443,8 +904,10 @@
             if (result.success && result.data && result.data.length > 0) {
                 container.style.display = 'block';
                 
+                // Función para convertir URLs en enlaces clickeables
                 function convertirUrlsEnEnlaces(texto) {
                     if (!texto) return '';
+                    // Regex para detectar URLs (http, https, www)
                     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
                     return texto.replace(urlRegex, (url) => {
                         let href = url;
