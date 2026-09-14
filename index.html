@@ -102,7 +102,7 @@
         </div>
     </div>
 
-    <!-- ===== MODAL DE RECORDATORIO (CON .ICS) ===== -->
+    <!-- ===== MODAL DE RECORDATORIO (CON MÚLTIPLES TIEMPOS) ===== -->
     <div id="modalRecordatorio" class="modal-overlay" style="display: none; z-index: 20000;">
         <div class="modal-container" style="max-width: 480px;">
             <div class="modal-header">
@@ -146,90 +146,95 @@
                 
                 <!-- ===== PANEL DE NOTIFICACIÓN ===== -->
                 <div id="panelNotificacion">
-                    <!-- Selector de tiempo -->
-                    <!-- Selector de tiempo -->
-<div class="form-group" style="margin-bottom: 15px;">
-    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-primary);">📅 ¿Cuándo quieres ser notificado?</label>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
-        <button class="tiempo-btn" data-minutos="10" onclick="recordatorioManager.seleccionarTiempo(10, this)" style="
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        ">10 min</button>
-        
-        <button class="tiempo-btn" data-minutos="30" onclick="recordatorioManager.seleccionarTiempo(30, this)" style="
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        ">30 min</button>
-        
-        <button class="tiempo-btn" data-minutos="60" onclick="recordatorioManager.seleccionarTiempo(60, this)" style="
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        ">1 Hora</button>
-        
-        <button class="tiempo-btn" data-minutos="120" onclick="recordatorioManager.seleccionarTiempo(120, this)" style="
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        ">2 Horas</button>
-        
-        <button class="tiempo-btn" data-minutos="1440" onclick="recordatorioManager.seleccionarTiempo(1440, this)" style="
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        ">1 Día</button>
-        
-        <button class="tiempo-btn" data-minutos="10080" onclick="recordatorioManager.seleccionarTiempo(10080, this)" style="
-            padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-container);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        ">1 Semana</button>
-    </div>
-</div>
+                    <!-- Selector de tiempo (MÚLTIPLE) -->
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-primary);">
+                            📅 ¿Cuándo quieres ser notificado? 
+                            <small style="font-weight: normal; color: var(--text-muted);">(seleccioná uno o varios)</small>
+                        </label>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+                            <button class="tiempo-btn" data-minutos="10" onclick="recordatorioManager.toggleTiempo(10, this)" style="
+                                padding: 12px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 600;
+                            ">10 min</button>
+                            
+                            <button class="tiempo-btn" data-minutos="30" onclick="recordatorioManager.toggleTiempo(30, this)" style="
+                                padding: 12px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 600;
+                            ">30 min</button>
+                            
+                            <button class="tiempo-btn" data-minutos="60" onclick="recordatorioManager.toggleTiempo(60, this)" style="
+                                padding: 12px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 600;
+                            ">1 Hora</button>
+                            
+                            <button class="tiempo-btn" data-minutos="120" onclick="recordatorioManager.toggleTiempo(120, this)" style="
+                                padding: 12px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 600;
+                            ">2 Horas</button>
+                            
+                            <button class="tiempo-btn" data-minutos="1440" onclick="recordatorioManager.toggleTiempo(1440, this)" style="
+                                padding: 12px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 600;
+                            ">1 Día</button>
+                            
+                            <button class="tiempo-btn" data-minutos="10080" onclick="recordatorioManager.toggleTiempo(10080, this)" style="
+                                padding: 12px;
+                                border: 2px solid var(--border-color);
+                                border-radius: 8px;
+                                background: var(--bg-container);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                font-weight: 600;
+                            ">1 Semana</button>
+                        </div>
+                    </div>
                     
                     <!-- Tiempo personalizado -->
                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-primary);">⏱️ Personalizado</label>
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-primary);">
+                            ⏱️ Personalizado <small style="font-weight: normal; color: var(--text-muted);">(agregar otro tiempo)</small>
+                        </label>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="number" id="recordatorioPersonalizado" min="1" placeholder="Ej: 30" style="
+                            <input type="number" id="recordatorioPersonalizado" min="1" placeholder="Ej: 45" style="
                                 flex: 1;
                                 padding: 10px;
                                 border: 2px solid var(--border-color);
                                 border-radius: 8px;
                                 background: var(--bg-container);
                                 color: var(--text-primary);
+                                box-sizing: border-box;
                             ">
                             <select id="recordatorioUnidad" style="
                                 padding: 10px;
@@ -252,27 +257,29 @@
                                 cursor: pointer;
                                 font-weight: bold;
                                 transition: all 0.3s ease;
-                            ">Aplicar</button>
+                                white-space: nowrap;
+                            ">➕ Agregar</button>
                         </div>
                     </div>
                     
                     <!-- Tiempo seleccionado -->
                     <div id="tiempoSeleccionadoDisplay" style="
                         text-align: center;
-                        padding: 10px;
+                        padding: 12px;
                         background: rgba(66, 133, 244, 0.1);
                         border-radius: 8px;
                         margin-bottom: 15px;
                         border: 1px solid rgba(66, 133, 244, 0.3);
                         color: var(--text-secondary);
                         font-weight: 500;
+                        line-height: 1.6;
                     ">
-                        ⏳ Selecciona un tiempo para recibir la notificación
+                        ⏳ Selecciona uno o más tiempos para recibir notificaciones
                     </div>
                     
                     <!-- Botón programar -->
                     <div style="display: flex; gap: 10px;">
-                        <button id="btnProgramarRecordatorio" onclick="recordatorioManager.programar()" style="
+                        <button id="btnProgramarRecordatorio" onclick="recordatorioManager.programar()" disabled style="
                             flex: 2;
                             padding: 12px;
                             border: none;
@@ -283,7 +290,8 @@
                             cursor: pointer;
                             font-size: 1em;
                             transition: all 0.3s ease;
-                        ">🔔 Programar Notificación</button>
+                            opacity: 0.6;
+                        ">🔔 Programar Notificaciones</button>
                         
                         <button onclick="recordatorioManager.cerrarModal()" style="
                             flex: 1;
@@ -692,29 +700,29 @@
 
                 const ahora = serverTime || Date.now();
 
-if (apertura && ahora < apertura) {
-    // ===== LA CLASE NO COMENZÓ (aún no abrió) =====
-    estadoClase.textContent = '📅 La clase no comenzó. Agregá un recordatorio a tu calendario personal para ser notificado de su apertura.';
-    estadoClase.className = 'estado-clase proximamente';
-    btnRecordatorio.style.display = 'block';  // ✅ Mostrar recordatorio
-    btnUnirse.style.display = 'none';         // ❌ No se puede unir todavía
-    
-} else if (cierre && ahora > cierre) {
-    // ===== LA CLASE YA TERMINÓ =====
-    estadoClase.textContent = '🔒 La clase finalizó, no se aceptan nuevas inscripciones.';
-    estadoClase.className = 'estado-clase cerrada';
-    btnRecordatorio.style.display = 'none';   // ❌ No mostrar recordatorio (ya pasó)
-    btnUnirse.style.display = 'none';         // ❌ No se puede unir (ya terminó)
-    
-} else {
-    // ===== LA CLASE ESTÁ EN CURSO (abierta) =====
-    estadoClase.textContent = '✅ Hacé clic aquí para unirte a la clase.';
-    estadoClase.className = 'estado-clase abierta';
-    btnUnirse.style.display = 'block';        // ✅ Mostrar "Unirse"
-    btnRecordatorio.style.display = 'none';   // ❌ No mostrar recordatorio (ya empezó)
-}
+                if (apertura && ahora < apertura) {
+                    // ===== LA CLASE NO COMENZÓ (aún no abrió) =====
+                    estadoClase.textContent = '📅 La clase no comenzó. Agregá un recordatorio a tu calendario personal para ser notificado de su apertura.';
+                    estadoClase.className = 'estado-clase proximamente';
+                    btnRecordatorio.style.display = 'block';
+                    btnUnirse.style.display = 'none';
+                    
+                } else if (cierre && ahora > cierre) {
+                    // ===== LA CLASE YA TERMINÓ =====
+                    estadoClase.textContent = '🔒 La clase finalizó, no se aceptan nuevas inscripciones.';
+                    estadoClase.className = 'estado-clase cerrada';
+                    btnRecordatorio.style.display = 'none';
+                    btnUnirse.style.display = 'none';
+                    
+                } else {
+                    // ===== LA CLASE ESTÁ EN CURSO (abierta) =====
+                    estadoClase.textContent = '✅ Hacé clic aquí para unirte a la clase.';
+                    estadoClase.className = 'estado-clase abierta';
+                    btnUnirse.style.display = 'block';
+                    btnRecordatorio.style.display = 'none';
+                }
 
-estadoClase.style.display = 'block';
+                estadoClase.style.display = 'block';
 
             } catch (error) {
                 console.error('Error al cargar clase:', error);
@@ -751,9 +759,6 @@ estadoClase.style.display = 'block';
 
             const user = authSystem.getCurrentUser();
 
-            // ============================================
-            // REGISTRAR INSCRIPCIÓN
-            // ============================================
             try {
                 const inscripcionData = {
                     usuarioId: user._id,
@@ -778,9 +783,6 @@ estadoClase.style.display = 'block';
 
                 console.log('✅ Inscripción registrada');
 
-                // ============================================
-                // REDIRIGIR SEGÚN MODALIDAD
-                // ============================================
                 redirigirSegunModalidad(claseSeleccionada);
 
             } catch (error) {
@@ -799,27 +801,23 @@ estadoClase.style.display = 'block';
 
             console.log('🎓 Modalidad de la clase:', modalidad);
 
-            // ===== PRESENCIAL =====
             if (modalidad === 'Presencial') {
                 console.log('🏛️ Redirigiendo a asistencia presencial');
                 window.location.href = '/asistenciapres.html';
                 return;
             }
 
-            // ===== VIRTUAL =====
             if (modalidad === 'Virtual') {
                 redirigirVirtual(clase);
                 return;
             }
 
-            // ===== HÍBRIDO =====
             if (modalidad === 'Híbrido') {
                 console.log('🔄 Clase híbrida - Mostrando selector');
                 abrirModalHibrido(clase);
                 return;
             }
 
-            // ===== FALLBACK (clases sin modalidad definida) =====
             console.log('⚠️ Modalidad no reconocida, usando enlaceFormulario');
             const enlace = clase.enlaceFormulario || clase.enlaces?.youtube || '';
             if (enlace) {
@@ -852,7 +850,6 @@ estadoClase.style.display = 'block';
 
             if (plataforma === 'YouTube') {
                 console.log('📺 Redirigiendo a clasesYT.html');
-                // Guardar el videoId en localStorage para clasesYT.js
                 if (clase.youtubeVideoId) {
                     try {
                         localStorage.setItem('claseYT_videoId', clase.youtubeVideoId);
@@ -866,7 +863,6 @@ estadoClase.style.display = 'block';
                 return;
             }
 
-            // Fallback
             const enlace = clase.enlaceFormulario || '';
             if (enlace) {
                 window.location.href = enlace;
@@ -880,10 +876,8 @@ estadoClase.style.display = 'block';
         // MODAL DE SELECCIÓN HÍBRIDA
         // ============================================
         function abrirModalHibrido(clase) {
-            // Cerrar modal de inscripción
             cerrarModal();
 
-            // Crear modal de selección
             const modalHibrido = document.createElement('div');
             modalHibrido.id = 'modalHibrido';
             modalHibrido.className = 'modal-overlay';
@@ -971,7 +965,6 @@ estadoClase.style.display = 'block';
 
             document.body.appendChild(modalHibrido);
 
-            // Guardar la clase en una variable global temporal
             window.claseHibridaActual = clase;
         }
 
@@ -1017,46 +1010,45 @@ estadoClase.style.display = 'block';
         // CONFIGURACIÓN DEL BOTÓN DE RECORDATORIO
         // ============================================
         function configurarBotonRecordatorio() {
-    const btn = document.getElementById('btnRecordatorio');
-    if (!btn) {
-        console.log('⏳ Botón de recordatorio no encontrado, reintentando...');
-        setTimeout(configurarBotonRecordatorio, 500);
-        return;
-    }
-    
-    // ✅ Si ya está configurado, no hacer nada
-    if (btn.dataset.configurado === 'true') {
-        console.log('✅ Botón ya estaba configurado');
-        return;
-    }
-    
-    console.log('✅ Configurando botón de recordatorio');
-    
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        console.log('🔔 Click en botón de recordatorio');
-        
-        if (!claseSeleccionada) {
-            console.warn('⚠️ No hay clase seleccionada');
-            return;
+            const btn = document.getElementById('btnRecordatorio');
+            if (!btn) {
+                console.log('⏳ Botón de recordatorio no encontrado, reintentando...');
+                setTimeout(configurarBotonRecordatorio, 500);
+                return;
+            }
+            
+            if (btn.dataset.configurado === 'true') {
+                console.log('✅ Botón ya estaba configurado');
+                return;
+            }
+            
+            console.log('✅ Configurando botón de recordatorio');
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🔔 Click en botón de recordatorio');
+                
+                if (!claseSeleccionada) {
+                    console.warn('⚠️ No hay clase seleccionada');
+                    return;
+                }
+                
+                if (window.recordatorioManager) {
+                    console.log('📅 Abriendo modal de recordatorio para:', claseSeleccionada.nombre);
+                    window.recordatorioManager.abrirModal(claseSeleccionada);
+                } else {
+                    console.error('❌ RecordatorioManager no disponible');
+                    alert('Error: El sistema de recordatorios no está disponible. Por favor, recargue la página.');
+                }
+            });
+            
+            btn.dataset.configurado = 'true';
+            console.log('✅ Botón de recordatorio configurado correctamente');
         }
-        
-        if (window.recordatorioManager) {
-            console.log('📅 Abriendo modal de recordatorio para:', claseSeleccionada.nombre);
-            window.recordatorioManager.abrirModal(claseSeleccionada);
-        } else {
-            console.error('❌ RecordatorioManager no disponible');
-            alert('Error: El sistema de recordatorios no está disponible. Por favor, recargue la página.');
-        }
-    });
-    
-    btn.dataset.configurado = 'true';
-    console.log('✅ Botón de recordatorio configurado correctamente');
-}
 
         document.addEventListener('DOMContentLoaded', function() {
-    configurarBotonRecordatorio();
-});
+            configurarBotonRecordatorio();
+        });
 
         // ============================================
         // CONFIGURACIÓN DE FECHAS ESPECIALES
@@ -1324,7 +1316,6 @@ estadoClase.style.display = 'block';
                         ? `<span class="class-area-badge" style="display: inline-block; background: #4a90e2; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-top: 5px;">👥 ${clase.area}</span>`
                         : '';
 
-                    // Badge de modalidad
                     let modalidadBadge = '';
                     if (clase.modalidad) {
                         const iconoMod = clase.modalidad === 'Presencial' ? '🏛️' : 

@@ -1,25 +1,25 @@
 // ============================================
-// SISTEMA DE RECORDATORIOS CON NOTIFICACIONES
+// SISTEMA DE RECORDATORIOS CON MÚLTIPLES TIEMPOS
 // ============================================
-console.log('🔔 Módulo de recordatorios cargado');
+console.log('🔔 Módulo de recordatorios cargado (múltiples tiempos)');
 
 class RecordatorioManager {
     constructor() {
-        this.tiempoMinutos = 0;
+        this.tiemposSeleccionados = []; // ✅ Array de tiempos en minutos
         this.claseSeleccionada = null;
-        this.timerId = null;
+        this.timers = []; // ✅ Array de timers
         this.programado = false;
         this.init();
     }
 
     init() {
-        // ✅ NO pedir permiso al cargar
-        // Solo cargar recordatorio guardado
         setTimeout(() => this.cargarRecordatorioGuardado(), 1000);
-        console.log('🔔 Sistema de recordatorios inicializado');
+        console.log('🔔 Sistema de recordatorios inicializado (múltiples tiempos)');
     }
 
-    // Cambiar entre tabs (Notificación / ICS)
+    // ============================================
+    // CAMBIAR ENTRE TABS (Notificación / ICS)
+    // ============================================
     cambiarTab(tab) {
         const panelNotificacion = document.getElementById('panelNotificacion');
         const panelICS = document.getElementById('panelICS');
@@ -27,134 +27,231 @@ class RecordatorioManager {
         const tabICS = document.getElementById('tabICS');
         
         if (tab === 'notificacion') {
-            panelNotificacion.style.display = 'block';
-            panelICS.style.display = 'none';
-            tabNotificacion.style.background = 'var(--accent-color)';
-            tabNotificacion.style.color = 'white';
-            tabICS.style.background = 'var(--bg-card)';
-            tabICS.style.color = 'var(--text-secondary)';
+            if (panelNotificacion) panelNotificacion.style.display = 'block';
+            if (panelICS) panelICS.style.display = 'none';
+            if (tabNotificacion) {
+                tabNotificacion.style.background = 'var(--accent-color)';
+                tabNotificacion.style.color = 'white';
+            }
+            if (tabICS) {
+                tabICS.style.background = 'var(--bg-card)';
+                tabICS.style.color = 'var(--text-secondary)';
+            }
         } else {
-            panelNotificacion.style.display = 'none';
-            panelICS.style.display = 'block';
-            tabICS.style.background = 'var(--accent-color)';
-            tabICS.style.color = 'white';
-            tabNotificacion.style.background = 'var(--bg-card)';
-            tabNotificacion.style.color = 'var(--text-secondary)';
+            if (panelNotificacion) panelNotificacion.style.display = 'none';
+            if (panelICS) panelICS.style.display = 'block';
+            if (tabICS) {
+                tabICS.style.background = 'var(--accent-color)';
+                tabICS.style.color = 'white';
+            }
+            if (tabNotificacion) {
+                tabNotificacion.style.background = 'var(--bg-card)';
+                tabNotificacion.style.color = 'var(--text-secondary)';
+            }
         }
     }
 
-    // Descargar archivo .ICS
-    descargarICS() {
-        if (!this.claseSeleccionada) {
-            this.mostrarMensaje('❌ No hay clase seleccionada', 'error');
+    // ============================================
+    // SELECCIONAR/DESELECCIONAR TIEMPO (MÚLTIPLE)
+    // ============================================
+    toggleTiempo(minutos, btn) {
+        const index = this.tiemposSeleccionados.indexOf(minutos);
+        
+        if (index > -1) {
+            // ✅ Ya estaba seleccionado → deseleccionar
+            this.tiemposSeleccionados.splice(index, 1);
+            btn.classList.remove('active');
+            btn.style.background = 'var(--bg-container)';
+            btn.style.color = 'var(--text-primary)';
+            btn.style.borderColor = 'var(--border-color)';
+            console.log(`⏱️ Tiempo deseleccionado: ${minutos} min`);
+        } else {
+            // ✅ No estaba seleccionado → agregar
+            this.tiemposSeleccionados.push(minutos);
+            btn.classList.add('active');
+            btn.style.background = 'var(--accent-color)';
+            btn.style.color = 'white';
+            btn.style.borderColor = 'var(--accent-color)';
+            console.log(`⏱️ Tiempo seleccionado: ${minutos} min`);
+        }
+        
+        // Ordenar de mayor a menor (más lejano primero)
+        this.tiemposSeleccionados.sort((a, b) => b - a);
+        
+        this.actualizarDisplayTiempos();
+        this.ocultarMensaje();
+    }
+
+    // ============================================
+    // ACTUALIZAR DISPLAY DE TIEMPOS SELECCIONADOS
+    // ============================================
+    actualizarDisplayTiempos() {
+        const display = document.getElementById('tiempoSeleccionadoDisplay');
+        if (!display) return;
+        
+        if (this.tiemposSeleccionados.length === 0) {
+            display.textContent = '⏳ Selecciona uno o más tiempos para recibir notificaciones';
+            display.style.color = 'var(--text-secondary)';
+            display.style.background = 'rgba(66, 133, 244, 0.1)';
+            display.style.border = '1px solid rgba(66, 133, 244, 0.3)';
+            document.getElementById('btnProgramarRecordatorio').disabled = true;
             return;
         }
         
-        const clase = this.claseSeleccionada;
+        const textos = this.tiemposSeleccionados.map(m => this.formatTiempo(m));
+        const cantidad = this.tiemposSeleccionados.length;
         
-        // Generar el archivo ICS
-        const icsContent = this.generarICS(clase);
+        display.innerHTML = `
+            ✅ <strong>${cantidad}</strong> recordatorio${cantidad > 1 ? 's' : ''} programado${cantidad > 1 ? 's' : ''}:<br>
+            <span style="font-size: 0.9em;">${textos.map(t => `• ${t} antes`).join('<br>')}</span>
+        `;
+        display.style.color = 'var(--text-primary)';
+        display.style.background = 'rgba(52, 168, 83, 0.1)';
+        display.style.border = '1px solid rgba(52, 168, 83, 0.3)';
         
-        // Crear y descargar el archivo
-        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `recordatorio_${(clase.nombre || 'clase').replace(/[^a-z0-9]/gi, '_')}.ics`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-        
-        this.mostrarMensaje('✅ Archivo .ICS descargado correctamente', 'success');
-        this.reproducirSonido('confirmacion');
+        const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+        if (btnProgramar) btnProgramar.disabled = false;
     }
 
-    // Generar contenido ICS
-    generarICS(clase) {
-        // Determinar fecha de inicio
-        let inicio;
-        if (clase.fechaApertura) {
-            inicio = new Date(clase.fechaApertura);
-        } else if (clase.fechaClase) {
-            inicio = new Date(clase.fechaClase);
+    // ============================================
+    // APLICAR TIEMPO PERSONALIZADO (AGREGA AL ARRAY)
+    // ============================================
+    aplicarTiempoPersonalizado() {
+        const valorInput = document.getElementById('recordatorioPersonalizado');
+        const unidadSelect = document.getElementById('recordatorioUnidad');
+        
+        if (!valorInput || !unidadSelect) return;
+        
+        const valor = parseInt(valorInput.value);
+        const unidad = unidadSelect.value;
+        
+        if (!valor || valor < 1) {
+            this.mostrarMensaje('Por favor, ingresa un número válido mayor a 0', 'error');
+            return;
+        }
+        
+        let minutos = valor;
+        if (unidad === 'horas') minutos = valor * 60;
+        if (unidad === 'dias') minutos = valor * 60 * 24;
+        
+        // ✅ Verificar que no esté ya en la lista
+        if (this.tiemposSeleccionados.includes(minutos)) {
+            this.mostrarMensaje('⚠️ Ese tiempo ya está en la lista', 'info');
+            return;
+        }
+        
+        // ✅ Agregar al array
+        this.tiemposSeleccionados.push(minutos);
+        this.tiemposSeleccionados.sort((a, b) => b - a);
+        
+        // ✅ Crear un botón visual para el tiempo personalizado
+        const btn = this.crearBotonTiempo(minutos);
+        
+        // ✅ Insertar antes del botón "1 Semana" (o al final si no existe)
+        const gridTiempos = document.querySelector('#panelNotificacion .tiempo-btn')?.parentElement;
+        if (gridTiempos && btn) {
+            gridTiempos.appendChild(btn);
+        }
+        
+        // Limpiar input
+        valorInput.value = '';
+        
+        this.actualizarDisplayTiempos();
+        this.ocultarMensaje();
+        console.log(`⏱️ Tiempo personalizado agregado: ${minutos} min`);
+    }
+
+    // ============================================
+    // CREAR BOTÓN VISUAL PARA TIEMPO PERSONALIZADO
+    // ============================================
+    crearBotonTiempo(minutos) {
+        const texto = this.formatTiempo(minutos);
+        
+        const btn = document.createElement('button');
+        btn.className = 'tiempo-btn active';
+        btn.dataset.minutos = minutos;
+        btn.dataset.custom = 'true';
+        btn.style.cssText = `
+            padding: 12px;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            background: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            position: relative;
+        `;
+        btn.textContent = `${texto} ✕`;
+        
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.eliminarTiempoPersonalizado(minutos, btn);
+        });
+        
+        return btn;
+    }
+
+    // ============================================
+    // ELIMINAR TIEMPO PERSONALIZADO
+    // ============================================
+    eliminarTiempoPersonalizado(minutos, btn) {
+        const index = this.tiemposSeleccionados.indexOf(minutos);
+        if (index > -1) {
+            this.tiemposSeleccionados.splice(index, 1);
+        }
+        
+        if (btn && btn.parentNode) {
+            btn.remove();
+        }
+        
+        this.actualizarDisplayTiempos();
+        console.log(`⏱️ Tiempo personalizado eliminado: ${minutos} min`);
+    }
+
+    // ============================================
+    // FORMATO DE TIEMPO
+    // ============================================
+    formatTiempo(minutos) {
+        if (minutos < 60) {
+            return `${minutos} min`;
+        } else if (minutos < 1440) {
+            const horas = Math.floor(minutos / 60);
+            const mins = minutos % 60;
+            return mins > 0 ? `${horas}h ${mins}min` : `${horas} hora${horas !== 1 ? 's' : ''}`;
+        } else if (minutos < 10080) {
+            const dias = Math.floor(minutos / 1440);
+            const horas = Math.floor((minutos % 1440) / 60);
+            return horas > 0 ? `${dias} día${dias !== 1 ? 's' : ''} y ${horas}h` : `${dias} día${dias !== 1 ? 's' : ''}`;
         } else {
-            inicio = new Date();
+            const semanas = Math.floor(minutos / 10080);
+            const dias = Math.floor((minutos % 10080) / 1440);
+            return dias > 0 ? `${semanas} sem y ${dias} día${dias !== 1 ? 's' : ''}` : `${semanas} semana${semanas !== 1 ? 's' : ''}`;
         }
-        
-        // Duración de la clase (1 hora por defecto)
-        const duracion = 60 * 60 * 1000; // 1 hora
-        const fin = new Date(inicio.getTime() + duracion);
-        
-        // Formatear fechas para ICS
-        function formatDateForICS(date) {
-            return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-        }
-        
-        const now = new Date();
-        const dtstamp = formatDateForICS(now);
-        const dtstart = formatDateForICS(inicio);
-        const dtend = formatDateForICS(fin);
-        
-        // Escapar texto para ICS
-        function escapeICS(text) {
-            if (!text) return '';
-            return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-        }
-        
-        const summary = escapeICS(clase.nombre || 'Clase');
-        const description = escapeICS(clase.descripcion || '');
-        const location = escapeICS(clase.lugar || '');
-        
-        // Agregar instructores a la descripción
-        let fullDescription = description;
-        if (clase.instructores && clase.instructores.length > 0) {
-            const instructoresText = 'Instructores: ' + clase.instructores.join(', ');
-            fullDescription = fullDescription ? `${fullDescription}\n\n${instructoresText}` : instructoresText;
-        }
-        
-        // Generar UID único
-        const uid = `${clase._id || Date.now()}@recordatorio-enfermeria.com`;
-        
-        const icsContent = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//Mi Aula de Enfermería//Recordatorio Clase//ES',
-            'CALSCALE:GREGORIAN',
-            'METHOD:PUBLISH',
-            'BEGIN:VEVENT',
-            `UID:${uid}`,
-            `DTSTAMP:${dtstamp}`,
-            `DTSTART:${dtstart}`,
-            `DTEND:${dtend}`,
-            `SUMMARY:${summary}`,
-            `DESCRIPTION:${escapeICS(fullDescription)}`,
-            `LOCATION:${location}`,
-            'STATUS:CONFIRMED',
-            'END:VEVENT',
-            'END:VCALENDAR'
-        ].join('\r\n');
-        
-        return icsContent;
     }
 
-    // Abrir modal de recordatorio
+    // ============================================
+    // ABRIR MODAL
+    // ============================================
     abrirModal(clase) {
         if (!clase) return;
         
         this.claseSeleccionada = clase;
-        this.tiempoMinutos = 0;
+        this.tiemposSeleccionados = []; // ✅ Resetear array
         this.programado = false;
         
-        // Resetear selección de botones
-        document.querySelectorAll('.tiempo-btn').forEach(btn => {
+        // Resetear botones predefinidos
+        document.querySelectorAll('.tiempo-btn:not([data-custom="true"])').forEach(btn => {
             btn.classList.remove('active');
             btn.style.background = 'var(--bg-container)';
             btn.style.color = 'var(--text-primary)';
             btn.style.borderColor = 'var(--border-color)';
         });
         
-        // Mostrar información de la clase
+        // ✅ Eliminar botones personalizados previos
+        document.querySelectorAll('.tiempo-btn[data-custom="true"]').forEach(btn => btn.remove());
+        
+        // Mostrar info de la clase
         document.getElementById('recordatorioClaseNombre').textContent = clase.nombre || 'Clase';
         
         let fechaFormateada = 'Fecha no disponible';
@@ -174,138 +271,38 @@ class RecordatorioManager {
         document.getElementById('recordatorioClaseFecha').textContent = `📅 ${fechaFormateada}`;
         
         // Resetear display
-        document.getElementById('tiempoSeleccionadoDisplay').textContent = '⏳ Selecciona un tiempo para recibir la notificación';
-        document.getElementById('tiempoSeleccionadoDisplay').style.color = 'var(--text-secondary)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.background = 'rgba(66, 133, 244, 0.1)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.border = '1px solid rgba(66, 133, 244, 0.3)';
-        document.getElementById('recordatorioEstado').style.display = 'none';
-        document.getElementById('recordatorioPersonalizado').value = '';
-        document.getElementById('btnProgramarRecordatorio').disabled = false;
-        document.getElementById('btnProgramarRecordatorio').textContent = '🔔 Programar Notificación';
-        document.getElementById('btnProgramarRecordatorio').style.opacity = '1';
-        document.getElementById('btnProgramarRecordatorio').style.cursor = 'pointer';
+        this.actualizarDisplayTiempos();
         
-        // Limpiar mensajes
-        this.ocultarMensaje();
-
-        // ✅ Cambiar al tab de Notificación por defecto
-this.cambiarTab('notificacion');
+        const estado = document.getElementById('recordatorioEstado');
+        if (estado) estado.style.display = 'none';
         
-        // ✅ NO pedir permiso aquí, solo al programar
+        const personalizado = document.getElementById('recordatorioPersonalizado');
+        if (personalizado) personalizado.value = '';
         
-        // Mostrar modal
-const modalRecordatorio = document.getElementById('modalRecordatorio');
-if (modalRecordatorio) {
-    modalRecordatorio.style.display = 'flex';
-    modalRecordatorio.style.zIndex = '20000';
-    console.log('📅 Modal de recordatorio abierto para:', clase.nombre);
-} else {
-    console.error('❌ No se encontró #modalRecordatorio');
-}
-    }
-
-    // Seleccionar tiempo predefinido
-    seleccionarTiempo(minutos, btn) {
-        // Desmarcar todos
-        document.querySelectorAll('.tiempo-btn').forEach(b => {
-            b.classList.remove('active');
-            b.style.background = 'var(--bg-container)';
-            b.style.color = 'var(--text-primary)';
-            b.style.borderColor = 'var(--border-color)';
-        });
-        
-        // Marcar el seleccionado
-        btn.classList.add('active');
-        btn.style.background = 'var(--accent-color)';
-        btn.style.color = 'white';
-        btn.style.borderColor = 'var(--accent-color)';
-        
-        this.tiempoMinutos = minutos;
-        
-        // Mostrar tiempo seleccionado
-        const texto = this.formatTiempo(minutos);
-        document.getElementById('tiempoSeleccionadoDisplay').textContent = `⏳ Recibirás la notificación en ${texto}`;
-        document.getElementById('tiempoSeleccionadoDisplay').style.color = 'var(--text-primary)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.background = 'rgba(52, 168, 83, 0.1)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.border = '1px solid rgba(52, 168, 83, 0.3)';
-        
-        // Habilitar botón de programar
-        document.getElementById('btnProgramarRecordatorio').disabled = false;
-        
-        this.ocultarMensaje();
-    }
-
-    // Aplicar tiempo personalizado
-    aplicarTiempoPersonalizado() {
-        const valor = parseInt(document.getElementById('recordatorioPersonalizado').value);
-        const unidad = document.getElementById('recordatorioUnidad').value;
-        
-        if (!valor || valor < 1) {
-            this.mostrarMensaje('Por favor, ingresa un número válido', 'error');
-            return;
+        const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+        if (btnProgramar) {
+            btnProgramar.disabled = true;
+            btnProgramar.textContent = '🔔 Programar Notificaciones';
+            btnProgramar.style.opacity = '1';
+            btnProgramar.style.cursor = 'pointer';
         }
         
-        let minutos = valor;
-        if (unidad === 'horas') minutos = valor * 60;
-        if (unidad === 'dias') minutos = valor * 60 * 24;
-        
-        // Desmarcar botones predefinidos
-        document.querySelectorAll('.tiempo-btn').forEach(b => {
-            b.classList.remove('active');
-            b.style.background = 'var(--bg-container)';
-            b.style.color = 'var(--text-primary)';
-            b.style.borderColor = 'var(--border-color)';
-        });
-        
-        this.tiempoMinutos = minutos;
-        
-        const texto = this.formatTiempo(minutos);
-        document.getElementById('tiempoSeleccionadoDisplay').textContent = `⏳ Recibirás la notificación en ${texto} (personalizado)`;
-        document.getElementById('tiempoSeleccionadoDisplay').style.color = 'var(--text-primary)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.background = 'rgba(52, 168, 83, 0.1)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.border = '1px solid rgba(52, 168, 83, 0.3)';
-        
-        // Habilitar botón de programar
-        document.getElementById('btnProgramarRecordatorio').disabled = false;
-        
         this.ocultarMensaje();
-    }
-
-    // Formatear tiempo para mostrar
-    formatTiempo(minutos) {
-        if (minutos < 60) {
-            return `${minutos} minuto${minutos !== 1 ? 's' : ''}`;
-        } else if (minutos < 1440) {
-            const horas = Math.floor(minutos / 60);
-            const mins = minutos % 60;
-            return mins > 0 ? `${horas} hora${horas !== 1 ? 's' : ''} y ${mins} minuto${mins !== 1 ? 's' : ''}` : `${horas} hora${horas !== 1 ? 's' : ''}`;
-        } else if (minutos < 10080) {
-            const dias = Math.floor(minutos / 1440);
-            const horas = Math.floor((minutos % 1440) / 60);
-            return horas > 0 ? `${dias} día${dias !== 1 ? 's' : ''} y ${horas} hora${horas !== 1 ? 's' : ''}` : `${dias} día${dias !== 1 ? 's' : ''}`;
-        } else {
-            const semanas = Math.floor(minutos / 10080);
-            const dias = Math.floor((minutos % 10080) / 1440);
-            return dias > 0 ? `${semanas} semana${semanas !== 1 ? 's' : ''} y ${dias} día${dias !== 1 ? 's' : ''}` : `${semanas} semana${semanas !== 1 ? 's' : ''}`;
+        this.cambiarTab('notificacion');
+        
+        const modalRecordatorio = document.getElementById('modalRecordatorio');
+        if (modalRecordatorio) {
+            modalRecordatorio.style.display = 'flex';
+            modalRecordatorio.style.zIndex = '20000';
         }
     }
 
-    // Mostrar mensaje en el modal
-    mostrarMensaje(texto, tipo) {
-        const msg = document.getElementById('recordatorioMensaje');
-        msg.textContent = texto;
-        msg.className = `mensaje ${tipo}`;
-        msg.style.display = 'block';
-    }
-
-    ocultarMensaje() {
-        document.getElementById('recordatorioMensaje').style.display = 'none';
-    }
-
-    // Programar recordatorio
+    // ============================================
+    // PROGRAMAR MÚLTIPLES RECORDATORIOS
+    // ============================================
     programar() {
-        if (this.tiempoMinutos <= 0) {
-            this.mostrarMensaje('Por favor, selecciona un tiempo para la notificación', 'error');
+        if (this.tiemposSeleccionados.length === 0) {
+            this.mostrarMensaje('Por favor, selecciona al menos un tiempo', 'error');
             return;
         }
         
@@ -314,26 +311,24 @@ if (modalRecordatorio) {
             return;
         }
         
-        // ✅ Verificar permisos SOLO AHORA
+        // Verificar permisos
         if (!('Notification' in window)) {
             this.mostrarMensaje('❌ Tu navegador no soporta notificaciones', 'error');
             return;
         }
         
         if (Notification.permission === 'denied') {
-            this.mostrarMensaje('❌ Permiso de notificaciones denegado. Actívalo en la configuración de tu navegador.', 'error');
+            this.mostrarMensaje('❌ Permiso de notificaciones denegado. Actívalo en la configuración del navegador.', 'error');
             return;
         }
         
         if (Notification.permission === 'default') {
-            // ✅ Solicitar permiso AHORA
             this.mostrarMensaje('⏳ Solicitando permiso para mostrar notificaciones...', 'info');
             
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    this.mostrarMensaje('✅ Permiso concedido. Programando notificación...', 'success');
-                    // Reintentar la programación
-                    this.programar();
+                    this.mostrarMensaje('✅ Permiso concedido. Programando notificaciones...', 'success');
+                    this._programarNotificaciones();
                 } else {
                     this.mostrarMensaje('❌ Necesitas aceptar las notificaciones para usar esta función', 'error');
                 }
@@ -341,94 +336,115 @@ if (modalRecordatorio) {
             return;
         }
         
-        // ✅ Si llegamos aquí, el permiso ya está concedido
-        this._programarNotificacion();
+        this._programarNotificaciones();
     }
 
-    // Programar notificación (método interno)
-    _programarNotificacion() {
-        const tiempoMs = this.tiempoMinutos * 60 * 1000;
+    // ============================================
+    // PROGRAMAR NOTIFICACIONES (INTERNO)
+    // ============================================
+    _programarNotificaciones() {
+        // ✅ Limpiar timers anteriores
+        this.timers.forEach(t => clearTimeout(t));
+        this.timers = [];
+        
         const ahora = Date.now();
-        const horaNotificacion = new Date(ahora + tiempoMs);
         
-        // Limpiar timer anterior si existe
-        if (this.timerId) {
-            clearTimeout(this.timerId);
-            this.timerId = null;
-        }
+        // ✅ Ordenar de mayor a menor (más lejano primero)
+        const tiemposOrdenados = [...this.tiemposSeleccionados].sort((a, b) => b - a);
         
-        // Programar la notificación
-        this.timerId = setTimeout(() => {
-            this.enviarNotificacion(this.claseSeleccionada);
-            this.programado = false;
-            this.timerId = null;
-            localStorage.removeItem('recordatorioProgramado');
-        }, tiempoMs);
+        // ✅ Crear un timer por cada tiempo seleccionado
+        tiemposOrdenados.forEach(minutos => {
+            const tiempoMs = minutos * 60 * 1000;
+            const timestamp = ahora + tiempoMs;
+            const horaNotificacion = new Date(timestamp);
+            
+            const timerId = setTimeout(() => {
+                this.enviarNotificacion(this.claseSeleccionada, minutos);
+                
+                // Eliminar este timer de la lista
+                const idx = this.timers.indexOf(timerId);
+                if (idx > -1) this.timers.splice(idx, 1);
+                
+                // Si ya no quedan timers, limpiar localStorage
+                if (this.timers.length === 0) {
+                    this.programado = false;
+                    localStorage.removeItem('recordatoriosProgramados');
+                }
+            }, tiempoMs);
+            
+            this.timers.push(timerId);
+            
+            console.log(`🔔 Timer programado: ${this.formatTiempo(minutos)} antes (a las ${horaNotificacion.toLocaleString('es-AR')})`);
+        });
         
         this.programado = true;
         
-        // Guardar en localStorage para persistencia
-        const recordatorioData = {
+        // ✅ Guardar en localStorage
+        const recordatoriosData = {
             claseId: this.claseSeleccionada._id,
             claseNombre: this.claseSeleccionada.nombre,
             fechaClase: this.claseSeleccionada.fechaClase,
             lugar: this.claseSeleccionada.lugar || 'No especificado',
             instructores: this.claseSeleccionada.instructores || [],
-            tiempoMinutos: this.tiempoMinutos,
-            timestamp: ahora + tiempoMs,
-            programado: true
+            tiempos: tiemposOrdenados, // ✅ Array de tiempos
+            programado: true,
+            timestampCreacion: ahora
         };
         
         try {
-            localStorage.setItem('recordatorioProgramado', JSON.stringify(recordatorioData));
+            localStorage.setItem('recordatoriosProgramados', JSON.stringify(recordatoriosData));
+            console.log('💾 Recordatorios guardados en localStorage');
         } catch (e) {
-            console.log('No se pudo guardar en localStorage');
+            console.warn('No se pudo guardar en localStorage:', e);
         }
         
-        // Mostrar confirmación
-        const texto = this.formatTiempo(this.tiempoMinutos);
-        document.getElementById('recordatorioEstado').style.display = 'block';
-        document.getElementById('recordatorioEstado').innerHTML = `
-            ✅ Notificación programada para dentro de ${texto}
-            <br>
-            <span style="font-size: 0.8em; color: var(--text-muted);">
-                📅 ${horaNotificacion.toLocaleString('es-AR')}
-            </span>
-            <br>
-            <button onclick="recordatorioManager.cancelar()" style="
-                margin-top: 8px;
-                padding: 5px 15px;
-                border: 1px solid var(--error-500);
-                border-radius: 4px;
-                background: transparent;
-                color: var(--error-500);
-                cursor: pointer;
-                font-size: 0.8em;
-                transition: all 0.3s ease;
-            "
-            onmouseover="this.style.background='var(--error-500)'; this.style.color='white';"
-            onmouseout="this.style.background='transparent'; this.style.color='var(--error-500)';">
-                ❌ Cancelar recordatorio
-            </button>
-        `;
-        document.getElementById('recordatorioEstado').style.background = 'rgba(52, 168, 83, 0.1)';
-        document.getElementById('recordatorioEstado').style.color = 'var(--success-500)';
-        document.getElementById('recordatorioEstado').style.border = '1px solid rgba(52, 168, 83, 0.3)';
+        // ✅ Mostrar confirmación
+        const textos = tiemposOrdenados.map(m => this.formatTiempo(m));
+        const estado = document.getElementById('recordatorioEstado');
+        if (estado) {
+            estado.style.display = 'block';
+            estado.innerHTML = `
+                ✅ <strong>${tiemposOrdenados.length}</strong> notificación${tiemposOrdenados.length > 1 ? 'es' : ''} programada${tiemposOrdenados.length > 1 ? 's' : ''}:
+                <br>
+                <div style="text-align: left; margin-top: 8px; font-size: 0.9em; line-height: 1.6;">
+                    ${textos.map(t => `• ${t} antes de la clase`).join('<br>')}
+                </div>
+                <button onclick="recordatorioManager.cancelar()" style="
+                    margin-top: 10px;
+                    padding: 6px 16px;
+                    border: 1px solid var(--error-500);
+                    border-radius: 4px;
+                    background: transparent;
+                    color: var(--error-500);
+                    cursor: pointer;
+                    font-size: 0.85em;
+                    font-weight: bold;
+                ">❌ Cancelar todos</button>
+            `;
+            estado.style.background = 'rgba(52, 168, 83, 0.1)';
+            estado.style.color = 'var(--success-500)';
+            estado.style.border = '1px solid rgba(52, 168, 83, 0.3)';
+            estado.style.padding = '12px';
+            estado.style.borderRadius = '8px';
+        }
         
-        // Deshabilitar botón de programar
-        document.getElementById('btnProgramarRecordatorio').disabled = true;
-        document.getElementById('btnProgramarRecordatorio').textContent = '✅ Programado';
-        document.getElementById('btnProgramarRecordatorio').style.opacity = '0.6';
-        document.getElementById('btnProgramarRecordatorio').style.cursor = 'not-allowed';
+        // Deshabilitar botón
+        const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+        if (btnProgramar) {
+            btnProgramar.disabled = true;
+            btnProgramar.textContent = '✅ Programados';
+            btnProgramar.style.opacity = '0.6';
+            btnProgramar.style.cursor = 'not-allowed';
+        }
         
-        this.mostrarMensaje(`✅ Notificación programada para dentro de ${texto}`, 'success');
-        
-        // Reproducir sonido de confirmación
+        this.mostrarMensaje(`✅ ${tiemposOrdenados.length} notificación${tiemposOrdenados.length > 1 ? 'es' : ''} programada${tiemposOrdenados.length > 1 ? 's' : ''}`, 'success');
         this.reproducirSonido('confirmacion');
     }
 
-    // Enviar notificación
-    enviarNotificacion(clase) {
+    // ============================================
+    // ENVIAR NOTIFICACIÓN (INDICA CUÁNTO FALTA)
+    // ============================================
+    enviarNotificacion(clase, minutosAntes) {
         let fechaFormateada = 'Fecha no disponible';
         if (clase.fechaClase) {
             const fecha = new Date(clase.fechaClase);
@@ -446,41 +462,40 @@ if (modalRecordatorio) {
             ? clase.instructores.join(', ') 
             : 'No especificados';
         
-        const titulo = `🔔 Recordatorio: ${clase.nombre}`;
-        const cuerpo = `📅 La clase comienza el ${fechaFormateada}\n📍 Lugar: ${clase.lugar || 'No especificado'}\n👥 Instructores: ${instructores}`;
+        const tiempoTexto = this.formatTiempo(minutosAntes);
+        const titulo = `🔔 Clase en ${tiempoTexto}: ${clase.nombre}`;
+        const cuerpo = `📅 ${fechaFormateada}\n📍 Lugar: ${clase.lugar || 'No especificado'}\n👥 Instructores: ${instructores}`;
         
-        // Crear notificación
-        const notificacion = new Notification(titulo, {
-            body: cuerpo,
-            icon: '/img/logo.png',
-            tag: `recordatorio_${clase._id}`,
-            requireInteraction: true,
-            silent: false,
-            vibrate: [200, 100, 200]
-        });
-        
-        // Reproducir sonido al recibir notificación
-        this.reproducirSonido('notificacion');
-        
-        // Acción al hacer clic en la notificación
-        notificacion.onclick = function() {
-            window.focus();
-            if (clase.enlaceFormulario || clase.enlaces?.youtube) {
-                const enlace = clase.enlaceFormulario || clase.enlaces?.youtube;
-                window.open(enlace, '_blank');
-            }
-            this.close();
-        };
-        
-        // Cerrar automáticamente después de 30 segundos
-        setTimeout(() => {
-            notificacion.close();
-        }, 30000);
-        
-        console.log('🔔 Notificación enviada:', titulo);
+        try {
+            const notificacion = new Notification(titulo, {
+                body: cuerpo,
+                icon: '/img/logo.png',
+                tag: `recordatorio_${clase._id}_${minutosAntes}`,
+                requireInteraction: true,
+                silent: false
+            });
+            
+            this.reproducirSonido('notificacion');
+            
+            notificacion.onclick = function() {
+                window.focus();
+                if (clase.enlaceFormulario) {
+                    window.open(clase.enlaceFormulario, '_blank');
+                }
+                this.close();
+            };
+            
+            setTimeout(() => notificacion.close(), 30000);
+            
+            console.log(`🔔 Notificación enviada: faltan ${tiempoTexto}`);
+        } catch (e) {
+            console.error('❌ Error enviando notificación:', e);
+        }
     }
 
-    // Reproducir sonido con Web Audio API (sin archivos externos)
+    // ============================================
+    // REPRODUCIR SONIDO
+    // ============================================
     reproducirSonido(tipo) {
         try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -496,17 +511,15 @@ if (modalRecordatorio) {
             gainNode.connect(audioContext.destination);
             
             if (tipo === 'confirmacion') {
-                // Sonido de confirmación (dos tonos ascendentes)
-                oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // Do
-                oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // Mi
+                oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + 0.3);
             } else {
-                // Sonido de notificación (tono corto y agudo)
-                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // La
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
@@ -514,62 +527,67 @@ if (modalRecordatorio) {
                 oscillator.stop(audioContext.currentTime + 0.2);
             }
         } catch (e) {
-            // Silenciar errores si el navegador no soporta Web Audio API
             console.log('🔇 Sonido no disponible');
         }
     }
 
-    // Cancelar recordatorio
+    // ============================================
+    // CANCELAR TODOS LOS RECORDATORIOS
+    // ============================================
     cancelar() {
-        if (this.timerId) {
-            clearTimeout(this.timerId);
-            this.timerId = null;
-        }
+        // Limpiar todos los timers
+        this.timers.forEach(t => clearTimeout(t));
+        this.timers = [];
         
         this.programado = false;
+        this.tiemposSeleccionados = [];
         
         try {
-            localStorage.removeItem('recordatorioProgramado');
+            localStorage.removeItem('recordatoriosProgramados');
         } catch (e) {
             console.log('No se pudo eliminar de localStorage');
         }
         
-        document.getElementById('recordatorioEstado').style.display = 'none';
-        document.getElementById('btnProgramarRecordatorio').disabled = false;
-        document.getElementById('btnProgramarRecordatorio').textContent = '🔔 Programar Notificación';
-        document.getElementById('btnProgramarRecordatorio').style.opacity = '1';
-        document.getElementById('btnProgramarRecordatorio').style.cursor = 'pointer';
-        document.getElementById('tiempoSeleccionadoDisplay').textContent = '⏳ Recordatorio cancelado';
-        document.getElementById('tiempoSeleccionadoDisplay').style.color = 'var(--text-muted)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.background = 'rgba(234, 67, 53, 0.1)';
-        document.getElementById('tiempoSeleccionadoDisplay').style.border = '1px solid rgba(234, 67, 53, 0.3)';
+        // Resetear UI
+        document.querySelectorAll('.tiempo-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.background = 'var(--bg-container)';
+            btn.style.color = 'var(--text-primary)';
+            btn.style.borderColor = 'var(--border-color)';
+        });
+        document.querySelectorAll('.tiempo-btn[data-custom="true"]').forEach(btn => btn.remove());
         
-        this.mostrarMensaje('✅ Recordatorio cancelado', 'success');
+        const estado = document.getElementById('recordatorioEstado');
+        if (estado) estado.style.display = 'none';
+        
+        const btnProgramar = document.getElementById('btnProgramarRecordatorio');
+        if (btnProgramar) {
+            btnProgramar.disabled = true;
+            btnProgramar.textContent = '🔔 Programar Notificaciones';
+            btnProgramar.style.opacity = '1';
+            btnProgramar.style.cursor = 'pointer';
+        }
+        
+        this.actualizarDisplayTiempos();
+        this.mostrarMensaje('✅ Todos los recordatorios cancelados', 'success');
         this.reproducirSonido('confirmacion');
     }
 
-    // Cargar recordatorio guardado
+    // ============================================
+    // CARGAR RECORDATORIOS GUARDADOS
+    // ============================================
     cargarRecordatorioGuardado() {
         try {
-            const data = localStorage.getItem('recordatorioProgramado');
+            const data = localStorage.getItem('recordatoriosProgramados');
             if (!data) return;
             
             const recordatorio = JSON.parse(data);
-            if (!recordatorio.programado) return;
+            if (!recordatorio.programado || !recordatorio.tiempos) return;
             
             const ahora = Date.now();
-            const tiempoRestante = recordatorio.timestamp - ahora;
+            const fechaClaseMs = new Date(recordatorio.fechaClase).getTime();
             
-            if (tiempoRestante <= 0) {
-                localStorage.removeItem('recordatorioProgramado');
-                return;
-            }
-            
-            // Re-programar la notificación
-            const minutosRestantes = Math.round(tiempoRestante / (60 * 1000));
-            console.log(`🔄 Recordatorio guardado encontrado: ${recordatorio.claseNombre} (en ${minutosRestantes} minutos)`);
-            
-            this.tiempoMinutos = minutosRestantes;
+            // Reconstruir la clase
             this.claseSeleccionada = {
                 _id: recordatorio.claseId,
                 nombre: recordatorio.claseNombre,
@@ -578,33 +596,68 @@ if (modalRecordatorio) {
                 instructores: recordatorio.instructores || []
             };
             
-            if (this.timerId) {
-                clearTimeout(this.timerId);
-            }
+            // Reprogramar cada tiempo
+            let reprogramados = 0;
+            recordatorio.tiempos.forEach(minutos => {
+                const tiempoRestante = (fechaClaseMs - ahora) - (minutos * 60 * 1000);
+                
+                if (tiempoRestante > 0) {
+                    const timerId = setTimeout(() => {
+                        this.enviarNotificacion(this.claseSeleccionada, minutos);
+                        
+                        const idx = this.timers.indexOf(timerId);
+                        if (idx > -1) this.timers.splice(idx, 1);
+                        
+                        if (this.timers.length === 0) {
+                            this.programado = false;
+                            localStorage.removeItem('recordatoriosProgramados');
+                        }
+                    }, tiempoRestante);
+                    
+                    this.timers.push(timerId);
+                    reprogramados++;
+                    
+                    console.log(`🔄 Recordatorio reprogramado: ${this.formatTiempo(minutos)} antes`);
+                } else {
+                    console.log(`⏹️ Recordatorio ya pasó: ${this.formatTiempo(minutos)} antes`);
+                }
+            });
             
-            this.timerId = setTimeout(() => {
-                this.enviarNotificacion(this.claseSeleccionada);
-                this.programado = false;
-                this.timerId = null;
-                localStorage.removeItem('recordatorioProgramado');
-            }, tiempoRestante);
-            
-            this.programado = true;
+            this.programado = reprogramados > 0;
+            console.log(`🔄 ${reprogramados} recordatorios reprogramados de ${recordatorio.tiempos.length}`);
             
         } catch (e) {
-            console.log('Error cargando recordatorio guardado:', e);
-            localStorage.removeItem('recordatorioProgramado');
+            console.log('Error cargando recordatorios guardados:', e);
+            localStorage.removeItem('recordatoriosProgramados');
         }
     }
 
-    // Cerrar modal
+    // ============================================
+    // MENSAJES
+    // ============================================
+    mostrarMensaje(texto, tipo) {
+        const msg = document.getElementById('recordatorioMensaje');
+        if (!msg) return;
+        msg.textContent = texto;
+        msg.className = `mensaje ${tipo}`;
+        msg.style.display = 'block';
+    }
+
+    ocultarMensaje() {
+        const msg = document.getElementById('recordatorioMensaje');
+        if (msg) msg.style.display = 'none';
+    }
+
+    // ============================================
+    // CERRAR MODAL
+    // ============================================
     cerrarModal() {
-        document.getElementById('modalRecordatorio').style.display = 'none';
+        const modal = document.getElementById('modalRecordatorio');
+        if (modal) modal.style.display = 'none';
         this.ocultarMensaje();
     }
 }
 
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     window.recordatorioManager = new RecordatorioManager();
 });
