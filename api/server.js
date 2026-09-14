@@ -402,7 +402,51 @@ app.get('/api/auth/check-legajo/:legajo', async (req, res) => {
     }
 });
 
-
+// ==================== RUTAS DE INSCRIPCIONES ====================
+app.post('/api/inscripciones', async (req, res) => {
+    try {
+        const { usuarioId, clase, fecha, claseId } = req.body; // ← Eliminamos turno
+        
+        // Verificar que el usuario existe y obtener su turno (opcional, para validación)
+        const db = await mongoDB.getDatabaseSafe('formulario');
+        const usuario = await db.collection('usuarios').findOne({ 
+            _id: new ObjectId(usuarioId) 
+        });
+        
+        if (!usuario) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
+            });
+        }
+        
+        // Crear inscripción SIN turno
+        const nuevaInscripcion = {
+            usuarioId: new ObjectId(usuarioId),
+            clase,
+            fecha: new Date(fecha || Date.now())
+        };
+        
+        if (claseId) {
+            nuevaInscripcion.claseId = claseId;
+        }
+        
+        await db.collection('inscripciones').insertOne(nuevaInscripcion);
+        
+        res.json({ 
+            success: true, 
+            message: 'Inscripción registrada exitosamente' 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error registrando inscripción:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error interno del servidor',
+            error: error.message 
+        });
+    }
+});
 
 app.get('/api/inscripciones/verificar/:usuarioId/:clase', async (req, res) => {
     try {
@@ -1493,12 +1537,7 @@ app.post('/api/clases-publicas', async (req, res) => {
             });
         }
         
-        const { 
-            nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, 
-            enlaceFormulario, publicada, area, auditorio, cafeteria, material, 
-            materialEnlaces, modalidad, ubicacion, plataforma, enlaceVirtual, 
-            enlaceYouTube, youtubeVideoId 
-        } = req.body;
+        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area, auditorio, cafeteria, material, materialEnlaces } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -1550,9 +1589,6 @@ app.post('/api/clases-publicas', async (req, res) => {
         
         const areaFinal = area || 'todas';
         console.log('📌 Área a guardar en BD:', areaFinal);
-        console.log('🎓 Modalidad:', modalidad);
-        console.log('💻 Plataforma:', plataforma);
-        console.log('🎬 YouTube ID:', youtubeVideoId);
         
         const nuevaClase = {
             nombre,
@@ -1564,14 +1600,6 @@ app.post('/api/clases-publicas', async (req, res) => {
             enlaceFormulario: enlaceFormulario || '',
             publicada: publicada === true,
             area: areaFinal,
-            
-            // ===== MODALIDAD =====
-            modalidad: modalidad || '',
-            ubicacion: ubicacion || '',
-            plataforma: plataforma || '',
-            enlaceVirtual: enlaceVirtual || '',
-            enlaceYouTube: enlaceYouTube || '',
-            youtubeVideoId: youtubeVideoId || '',
             
             // ===== CONTROLES INTERNOS =====
             auditorio: auditorio === true || false,
@@ -1592,7 +1620,6 @@ app.post('/api/clases-publicas', async (req, res) => {
         console.log('📅 Fecha clase:', fechaClaseDate);
         console.log('🔒 Fecha cierre:', fechaCierreDate);
         console.log('📎 Enlaces de material:', (materialEnlaces || []).length);
-        console.log('🎬 YouTube ID guardado:', youtubeVideoId);
         
         res.json({ 
             success: true, 
@@ -1632,12 +1659,7 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
             });
         }
         
-        const { 
-            nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, 
-            enlaceFormulario, publicada, area, auditorio, cafeteria, material, 
-            materialEnlaces, modalidad, ubicacion, plataforma, enlaceVirtual, 
-            enlaceYouTube, youtubeVideoId 
-        } = req.body;
+        const { nombre, descripcion, fechaClase, fechaCierre, instructores, lugar, enlaceFormulario, publicada, area, auditorio, cafeteria, material, materialEnlaces } = req.body;
         
         if (!nombre || !fechaClase) {
             return res.status(400).json({ 
@@ -1684,45 +1706,29 @@ app.put('/api/clases-publicas/:id', async (req, res) => {
         
         const areaFinal = area || 'todas';
         console.log('📌 Área a actualizar en BD:', areaFinal);
-        console.log('🎓 Modalidad:', modalidad);
-        console.log('💻 Plataforma:', plataforma);
-        console.log('🎬 YouTube ID:', youtubeVideoId);
         
         const updateData = {
-    $set: {
-        nombre,
-        descripcion: descripcion || '',
-        fechaClase: fechaClaseDate,
-        instructores: instructores || [],
-        lugar: lugar || '',
-        enlaceFormulario: enlaceFormulario || '',
-        publicada: publicada === true,
-        area: areaFinal,
-        
-        // ===== MODALIDAD =====
-        modalidad: modalidad || '',
-        ubicacion: ubicacion || '',
-        plataforma: plataforma || '',
-        enlaceVirtual: enlaceVirtual || '',
-        enlaceYouTube: enlaceYouTube || '',
-        youtubeVideoId: youtubeVideoId || '',
-        
-        // ===== CONTROLES INTERNOS =====
-        auditorio: auditorio === true || false,
-        cafeteria: cafeteria === true || false,
-        material: material === true || false,
-        
-        fechaActualizacion: new Date()
-    }
-};
-// Solo actualizar materialEnlaces si se enviaron explícitamente
-// y NO están vacíos. Caso contrario, mantener los existentes.
-if (Array.isArray(materialEnlaces) && materialEnlaces.length > 0) {
-    updateData.$set.materialEnlaces = materialEnlaces;
-    console.log('📎 Actualizando materialEnlaces:', materialEnlaces.length, 'enlaces');
-} else {
-    console.log('📎 Preservando materialEnlaces existentes (no se enviaron o están vacíos)');
-}
+            $set: {
+                nombre,
+                descripcion: descripcion || '',
+                fechaClase: fechaClaseDate,
+                instructores: instructores || [],
+                lugar: lugar || '',
+                enlaceFormulario: enlaceFormulario || '',
+                publicada: publicada === true,
+                area: areaFinal,
+                
+                // ===== CONTROLES INTERNOS =====
+                auditorio: auditorio === true || false,
+                cafeteria: cafeteria === true || false,
+                material: material === true || false,
+                
+                // ===== MATERIAL ENLACES =====
+                materialEnlaces: materialEnlaces || [],
+                
+                fechaActualizacion: new Date()
+            }
+        };
         
         if (fechaCierreDate) {
             updateData.$set.fechaCierre = fechaCierreDate;
@@ -1739,7 +1745,6 @@ if (Array.isArray(materialEnlaces) && materialEnlaces.length > 0) {
         
         console.log('✅ Clase actualizada:', id);
         console.log('📎 Enlaces de material actualizados:', (materialEnlaces || []).length);
-        console.log('🎬 YouTube ID actualizado:', youtubeVideoId);
         
         res.json({ success: true, message: 'Clase pública actualizada exitosamente' });
         
@@ -1972,10 +1977,10 @@ app.put('/api/usuarios/perfil', async (req, res) => {
         };
         
         if (password) {
-            if (password.length < 8) {
+            if (password.length < 6) {
                 return res.status(400).json({
                     success: false,
-                    message: 'La nueva contraseña debe tener al menos 8 caracteres'
+                    message: 'La nueva contraseña debe tener al menos 6 caracteres'
                 });
             }
             if (password.length > 15) {
@@ -1987,8 +1992,6 @@ app.put('/api/usuarios/perfil', async (req, res) => {
             // Usar scrypt para nueva contraseña
             updateData.password = hashPasswordScrypt(password);
             updateData.passwordLastUpdated = new Date();
-            updateData.mustChangePassword = false;  // ✅ AGREGAR ESTA LÍNEA
-            updateData.fechaCambioPassword = new Date();  // ✅ Opcional
         }
         
         await db.collection('usuarios').updateOne(
@@ -3750,313 +3753,6 @@ app.get('/api/logs/test', (req, res) => {
         message: 'Ruta de logs funcionando',
         timestamp: new Date().toISOString()
     });
-});
-
-// ==================== RUTA: RESTABLECER CONTRASEÑA A TEMPORAL ====================
-app.put('/api/admin/usuarios/:id/reset-password', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userHeader = req.headers['user-id'];
-        
-        console.log('🔐 Restableciendo contraseña de usuario ID:', id);
-        
-        if (!userHeader || !ObjectId.isValid(id)) {
-            return res.status(401).json({ success: false, message: 'Solicitud inválida' });
-        }
-        
-        const db = await mongoDB.getDatabaseSafe('formulario');
-        
-        // Verificar que quien ejecuta sea admin
-        const admin = await db.collection('usuarios').findOne({ 
-            _id: new ObjectId(userHeader) 
-        });
-        
-        if (!admin || admin.role !== 'admin') {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Solo administradores pueden restablecer contraseñas' 
-            });
-        }
-        
-        // Verificar que el usuario a modificar existe
-        const usuario = await db.collection('usuarios').findOne({ 
-            _id: new ObjectId(id) 
-        });
-        
-        if (!usuario) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Usuario no encontrado' 
-            });
-        }
-        
-        // ========== CONTRASEÑA TEMPORAL ==========
-        const TEMP_PASSWORD = 'temporal123';
-        const hashedPassword = hashPasswordScrypt(TEMP_PASSWORD);
-        const ahora = new Date();
-        
-        // Actualizar la contraseña + marcar que debe cambiarla
-        const result = await db.collection('usuarios').updateOne(
-            { _id: new ObjectId(id) },
-            { 
-                $set: { 
-                    password: hashedPassword,
-                    passwordLastUpdated: ahora,
-                    mustChangePassword: true,   // ✅ Flag para forzar cambio
-                    fechaResetPassword: ahora,
-                    resetBy: new ObjectId(userHeader)
-                } 
-            }
-        );
-        
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Usuario no encontrado' 
-            });
-        }
-        
-        console.log(`✅ Contraseña restablecida a "temporal123" para: ${usuario.apellidoNombre}`);
-        
-        res.json({ 
-            success: true, 
-            message: `Contraseña restablecida para ${usuario.apellidoNombre}`,
-            usuario: {
-                nombre: usuario.apellidoNombre,
-                legajo: usuario.legajo,
-                email: usuario.email
-            },
-            tempPassword: TEMP_PASSWORD
-        });
-        
-    } catch (error) {
-        console.error('❌ Error restableciendo contraseña:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error interno del servidor',
-            error: error.message 
-        });
-    }
-});
-
-// ==================== RUTA: CAMBIO DE CONTRASEÑA FORZADO ====================
-// El usuario debe cambiar la contraseña temporal antes de poder usar el sistema
-app.put('/api/usuarios/cambiar-password-forzado', async (req, res) => {
-    try {
-        const userHeader = req.headers['user-id'];
-        const { currentPassword, newPassword } = req.body;
-        
-        console.log('🔐 Cambio de contraseña forzado para usuario:', userHeader);
-        
-        if (!userHeader || !ObjectId.isValid(userHeader)) {
-            return res.status(401).json({ success: false, message: 'No autenticado' });
-        }
-        
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Contraseña actual y nueva son obligatorias' 
-            });
-        }
-        
-        if (newPassword.length < 8 || newPassword.length > 15) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'La nueva contraseña debe tener entre 8 y 15 caracteres' 
-            });
-        }
-        
-        if (newPassword === 'temporal123') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'No podés usar la contraseña temporal como nueva' 
-            });
-        }
-        
-        const db = await mongoDB.getDatabaseSafe('formulario');
-        
-        const usuario = await db.collection('usuarios').findOne({ 
-            _id: new ObjectId(userHeader) 
-        });
-        
-        if (!usuario) {
-            return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-        }
-        
-        // Verificar que la contraseña actual sea correcta
-        const passwordMatches = verifyPassword(currentPassword, usuario.password);
-        if (!passwordMatches) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'La contraseña actual es incorrecta' 
-            });
-        }
-        
-        // Actualizar contraseña + limpiar el flag
-        const hashedPassword = hashPasswordScrypt(newPassword);
-        const ahora = new Date();
-        
-        await db.collection('usuarios').updateOne(
-            { _id: new ObjectId(userHeader) },
-            { 
-                $set: { 
-                    password: hashedPassword,
-                    passwordLastUpdated: ahora,
-                    mustChangePassword: false,   // ✅ Limpiar flag
-                    fechaCambioPassword: ahora
-                } 
-            }
-        );
-        
-        console.log(`✅ Contraseña cambiada exitosamente para: ${usuario.apellidoNombre}`);
-        
-        res.json({ 
-            success: true, 
-            message: 'Contraseña cambiada correctamente',
-            usuario: {
-                nombre: usuario.apellidoNombre,
-                legajo: usuario.legajo,
-                email: usuario.email
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Error en cambio de contraseña forzado:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error interno del servidor',
-            error: error.message 
-        });
-    }
-});
-
-// ==================== RUTA TEMPORAL: LIMPIAR INSCRIPCIONES DEL ADMIN ====================
-// ⚠️ Ejecutar manualmente desde el navegador cuando el admin se inscriba a clases de prueba
-// Elimina las inscripciones/solicitudes/tiempos del PROPIO admin que ejecuta la acción
-app.get('/api/admin/limpiar-mis-inscripciones', async (req, res) => {
-    try {
-        const userHeader = req.headers['user-id'];
-        
-        console.log('🧹 Iniciando limpieza de inscripciones del admin...');
-        
-        if (!userHeader) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'No autenticado' 
-            });
-        }
-        
-        if (!ObjectId.isValid(userHeader)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'ID de usuario inválido' 
-            });
-        }
-        
-        const db = await mongoDB.getDatabaseSafe('formulario');
-        
-        const adminObjectId = new ObjectId(userHeader);
-        
-        // Verificar que quien ejecuta sea admin (o advanced)
-        const admin = await db.collection('usuarios').findOne({ 
-            _id: adminObjectId 
-        });
-        
-        if (!admin) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Usuario no encontrado' 
-            });
-        }
-        
-        if (admin.role !== 'admin' && admin.role !== 'advanced') {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Solo administradores pueden ejecutar esta acción' 
-            });
-        }
-        
-        console.log(`👤 Admin encontrado: ${admin.apellidoNombre} (Legajo: ${admin.legajo})`);
-        
-        // ============================================
-        // Contar inscripciones antes de borrar
-        // ============================================
-        const inscripcionesAntes = await db.collection('inscripciones')
-            .countDocuments({ usuarioId: adminObjectId });
-        
-        console.log(`📊 Inscripciones encontradas: ${inscripcionesAntes}`);
-        
-        if (inscripcionesAntes === 0) {
-            return res.json({ 
-                success: true, 
-                message: 'No tenés inscripciones registradas',
-                admin: {
-                    nombre: admin.apellidoNombre,
-                    legajo: admin.legajo
-                },
-                eliminados: {
-                    inscripciones: 0,
-                    solicitudesMaterial: 0,
-                    tiemposEnClase: 0
-                },
-                total: 0
-            });
-        }
-        
-        // ============================================
-        // Eliminar inscripciones del admin
-        // ============================================
-        const resultado = await db.collection('inscripciones').deleteMany({
-            usuarioId: adminObjectId
-        });
-        
-        console.log(`🗑️ ${resultado.deletedCount} inscripciones eliminadas`);
-        
-        // ============================================
-        // También eliminar solicitudes de material del admin
-        // ============================================
-        const solicitudesResultado = await db.collection('solicitudMaterial').deleteMany({
-            usuarioId: adminObjectId
-        });
-        
-        console.log(`🗑️ ${solicitudesResultado.deletedCount} solicitudes de material eliminadas`);
-        
-        // ============================================
-        // También eliminar tiempos en clase del admin
-        // ============================================
-        const tiemposResultado = await db.collection('tiempo-en-clases').deleteMany({
-            usuarioId: adminObjectId
-        });
-        
-        console.log(`🗑️ ${tiemposResultado.deletedCount} registros de tiempo eliminados`);
-        
-        // ============================================
-        // Respuesta
-        // ============================================
-        res.json({ 
-            success: true, 
-            message: `Limpieza completada para ${admin.apellidoNombre}`,
-            admin: {
-                nombre: admin.apellidoNombre,
-                legajo: admin.legajo,
-                email: admin.email
-            },
-            eliminados: {
-                inscripciones: resultado.deletedCount,
-                solicitudesMaterial: solicitudesResultado.deletedCount,
-                tiemposEnClase: tiemposResultado.deletedCount
-            },
-            total: resultado.deletedCount + solicitudesResultado.deletedCount + tiemposResultado.deletedCount
-        });
-        
-    } catch (error) {
-        console.error('❌ Error en limpieza del admin:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error interno del servidor',
-            error: error.message 
-        });
-    }
 });
 
 // ==================== EXPORTAR LA APP ====================
