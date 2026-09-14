@@ -54,6 +54,14 @@ class CalendarManager {
                     
                     // SOLO incluir si la fecha es FUTURA (mayor a ahora)
                     if (fechaClase > ahora) {
+                        // Solución al problema de Ubicación
+                        let ubicacionCalculada = clase.lugar || clase.ubicacion;
+                        if (!ubicacionCalculada && clase.modalidad) {
+                            ubicacionCalculada = clase.modalidad === 'Virtual' 
+                                ? `Virtual (${clase.plataforma || 'En línea'})` 
+                                : clase.modalidad;
+                        }
+
                         this.clasesProximas.push({
                             _id: clase._id,
                             nombre: clase.nombre,
@@ -61,7 +69,7 @@ class CalendarManager {
                             fechaClase: clase.fechaClase,
                             fechaApertura: clase.fechaApertura || clase.fechaClase,
                             fechaCierre: clase.fechaCierre || (new Date(new Date(clase.fechaClase).getTime() + 60 * 60 * 1000).toISOString()),
-                            lugar: clase.lugar || 'Por definir',
+                            lugar: ubicacionCalculada || 'Por definir',
                             instructores: clase.instructores && clase.instructores.length > 0 ? clase.instructores : ['Instructor no especificado'],
                             enlace: clase.enlaceFormulario || null,
                             esProxima: false
@@ -104,6 +112,9 @@ class CalendarManager {
                 <p><strong>📍 Lugar:</strong> ${this.proximaClase.lugar}</p>
                 <p><strong>👥 Instructores:</strong> ${instructoresTexto}</p>
                 ${this.proximaClase.descripcion ? `<p><strong>📝 Descripción:</strong> ${this.proximaClase.descripcion}</p>` : ''}
+                <button class="btn-recordatorio" style="margin-top: 15px; width: 100%; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #34a853 0%, #0f9d58 100%); color: white; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onclick="abrirRecordatorioDesdeCalendar('${this.proximaClase._id}')">
+                    📅 Agregar recordatorio
+                </button>
             `;
             proximaSection.style.display = 'block';
 
@@ -122,9 +133,6 @@ class CalendarManager {
         if (!gridContainer) return;
 
         let clasesFiltradas = this.clasesProximas;
-
-        // Aplicar filtro (por si queremos filtrar por lugar o instructor en el futuro)
-        // Por ahora solo mostramos todas las próximas
 
         if (clasesFiltradas.length === 0) {
             gridContainer.innerHTML = `<div class="no-classes-message">No hay clases próximas para mostrar.</div>`;
@@ -166,6 +174,10 @@ class CalendarManager {
                     <div class="clase-fecha-relativa">
                         ${this.obtenerTiempoRestante(new Date(clase.fechaClase).getTime())}
                     </div>
+
+                    <button class="btn-recordatorio" style="margin-top: 12px; width: 100%; padding: 10px; border: none; border-radius: 8px; background: linear-gradient(135deg, #34a853 0%, #0f9d58 100%); color: white; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onclick="abrirRecordatorioDesdeCalendar('${clase._id}')">
+                        📅 Agregar recordatorio
+                    </button>
                 </div>
             `;
         });
@@ -194,20 +206,28 @@ class CalendarManager {
     }
 
     configurarFiltros() {
-        // Por ahora no hay filtros funcionales, pero mantenemos la estructura
         const filtros = document.querySelectorAll('.filtro-btn');
         
         filtros.forEach(btn => {
             btn.addEventListener('click', () => {
                 filtros.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
-                // Por ahora solo mostramos todas las próximas siempre
                 this.mostrarClases('todas');
             });
         });
     }
 }
+
+// Función global para abrir el recordatorio
+window.abrirRecordatorioDesdeCalendar = function(claseId) {
+    if (!window.calendarManager || !window.calendarManager.clasesProximas) return;
+    const clase = window.calendarManager.clasesProximas.find(c => c._id === claseId);
+    if (clase && window.recordatorioManager) {
+        window.recordatorioManager.abrirModal(clase);
+    } else if (!window.recordatorioManager) {
+        alert('El sistema de recordatorios no está disponible.');
+    }
+};
 
 // Iniciar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
