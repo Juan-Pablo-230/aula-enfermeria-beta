@@ -1357,27 +1357,27 @@ const result = await response.json();
                     }
 
                     const ubicacionTexto = clase.ubicacion || clase.lugar || '';
-                    const esPresencialOHibrido = clase.modalidad === 'Presencial' || clase.modalidad === 'Híbrido';
-                    let lugarHtml = '';
-                    if (esPresencialOHibrido && ubicacionTexto) {
-                        lugarHtml = `<p><small class="class-lugar"> <strong>Ubicación:</strong> ${escapeHtml(ubicacionTexto)}</small></p>`;
-                    } else if (ubicacionTexto) {
-                        lugarHtml = `<p><small class="class-lugar"> ${escapeHtml(ubicacionTexto)}</small></p>`;
-                    }
+const esPresencialOHibrido = clase.modalidad === 'Presencial' || clase.modalidad === 'Híbrido';
+let lugarHtml = '';
+if (esPresencialOHibrido && ubicacionTexto) {
+    lugarHtml = `<div class="class-lugar">📍 <strong>Ubicación:</strong> ${escapeHtml(ubicacionTexto)}</div>`;
+} else if (ubicacionTexto) {
+    lugarHtml = `<div class="class-lugar">📍 ${escapeHtml(ubicacionTexto)}</div>`;
+}
 
-                    htmlString += `
-                        <div class="class-card" onclick="abrirModalClase('${clase._id}')">
-                            <h3>${escapeHtml(clase.nombre)}</h3>
-                            <p>${instructoresTexto}</p>
-                            ${lugarHtml}
-                            <div class="class-datetime">
-                                <span class="class-date">📅 ${fechaFormateada}</span>
-                                <span class="class-time">⏰ ${horaInicio} hs</span>
-                            </div>
-                            ${areaBadge}
-                            ${modalidadBadge}
-                        </div>
-                    `;
+htmlString += `
+    <div class="class-card" onclick="abrirModalClase('${clase._id}')">
+        <h3>${escapeHtml(clase.nombre)}</h3>
+        <p>${instructoresTexto}</p>
+        <div class="class-datetime">
+            <span class="class-date">📅 ${fechaFormateada}</span>
+            <span class="class-time">⏰ ${horaInicio} hs</span>
+        </div>
+        ${lugarHtml}
+        ${areaBadge}
+        ${modalidadBadge}
+    </div>
+`;
                 });
 
                 gridContainer.innerHTML = htmlString;
