@@ -82,26 +82,22 @@
     </div>
 
     <!-- Modal de inscripción -->
-    <div id="modalInscripcion" class="modal-overlay" style="display: none;">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h2>Inscripción a clase</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <h3 id="modalClaseNombre"></h3>
-                <div class="fechas-modal">
-                    <p><strong>Apertura:</strong> <span id="modalFechaApertura"></span></p>
-                    <p><strong>Cierre:</strong> <span id="modalFechaCierre"></span></p>
-                    <p id="modalUbicacionRow" style="display: none;"><strong>Ubicación:</strong> <span id="modalUbicacion"></span></p>
-                </div>
-                <p id="estadoClase" class="estado-clase" style="display: none;"></p>
-                <button id="btnUnirse" class="btn-unirse" style="display: none;">Unirse a la clase</button>
-                <button id="btnRecordatorio" class="btn-recordatorio" style="display: none;">📅 Agregar recordatorio</button>
-            </div>
-            <div id="modalMensaje" class="mensaje" style="display: none;"></div>
-        </div>
+    <div class="modal-body" id="modalBody">
+    <h3 id="modalClaseNombre"></h3>
+    
+    <!-- ✅ Fechas + Ubicación en el mismo recuadro -->
+    <div class="fechas-modal">
+        <p><strong>Apertura:</strong> <span id="modalFechaApertura"></span></p>
+        <p><strong>Cierre:</strong> <span id="modalFechaCierre"></span></p>
+        <p id="modalUbicacionRow" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+            <strong>Ubicación:</strong> <span id="modalUbicacion"></span>
+        </p>
     </div>
+    
+    <p id="estadoClase" class="estado-clase" style="display: none;"></p>
+    <button id="btnUnirse" class="btn-unirse" style="display: none;">Unirse a la clase</button>
+    <button id="btnRecordatorio" class="btn-recordatorio" style="display: none;">📅 Agregar recordatorio</button>
+</div>
 
     <!-- ===== MODAL DE RECORDATORIO (CON MÚLTIPLES TIEMPOS) ===== -->
     <div id="modalRecordatorio" class="modal-overlay" style="display: none; z-index: 20000;">
