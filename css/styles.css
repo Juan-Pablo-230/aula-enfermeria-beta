@@ -837,7 +837,6 @@ body {
 
 /* ===== ESTILOS PARA LA SECCIÓN DE VIDEO ===== */
 .video-section {
-    display: none;
     margin: 2.5rem 0;
     text-align: center;
 }
