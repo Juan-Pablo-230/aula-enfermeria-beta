@@ -4103,7 +4103,7 @@ app.get('/api/admin/limpiar-mis-inscripciones', async (req, res) => {
     }
 });
 
-// ==================== ESTADÍSTICAS (VERSIÓN MÍNIMA DE PRUEBA) ====================
+// ==================== ESTADÍSTICAS COMPLETAS ====================
 app.get('/api/admin/estadisticas', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
@@ -4120,9 +4120,10 @@ app.get('/api/admin/estadisticas', async (req, res) => {
             return res.status(403).json({ success: false, message: 'Sin permisos' });
         }
 
+        // ====== PARSEO DE FILTROS ======
         const anioNum = parseInt(anio) || new Date().getFullYear();
-        const mesNum = (mes === 'todos' || !mes) ? null : parseInt(mes);
-        const areaFiltro = (area === 'todas' || !area) ? null : area;
+        const mesNum = (mes === 'todos' || mes === '' || mes === undefined) ? null : parseInt(mes);
+        const areaFiltro = (area === 'todas' || area === '' || area === undefined) ? null : area;
 
         const inicioPeriodo = mesNum !== null
             ? new Date(anioNum, mesNum, 1)
@@ -4138,98 +4139,377 @@ app.get('/api/admin/estadisticas', async (req, res) => {
             ? new Date(anioNum, mesNum, 0, 23, 59, 59, 999)
             : new Date(anioNum - 1, 11, 31, 23, 59, 59, 999);
 
-        // KPIs
-        const capFiltro = { publicada: true, ...(areaFiltro ? { area: areaFiltro } : {}) };
-        const kpiCapacActual = await db.collection('clases-publicas').countDocuments({
-            ...capFiltro, fechaClase: { $gte: inicioPeriodo, $lte: finPeriodo }
-        });
-        const kpiCapacAnterior = await db.collection('clases-publicas').countDocuments({
-            ...capFiltro, fechaClase: { $gte: inicioAnterior, $lte: finAnterior }
-        });
-
-        const kpiMatActual = await db.collection('solicitudMaterial').countDocuments({
-            fechaSolicitud: { $gte: inicioPeriodo, $lte: finPeriodo }
-        });
-        const kpiMatAnterior = await db.collection('solicitudMaterial').countDocuments({
-            fechaSolicitud: { $gte: inicioAnterior, $lte: finAnterior }
-        });
-
-        const kpiUsuActual = await db.collection('usuarios').countDocuments({
-            fechaRegistro: { $gte: inicioPeriodo, $lte: finPeriodo },
-            ...(areaFiltro ? { area: areaFiltro } : {})
-        });
-        const kpiUsuAnterior = await db.collection('usuarios').countDocuments({
-            fechaRegistro: { $gte: inicioAnterior, $lte: finAnterior },
-            ...(areaFiltro ? { area: areaFiltro } : {})
-        });
-
-        const kpiAsisActual = await db.collection('inscripciones').countDocuments({
-            fecha: { $gte: inicioPeriodo, $lte: finPeriodo }
-        });
-        const kpiAsisAnterior = await db.collection('inscripciones').countDocuments({
-            fecha: { $gte: inicioAnterior, $lte: finAnterior }
-        });
-
-        const calcPct = (act, ant) => ant === 0 ? (act > 0 ? 100 : 0) : ((act - ant) / ant) * 100;
-
-        // Series mensuales (una sola query por colección usando $facet)
-        const series = { capacitaciones: [], material: [], usuarios: [], asistencias: [] };
         const iniAnio = new Date(anioNum, 0, 1);
         const finAnio = new Date(anioNum, 11, 31, 23, 59, 59, 999);
 
-        const capSeries = await db.collection('clases-publicas').aggregate([
-            { $match: { publicada: true, fechaClase: { $gte: iniAnio, $lte: finAnio } } },
-            { $group: { _id: { $month: '$fechaClase' }, total: { $sum: 1 } } },
-            { $sort: { _id: 1 } }
-        ]).toArray();
-        for (let m = 0; m < 12; m++) series.capacitaciones.push(capSeries.find(x => x._id === m + 1)?.total || 0);
+        console.log('📊 Estadísticas:', { anioNum, mesNum, areaFiltro });
 
-        const matSeries = await db.collection('solicitudMaterial').aggregate([
-            { $match: { fechaSolicitud: { $gte: iniAnio, $lte: finAnio } } },
-            { $group: { _id: { $month: '$fechaSolicitud' }, total: { $sum: 1 } } }
-        ]).toArray();
-        for (let m = 0; m < 12; m++) series.material.push(matSeries.find(x => x._id === m + 1)?.total || 0);
+        // ============================================================
+        // 1. CLASES PÚBLICAS (KPIs + series + porClase base)
+        // ============================================================
+        const capMatch = { publicada: true };
+        if (areaFiltro) capMatch.area = areaFiltro;
 
-        const usuSeries = await db.collection('usuarios').aggregate([
-            { $match: { fechaRegistro: { $gte: iniAnio, $lte: finAnio } } },
-            { $group: { _id: { $month: '$fechaRegistro' }, total: { $sum: 1 } } }
+        const clasesAgg = await db.collection('clases-publicas').aggregate([
+            { $match: capMatch },
+            {
+                $facet: {
+                    actual: [
+                        { $match: { fechaClase: { $gte: inicioPeriodo, $lte: finPeriodo } } },
+                        { $count: 'total' }
+                    ],
+                    anterior: [
+                        { $match: { fechaClase: { $gte: inicioAnterior, $lte: finAnterior } } },
+                        { $count: 'total' }
+                    ],
+                    serieAnual: [
+                        { $match: { fechaClase: { $gte: iniAnio, $lte: finAnio } } },
+                        { $group: { _id: { $month: '$fechaClase' }, total: { $sum: 1 } } }
+                    ],
+                    porClase: [
+                        { $match: { fechaClase: { $gte: iniAnio, $lte: finAnio } } },
+                        { $sort: { fechaClase: -1 } },
+                        { $limit: 500 },
+                        {
+                            $project: {
+                                _id: 1,
+                                nombre: 1,
+                                area: 1,
+                                fechaClase: 1
+                            }
+                        }
+                    ]
+                }
+            }
         ]).toArray();
-        for (let m = 0; m < 12; m++) series.usuarios.push(usuSeries.find(x => x._id === m + 1)?.total || 0);
 
-        const asisSeries = await db.collection('inscripciones').aggregate([
-            { $match: { fecha: { $gte: iniAnio, $lte: finAnio } } },
-            { $group: { _id: { $month: '$fecha' }, total: { $sum: 1 } } }
+        const clasesFacet = clasesAgg[0] || {};
+        const kpiCapacActual = clasesFacet.actual?.[0]?.total || 0;
+        const kpiCapacAnterior = clasesFacet.anterior?.[0]?.total || 0;
+        const capSeriesArr = clasesFacet.serieAnual || [];
+        const clasesBase = clasesFacet.porClase || [];
+
+        // ============================================================
+        // 2. INSCRIPCIONES (KPIs + series + porServicio + porClase)
+        // ============================================================
+        const inscAgg = await db.collection('inscripciones').aggregate([
+            {
+                $lookup: {
+                    from: 'usuarios',
+                    localField: 'usuarioId',
+                    foreignField: '_id',
+                    as: 'usuario'
+                }
+            },
+            { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
+            ...(areaFiltro ? [{ $match: { 'usuario.area': areaFiltro } }] : []),
+            {
+                $facet: {
+                    actual: [
+                        { $match: { fecha: { $gte: inicioPeriodo, $lte: finPeriodo } } },
+                        { $count: 'total' }
+                    ],
+                    anterior: [
+                        { $match: { fecha: { $gte: inicioAnterior, $lte: finAnterior } } },
+                        { $count: 'total' }
+                    ],
+                    serieAnual: [
+                        { $match: { fecha: { $gte: iniAnio, $lte: finAnio } } },
+                        { $group: { _id: { $month: '$fecha' }, total: { $sum: 1 } } }
+                    ],
+                    porServicio: [
+                        {
+                            $group: {
+                                _id: { $ifNull: ['$usuario.area', 'Sin área'] },
+                                asistencias: { $sum: 1 },
+                                usuariosUnicos: { $addToSet: '$usuarioId' }
+                            }
+                        },
+                        {
+                            $project: {
+                                area: '$_id',
+                                asistencias: 1,
+                                usuariosUnicos: { $size: '$usuariosUnicos' }
+                            }
+                        },
+                        { $sort: { asistencias: -1 } }
+                    ],
+                    porClase: [
+                        {
+                            $group: {
+                                _id: '$claseId',
+                                asistencias: { $sum: 1 }
+                            }
+                        }
+                    ]
+                }
+            }
         ]).toArray();
-        for (let m = 0; m < 12; m++) series.asistencias.push(asisSeries.find(x => x._id === m + 1)?.total || 0);
+
+        const inscFacet = inscAgg[0] || {};
+        const kpiAsisActual = inscFacet.actual?.[0]?.total || 0;
+        const kpiAsisAnterior = inscFacet.anterior?.[0]?.total || 0;
+        const asisSeriesArr = inscFacet.serieAnual || [];
+        const porServicioBase = inscFacet.porServicio || [];
+        const inscPorClase = inscFacet.porClase || [];
+
+        // Mapa de asistencias por claseId (normalizado a string)
+        const asisPorClaseMap = {};
+        inscPorClase.forEach(item => {
+            if (item._id) asisPorClaseMap[String(item._id)] = item.asistencias || 0;
+        });
+
+        // ============================================================
+        // 3. SOLICITUDES DE MATERIAL (KPIs + series + porClase + porArea)
+        // ============================================================
+        const matAgg = await db.collection('solicitudMaterial').aggregate([
+            {
+                $lookup: {
+                    from: 'usuarios',
+                    localField: 'usuarioId',
+                    foreignField: '_id',
+                    as: 'usuario'
+                }
+            },
+            { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
+            ...(areaFiltro ? [{ $match: { 'usuario.area': areaFiltro } }] : []),
+            {
+                $facet: {
+                    actual: [
+                        { $match: { fechaSolicitud: { $gte: inicioPeriodo, $lte: finPeriodo } } },
+                        { $count: 'total' }
+                    ],
+                    anterior: [
+                        { $match: { fechaSolicitud: { $gte: inicioAnterior, $lte: finAnterior } } },
+                        { $count: 'total' }
+                    ],
+                    serieAnual: [
+                        { $match: { fechaSolicitud: { $gte: iniAnio, $lte: finAnio } } },
+                        { $group: { _id: { $month: '$fechaSolicitud' }, total: { $sum: 1 } } }
+                    ],
+                    porClase: [
+                        { $group: { _id: '$claseId', total: { $sum: 1 } } }
+                    ],
+                    porArea: [
+                        { $group: { _id: { $ifNull: ['$usuario.area', 'Sin área'] }, total: { $sum: 1 } } }
+                    ]
+                }
+            }
+        ]).toArray();
+
+        const matFacet = matAgg[0] || {};
+        const kpiMatActual = matFacet.actual?.[0]?.total || 0;
+        const kpiMatAnterior = matFacet.anterior?.[0]?.total || 0;
+        const matSeriesArr = matFacet.serieAnual || [];
+        const matPorClaseArr = matFacet.porClase || [];
+        const matPorAreaArr = matFacet.porArea || [];
+
+        // Mapa de material por claseId (normalizado a string)
+        const matPorClaseMap = {};
+        matPorClaseArr.forEach(item => {
+            if (item._id) matPorClaseMap[String(item._id)] = item.total || 0;
+        });
+
+        // Mapa de material por área
+        const matPorAreaMap = {};
+        matPorAreaArr.forEach(item => {
+            if (item._id) matPorAreaMap[item._id] = item.total || 0;
+        });
+
+        // ============================================================
+        // 4. USUARIOS (KPIs + series)
+        // ============================================================
+        const usuAgg = await db.collection('usuarios').aggregate([
+            ...(areaFiltro ? [{ $match: { area: areaFiltro } }] : []),
+            {
+                $facet: {
+                    actual: [
+                        { $match: { fechaRegistro: { $gte: inicioPeriodo, $lte: finPeriodo } } },
+                        { $count: 'total' }
+                    ],
+                    anterior: [
+                        { $match: { fechaRegistro: { $gte: inicioAnterior, $lte: finAnterior } } },
+                        { $count: 'total' }
+                    ],
+                    serieAnual: [
+                        { $match: { fechaRegistro: { $gte: iniAnio, $lte: finAnio } } },
+                        { $group: { _id: { $month: '$fechaRegistro' }, total: { $sum: 1 } } }
+                    ]
+                }
+            }
+        ]).toArray();
+
+        const usuFacet = usuAgg[0] || {};
+        const kpiUsuActual = usuFacet.actual?.[0]?.total || 0;
+        const kpiUsuAnterior = usuFacet.anterior?.[0]?.total || 0;
+        const usuSeriesArr = usuFacet.serieAnual || [];
+
+        // ============================================================
+        // 5. CAPACITACIONES POR ÁREA (para enriquecer porServicio)
+        // ============================================================
+        const capPorAreaArr = await db.collection('clases-publicas').aggregate([
+            { $match: { publicada: true } },
+            { $group: { _id: { $ifNull: ['$area', 'Sin área'] }, total: { $sum: 1 } } }
+        ]).toArray();
+
+        const capPorAreaMap = {};
+        capPorAreaArr.forEach(item => {
+            if (item._id) capPorAreaMap[item._id] = item.total || 0;
+        });
+
+        // ============================================================
+        // 6. CONSTRUIR SERIES MENSUALES (12 posiciones)
+        // ============================================================
+        const toSerie = (arr) => {
+            const out = new Array(12).fill(0);
+            (arr || []).forEach(item => {
+                if (item._id >= 1 && item._id <= 12) out[item._id - 1] = item.total || 0;
+            });
+            return out;
+        };
+
+        const series = {
+            capacitaciones: toSerie(capSeriesArr),
+            material: toSerie(matSeriesArr),
+            usuarios: toSerie(usuSeriesArr),
+            asistencias: toSerie(asisSeriesArr)
+        };
+
+        // ============================================================
+        // 7. CONSTRUIR POR SERVICIO (enriquecido)
+        // ============================================================
+        const porServicio = porServicioBase.map(s => {
+            const areaNombre = s.area || 'Sin área';
+            return {
+                area: areaNombre,
+                asistencias: s.asistencias || 0,
+                usuariosUnicos: s.usuariosUnicos || 0,
+                capacitaciones: capPorAreaMap[areaNombre] || 0,
+                material: matPorAreaMap[areaNombre] || 0
+            };
+        });
+
+        // Si no hay datos de inscripciones pero sí de otras áreas, agregar áreas con solo capacitaciones
+        if (porServicio.length === 0) {
+            const areasConCapacitaciones = Object.keys(capPorAreaMap);
+            areasConCapacitaciones.forEach(areaNombre => {
+                porServicio.push({
+                    area: areaNombre,
+                    asistencias: 0,
+                    usuariosUnicos: 0,
+                    capacitaciones: capPorAreaMap[areaNombre] || 0,
+                    material: matPorAreaMap[areaNombre] || 0
+                });
+            });
+        }
+
+        // ============================================================
+        // 8. CONSTRUIR POR CLASE (combinando clases + inscripciones + material)
+        // ============================================================
+        const porClase = clasesBase.map(c => {
+            const claseIdStr = String(c._id);
+            const asistencias = asisPorClaseMap[claseIdStr] || 0;
+            const material = matPorClaseMap[claseIdStr] || 0;
+
+            return {
+                _id: claseIdStr,
+                nombre: c.nombre || 'Sin nombre',
+                fecha: c.fechaClase || null,
+                area: c.area || 'Todas',
+                inscriptos: asistencias,  // en este modelo inscripción = asistencia
+                asistencias: asistencias,
+                material: material
+            };
+        });
+
+        // ============================================================
+        // 9. COMPARATIVAS HISTÓRICAS (año anterior completo y promedio)
+        // ============================================================
+        const anioAnt = anioNum - 1;
+        const inicioAnioAnt = new Date(anioAnt, 0, 1);
+        const finAnioAnt = new Date(anioAnt, 11, 31, 23, 59, 59, 999);
+
+        const [capAntAnio, matAntAnio, asisAntAnio, usuAntAnio] = await Promise.all([
+            db.collection('clases-publicas').countDocuments({
+                publicada: true,
+                fechaClase: { $gte: inicioAnioAnt, $lte: finAnioAnt },
+                ...(areaFiltro ? { area: areaFiltro } : {})
+            }),
+            db.collection('solicitudMaterial').countDocuments({
+                fechaSolicitud: { $gte: inicioAnioAnt, $lte: finAnioAnt }
+            }),
+            db.collection('inscripciones').countDocuments({
+                fecha: { $gte: inicioAnioAnt, $lte: finAnioAnt }
+            }),
+            db.collection('usuarios').countDocuments({
+                fechaRegistro: { $gte: inicioAnioAnt, $lte: finAnioAnt },
+                ...(areaFiltro ? { area: areaFiltro } : {})
+            })
+        ]);
+
+        // ============================================================
+        // 10. RESPUESTA FINAL
+        // ============================================================
+        const calcPct = (act, ant) => ant === 0 ? (act > 0 ? 100 : 0) : ((act - ant) / ant) * 100;
 
         res.json({
             success: true,
             data: {
                 kpis: {
-                    capacitaciones: { actual: kpiCapacActual, anterior: kpiCapacAnterior, porcentaje: calcPct(kpiCapacActual, kpiCapacAnterior) },
-                    material: { actual: kpiMatActual, anterior: kpiMatAnterior, porcentaje: calcPct(kpiMatActual, kpiMatAnterior) },
-                    usuarios: { actual: kpiUsuActual, anterior: kpiUsuAnterior, porcentaje: calcPct(kpiUsuActual, kpiUsuAnterior) },
-                    asistencias: { actual: kpiAsisActual, anterior: kpiAsisAnterior, porcentaje: calcPct(kpiAsisActual, kpiAsisAnterior) }
+                    capacitaciones: {
+                        actual: kpiCapacActual,
+                        anterior: kpiCapacAnterior,
+                        porcentaje: calcPct(kpiCapacActual, kpiCapacAnterior)
+                    },
+                    material: {
+                        actual: kpiMatActual,
+                        anterior: kpiMatAnterior,
+                        porcentaje: calcPct(kpiMatActual, kpiMatAnterior)
+                    },
+                    usuarios: {
+                        actual: kpiUsuActual,
+                        anterior: kpiUsuAnterior,
+                        porcentaje: calcPct(kpiUsuActual, kpiUsuAnterior)
+                    },
+                    asistencias: {
+                        actual: kpiAsisActual,
+                        anterior: kpiAsisAnterior,
+                        porcentaje: calcPct(kpiAsisActual, kpiAsisAnterior)
+                    }
                 },
                 series,
-                porServicio: [],
-                porClase: [],
+                porServicio,
+                porClase,
                 comparativas: {
-                    anioAnterior: { capacitaciones: kpiCapacAnterior, asistencias: kpiAsisAnterior, material: kpiMatAnterior, usuarios: kpiUsuAnterior },
-                    mesAnterior: { capacitaciones: kpiCapacAnterior, asistencias: kpiAsisAnterior, material: kpiMatAnterior, usuarios: kpiUsuAnterior },
+                    anioAnterior: {
+                        capacitaciones: capAntAnio,
+                        asistencias: asisAntAnio,
+                        material: matAntAnio,
+                        usuarios: usuAntAnio
+                    },
+                    mesAnterior: {
+                        capacitaciones: kpiCapacAnterior,
+                        asistencias: kpiAsisAnterior,
+                        material: kpiMatAnterior,
+                        usuarios: kpiUsuAnterior
+                    },
                     promedio: {
-                        capacitaciones: Math.round((kpiCapacActual + kpiCapacAnterior) / 2),
-                        asistencias: Math.round((kpiAsisActual + kpiAsisAnterior) / 2),
-                        material: Math.round((kpiMatActual + kpiMatAnterior) / 2),
-                        usuarios: Math.round((kpiUsuActual + kpiUsuAnterior) / 2)
+                        capacitaciones: Math.round((kpiCapacActual + capAntAnio) / 2),
+                        asistencias: Math.round((kpiAsisActual + asisAntAnio) / 2),
+                        material: Math.round((kpiMatActual + matAntAnio) / 2),
+                        usuarios: Math.round((kpiUsuActual + usuAntAnio) / 2)
                     }
                 }
-            }
+            },
+            serverTime: Date.now()
         });
 
     } catch (error) {
         console.error('❌ Error en estadísticas:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error interno del servidor'
+        });
     }
 });
 
