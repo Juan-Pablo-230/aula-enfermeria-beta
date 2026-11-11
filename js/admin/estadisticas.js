@@ -25,43 +25,137 @@ class EstadisticasManager {
         await this.cargarTodo();
     }
 
-    poblarFiltros() {
-        const anioSelect = document.getElementById('filtroAnio');
-        const mesSelect = document.getElementById('filtroMes');
-        const areaSelect = document.getElementById('filtroArea');
-        const anioActual = new Date().getFullYear();
+    async cargarPeriodosDisponibles() {
+    try {
+        const result = await authSystem.makeRequest(
+            '/admin/estadisticas/periodos',
+            null,
+            'GET'
+        );
 
-        // Años: 5 anteriores + actual + 1 siguiente
-        for (let a = anioActual + 1; a >= anioActual - 5; a--) {
-            const opt = document.createElement('option');
-            opt.value = a;
-            opt.textContent = a;
-            if (a === anioActual) opt.selected = true;
-            anioSelect.appendChild(opt);
+        if (!result || !result.success) {
+            throw new Error(result?.message || 'No se pudieron cargar los períodos');
         }
 
-        // Meses
-        const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
-                       'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-        meses.forEach((m, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = m;
-            mesSelect.appendChild(opt);
-        });
+        const { anios = [], mesesPorAnio = {} } = result.data || {};
 
-        // Áreas (desde window.area)
-        if (window.area) {
-            const areasUnicas = new Set();
-            Object.values(window.area).flat().forEach(a => areasUnicas.add(a));
-            Array.from(areasUnicas).sort().forEach(a => {
+        console.log('📅 Períodos recibidos del backend:', { anios, mesesPorAnio });
+
+        if (anios.length === 0) {
+            // No hay ningún dato: mostrar mensaje y deshabilitar filtros
+            this.mostrarAvisoSinDatos();
+            return false;
+        }
+
+        // Poblar select de años (solo los que tienen datos)
+        const anioSelect = document.getElementById('filtroAnio');
+        if (anioSelect) {
+            anioSelect.innerHTML = '';
+            anios.forEach(a => {
                 const opt = document.createElement('option');
                 opt.value = a;
                 opt.textContent = a;
-                areaSelect.appendChild(opt);
+                anioSelect.appendChild(opt);
             });
+
+            // Seleccionar el año más reciente por defecto
+            this.filtros.anio = anios[0];
+            anioSelect.value = anios[0];
         }
+
+        // Guardar mapa de meses por año para usarlo cuando cambie el año
+        this.mesesPorAnio = mesesPorAnio;
+
+        // Poblar meses del año seleccionado
+        this.poblarMesesDelAnio(anios[0]);
+
+        console.log(`✅ Períodos cargados: ${anios.length} años`);
+        return true;
+
+    } catch (error) {
+        console.error('❌ Error cargando períodos:', error);
+        this.mostrarErrorGlobal('Error al cargar los períodos disponibles: ' + error.message);
+        return false;
     }
+}
+
+poblarMesesDelAnio(anio) {
+    const mesSelect = document.getElementById('filtroMes');
+    if (!mesSelect) return;
+
+    const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    const meses = (this.mesesPorAnio && this.mesesPorAnio[anio]) || [];
+
+    mesSelect.innerHTML = '<option value="todos">Todos los meses</option>';
+
+    if (meses.length === 0) {
+        // Fallback raro: año sin meses listados
+        mesSelect.innerHTML += '<option value="" disabled>Sin datos</option>';
+        return;
+    }
+
+    meses.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = nombresMeses[m] || `Mes ${m + 1}`;
+        mesSelect.appendChild(opt);
+    });
+
+    // Resetear el filtro de mes al valor "todos" cada vez que cambia el año
+    this.filtros.mes = 'todos';
+    mesSelect.value = 'todos';
+}
+
+mostrarAvisoSinDatos() {
+    const container = document.getElementById('statsError') || document.body;
+    const div = document.createElement('div');
+    div.className = 'error-panel';
+    div.innerHTML = `
+        <h3>📭 No hay datos disponibles</h3>
+        <p>Todavía no se registraron capacitaciones, asistencias, solicitudes de material ni usuarios.</p>
+        <p>Los filtros de año y mes se poblarán automáticamente cuando existan datos.</p>
+    `;
+    container.innerHTML = '';
+    container.appendChild(div);
+
+    // Deshabilitar selects
+    ['filtroAnio', 'filtroMes', 'filtroArea'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
+}
+
+    poblarFiltros() {
+    // Solo poblar ÁREAS acá (años y meses vienen del backend)
+    const areaSelect = document.getElementById('filtroArea');
+    if (!areaSelect) return;
+
+    areaSelect.innerHTML = '<option value="todas">Todas las áreas</option>';
+
+    if (window.area && typeof window.area === 'object' && Object.keys(window.area).length > 0) {
+        const areasUnicas = new Set();
+        Object.values(window.area).forEach(categoria => {
+            if (Array.isArray(categoria)) {
+                categoria.forEach(a => {
+                    if (a && typeof a === 'string') areasUnicas.add(a);
+                });
+            }
+        });
+
+        Array.from(areasUnicas).sort((a, b) => a.localeCompare(b)).forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a;
+            opt.textContent = a;
+            areaSelect.appendChild(opt);
+        });
+
+        console.log(`✅ ${areasUnicas.size} áreas cargadas`);
+    } else {
+        console.warn('⚠️ window.area no disponible');
+    }
+}
 
     setupEventListeners() {
         ['filtroAnio','filtroMes','filtroArea'].forEach(id => {
@@ -71,6 +165,18 @@ class EstadisticasManager {
                 this.cargarTodo();
             });
         });
+
+        if (anioSelect) {
+    anioSelect.addEventListener('change', (e) => {
+        const nuevoAnio = parseInt(e.target.value);
+        this.filtros.anio = nuevoAnio;
+
+        // ⬇️ NUEVO: repoblar meses del año seleccionado
+        this.poblarMesesDelAnio(nuevoAnio);
+
+        this.cargarTodo();
+    });
+}
 
         document.getElementById('btnActualizarStats')?.addEventListener('click', () => this.cargarTodo());
         document.getElementById('btnExportarStats')?.addEventListener('click', () => this.exportarCSV());

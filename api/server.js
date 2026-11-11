@@ -4103,7 +4103,103 @@ app.get('/api/admin/limpiar-mis-inscripciones', async (req, res) => {
     }
 });
 
+// ==================== ESTADÍSTICAS: PERÍODOS DISPONIBLES ====================
+// GET - Devuelve los años y meses que tienen datos reales (para poblar selects)
+app.get('/api/admin/estadisticas/periodos', async (req, res) => {
+    try {
+        const userHeader = req.headers['user-id'];
+
+        if (!userHeader || !ObjectId.isValid(userHeader)) {
+            return res.status(401).json({ success: false, message: 'No autenticado' });
+        }
+
+        const db = await mongoDB.getDatabaseSafe('formulario');
+
+        const usuario = await db.collection('usuarios').findOne({ _id: new ObjectId(userHeader) });
+        if (!usuario || (usuario.role !== 'admin' && usuario.role !== 'advanced')) {
+            return res.status(403).json({ success: false, message: 'Sin permisos' });
+        }
+
+        // Recolectar fechas de las 4 colecciones relevantes
+        const [caps, asis, mats, usus] = await Promise.all([
+            db.collection('clases-publicas').find(
+                { publicada: true, fechaClase: { $ne: null } },
+                { projection: { fechaClase: 1 } }
+            ).toArray(),
+            db.collection('inscripciones').find(
+                { fecha: { $ne: null } },
+                { projection: { fecha: 1 } }
+            ).toArray(),
+            db.collection('solicitudMaterial').find(
+                { fechaSolicitud: { $ne: null } },
+                { projection: { fechaSolicitud: 1 } }
+            ).toArray(),
+            db.collection('usuarios').find(
+                { fechaRegistro: { $ne: null } },
+                { projection: { fechaRegistro: 1 } }
+            ).toArray()
+        ]);
+
+        // Set de "YYYY-M" para deduplicar rápido
+        const periodosSet = new Set();
+
+        const addFecha = (fecha) => {
+            if (!fecha) return;
+            const d = new Date(fecha);
+            if (isNaN(d.getTime())) return;
+            const y = d.getFullYear();
+            const m = d.getMonth();  // 0-11
+            periodosSet.add(`${y}-${m}`);
+        };
+
+        caps.forEach(c => addFecha(c.fechaClase));
+        asis.forEach(a => addFecha(a.fecha));
+        mats.forEach(m => addFecha(m.fechaSolicitud));
+        usus.forEach(u => addFecha(u.fechaRegistro));
+
+        // Construir estructura: { "2024": [0, 2, 5], "2025": [0,1,2,...], ... }
+        const porAnio = {};
+        periodosSet.forEach(key => {
+            const [yStr, mStr] = key.split('-');
+            const anio = parseInt(yStr);
+            const mes = parseInt(mStr);
+            if (!porAnio[anio]) porAnio[anio] = new Set();
+            porAnio[anio].add(mes);
+        });
+
+        // Ordenar: años descendente (más reciente primero), meses ascendente
+        const anios = Object.keys(porAnio)
+            .map(Number)
+            .sort((a, b) => b - a);
+
+        const mesesPorAnio = {};
+        anios.forEach(anio => {
+            mesesPorAnio[anio] = Array.from(porAnio[anio]).sort((a, b) => a - b);
+        });
+
+        console.log('📅 Períodos disponibles:', { anios, mesesPorAnio });
+
+        res.json({
+            success: true,
+            data: {
+                anios,               // [2026, 2025, 2024]
+                mesesPorAnio,        // { 2026: [0,1,2,3,4,5], 2025: [...] }
+                totalPeriodos: periodosSet.size
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error obteniendo períodos:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error interno del servidor'
+        });
+    }
+});
+
+
 // ==================== ESTADÍSTICAS COMPLETAS ====================
+// GET - KPIs, series mensuales, por servicio/área, por clase individual y comparativas
 app.get('/api/admin/estadisticas', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
@@ -4391,8 +4487,7 @@ app.get('/api/admin/estadisticas', async (req, res) => {
 
         // Si no hay datos de inscripciones pero sí de otras áreas, agregar áreas con solo capacitaciones
         if (porServicio.length === 0) {
-            const areasConCapacitaciones = Object.keys(capPorAreaMap);
-            areasConCapacitaciones.forEach(areaNombre => {
+            Object.keys(capPorAreaMap).forEach(areaNombre => {
                 porServicio.push({
                     area: areaNombre,
                     asistencias: 0,
