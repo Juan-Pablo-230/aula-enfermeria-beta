@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/admin/admin.css">
+    <link rel="stylesheet" href="/css/admin/estadisticas.css">
+</head>
+<body>
+    <div class="section-container">
+
+        <!-- ===== FILTROS GLOBALES ===== -->
+        <div class="stats-filters">
+            <div class="filter-group">
+                <label>📅 Año:</label>
+                <select id="filtroAnio" class="filtro-select"></select>
+            </div>
+            <div class="filter-group">
+                <label>📆 Mes:</label>
+                <select id="filtroMes" class="filtro-select">
+                    <option value="todos">Todos los meses</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🏥 Área:</label>
+                <select id="filtroArea" class="filtro-select">
+                    <option value="todas">Todas las áreas</option>
+                </select>
+            </div>
+            <button id="btnActualizarStats" class="btn btn-primary">🔄 Actualizar</button>
+            <button id="btnExportarStats" class="btn btn-success">📥 Exportar CSV</button>
+        </div>
+
+        <!-- ===== KPIs PRINCIPALES ===== -->
+        <div class="stats-grid-4">
+            <div class="stat-card stat-blue">
+                <div class="stat-icon">🎓</div>
+                <div class="stat-value" id="kpiCapacitaciones">0</div>
+                <div class="stat-label">Capacitaciones realizadas</div>
+                <div class="stat-comparativa" id="cmpCapacitaciones"></div>
+            </div>
+            <div class="stat-card stat-green">
+                <div class="stat-icon">📚</div>
+                <div class="stat-value" id="kpiMaterial">0</div>
+                <div class="stat-label">Material solicitado</div>
+                <div class="stat-comparativa" id="cmpMaterial"></div>
+            </div>
+            <div class="stat-card stat-orange">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="kpiUsuarios">0</div>
+                <div class="stat-label">Usuarios registrados</div>
+                <div class="stat-comparativa" id="cmpUsuarios"></div>
+            </div>
+            <div class="stat-card stat-purple">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="kpiAsistencias">0</div>
+                <div class="stat-label">Asistencias totales</div>
+                <div class="stat-comparativa" id="cmpAsistencias"></div>
+            </div>
+        </div>
+
+        <!-- ===== GRÁFICOS PRINCIPALES ===== -->
+        <div class="stats-row-2">
+            <!-- Capacitaciones por mes -->
+            <div class="stats-panel">
+                <h3>📊 Capacitaciones por mes</h3>
+                <canvas id="chartCapacitaciones"></canvas>
+            </div>
+            <!-- Material solicitado por mes -->
+            <div class="stats-panel">
+                <h3>📊 Material solicitado por mes</h3>
+                <canvas id="chartMaterial"></canvas>
+            </div>
+        </div>
+
+        <div class="stats-row-2">
+            <!-- Usuarios nuevos por mes -->
+            <div class="stats-panel">
+                <h3>📈 Usuarios nuevos por mes</h3>
+                <canvas id="chartUsuarios"></canvas>
+            </div>
+            <!-- Asistencias por mes -->
+            <div class="stats-panel">
+                <h3>📈 Asistencias por mes</h3>
+                <canvas id="chartAsistencias"></canvas>
+            </div>
+        </div>
+
+        <!-- ===== ASISTENCIAS POR SERVICIO ===== -->
+        <div class="stats-panel full-width">
+            <h3>🏥 Asistencias por Servicio / Área</h3>
+            <div class="tabla-scroll">
+                <table class="admin-table" id="tablaServicios">
+                    <thead>
+                        <tr>
+                            <th>Área / Servicio</th>
+                            <th>Capacitaciones</th>
+                            <th>Asistencias</th>
+                            <th>Usuarios únicos</th>
+                            <th>Material solicitado</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <canvas id="chartServicios" style="margin-top:20px;"></canvas>
+        </div>
+
+        <!-- ===== ASISTENCIA POR CLASE INDIVIDUAL ===== -->
+        <div class="stats-panel full-width">
+            <div class="panel-header">
+                <h3>📋 Asistencia por clase individual</h3>
+                <input type="text" id="buscarClaseStats" placeholder="🔍 Buscar clase..." class="search-input">
+            </div>
+            <div class="tabla-scroll">
+                <table class="admin-table" id="tablaClases">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Clase</th>
+                            <th>Fecha</th>
+                            <th>Área</th>
+                            <th>Inscriptos</th>
+                            <th>Asistencia efectiva</th>
+                            <th>% Participación</th>
+                            <th>Material solicitado</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== COMPARATIVAS ===== -->
+        <div class="stats-panel full-width">
+            <h3>📊 Comparativa histórica</h3>
+            <div class="stats-row-3">
+                <div class="comparativa-card">
+                    <h4>📅 vs. Año anterior</h4>
+                    <div id="cmpAnioAnterior"></div>
+                </div>
+                <div class="comparativa-card">
+                    <h4>📆 vs. Mes anterior</h4>
+                    <div id="cmpMesAnterior"></div>
+                </div>
+                <div class="comparativa-card">
+                    <h4>📊 vs. Promedio histórico</h4>
+                    <div id="cmpPromedio"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/admin-core.js"></script>
+    <script src="/js/admin/estadisticas.js"></script>
+</body>
+</html>
