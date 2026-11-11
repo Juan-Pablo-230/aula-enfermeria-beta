@@ -4103,7 +4103,7 @@ app.get('/api/admin/limpiar-mis-inscripciones', async (req, res) => {
     }
 });
 
-// ==================== ESTADÍSTICAS ====================
+// ==================== ESTADÍSTICAS (VERSIÓN MÍNIMA DE PRUEBA) ====================
 app.get('/api/admin/estadisticas', async (req, res) => {
     try {
         const userHeader = req.headers['user-id'];
@@ -4124,7 +4124,6 @@ app.get('/api/admin/estadisticas', async (req, res) => {
         const mesNum = (mes === 'todos' || !mes) ? null : parseInt(mes);
         const areaFiltro = (area === 'todas' || !area) ? null : area;
 
-        // Rango del período actual
         const inicioPeriodo = mesNum !== null
             ? new Date(anioNum, mesNum, 1)
             : new Date(anioNum, 0, 1);
@@ -4132,7 +4131,6 @@ app.get('/api/admin/estadisticas', async (req, res) => {
             ? new Date(anioNum, mesNum + 1, 0, 23, 59, 59, 999)
             : new Date(anioNum, 11, 31, 23, 59, 59, 999);
 
-        // Rango del período anterior (para comparativa)
         const inicioAnterior = mesNum !== null
             ? new Date(anioNum, mesNum - 1, 1)
             : new Date(anioNum - 1, 0, 1);
@@ -4140,45 +4138,21 @@ app.get('/api/admin/estadisticas', async (req, res) => {
             ? new Date(anioNum, mesNum, 0, 23, 59, 59, 999)
             : new Date(anioNum - 1, 11, 31, 23, 59, 59, 999);
 
-        // Filtro por área (usando lookup a usuarios)
-        const areaMatch = areaFiltro
-            ? { 'usuario.area': areaFiltro }
-            : {};
-
-        // Helper: contar en rango
-        const contarEnRango = async (coleccion, campoFecha, inicio, fin, extraMatch = {}) => {
-            const pipeline = [
-                { $match: { [campoFecha]: { $gte: inicio, $lte: fin } } },
-                {
-                    $lookup: {
-                        from: 'usuarios',
-                        localField: 'usuarioId',
-                        foreignField: '_id',
-                        as: 'usuario'
-                    }
-                },
-                { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
-                { $match: { ...extraMatch, ...areaMatch } },
-                { $count: 'total' }
-            ];
-            const r = await db.collection(coleccion).aggregate(pipeline).toArray();
-            return r[0]?.total || 0;
-        };
-
-        // === KPI actual vs anterior ===
+        // KPIs
+        const capFiltro = { publicada: true, ...(areaFiltro ? { area: areaFiltro } : {}) };
         const kpiCapacActual = await db.collection('clases-publicas').countDocuments({
-            publicada: true,
-            fechaClase: { $gte: inicioPeriodo, $lte: finPeriodo },
-            ...(areaFiltro ? { area: areaFiltro } : {})
+            ...capFiltro, fechaClase: { $gte: inicioPeriodo, $lte: finPeriodo }
         });
         const kpiCapacAnterior = await db.collection('clases-publicas').countDocuments({
-            publicada: true,
-            fechaClase: { $gte: inicioAnterior, $lte: finAnterior },
-            ...(areaFiltro ? { area: areaFiltro } : {})
+            ...capFiltro, fechaClase: { $gte: inicioAnterior, $lte: finAnterior }
         });
 
-        const kpiMatActual = await contarEnRango('solicitudMaterial', 'fechaSolicitud', inicioPeriodo, finPeriodo);
-        const kpiMatAnterior = await contarEnRango('solicitudMaterial', 'fechaSolicitud', inicioAnterior, finAnterior);
+        const kpiMatActual = await db.collection('solicitudMaterial').countDocuments({
+            fechaSolicitud: { $gte: inicioPeriodo, $lte: finPeriodo }
+        });
+        const kpiMatAnterior = await db.collection('solicitudMaterial').countDocuments({
+            fechaSolicitud: { $gte: inicioAnterior, $lte: finAnterior }
+        });
 
         const kpiUsuActual = await db.collection('usuarios').countDocuments({
             fechaRegistro: { $gte: inicioPeriodo, $lte: finPeriodo },
@@ -4189,113 +4163,44 @@ app.get('/api/admin/estadisticas', async (req, res) => {
             ...(areaFiltro ? { area: areaFiltro } : {})
         });
 
-        const kpiAsisActual = await contarEnRango('inscripciones', 'fecha', inicioPeriodo, finPeriodo);
-        const kpiAsisAnterior = await contarEnRango('inscripciones', 'fecha', inicioAnterior, finAnterior);
+        const kpiAsisActual = await db.collection('inscripciones').countDocuments({
+            fecha: { $gte: inicioPeriodo, $lte: finPeriodo }
+        });
+        const kpiAsisAnterior = await db.collection('inscripciones').countDocuments({
+            fecha: { $gte: inicioAnterior, $lte: finAnterior }
+        });
 
         const calcPct = (act, ant) => ant === 0 ? (act > 0 ? 100 : 0) : ((act - ant) / ant) * 100;
 
-        // === Series mensuales del año seleccionado ===
+        // Series mensuales (una sola query por colección usando $facet)
         const series = { capacitaciones: [], material: [], usuarios: [], asistencias: [] };
-        for (let m = 0; m < 12; m++) {
-            const ini = new Date(anioNum, m, 1);
-            const fin = new Date(anioNum, m + 1, 0, 23, 59, 59, 999);
+        const iniAnio = new Date(anioNum, 0, 1);
+        const finAnio = new Date(anioNum, 11, 31, 23, 59, 59, 999);
 
-            series.capacitaciones.push(await db.collection('clases-publicas').countDocuments({
-                publicada: true,
-                fechaClase: { $gte: ini, $lte: fin },
-                ...(areaFiltro ? { area: areaFiltro } : {})
-            }));
-
-            series.material.push(await contarEnRango('solicitudMaterial', 'fechaSolicitud', ini, fin));
-
-            series.usuarios.push(await db.collection('usuarios').countDocuments({
-                fechaRegistro: { $gte: ini, $lte: fin },
-                ...(areaFiltro ? { area: areaFiltro } : {})
-            }));
-
-            series.asistencias.push(await contarEnRango('inscripciones', 'fecha', ini, fin));
-        }
-
-        // === Asistencias por servicio ===
-        const porServicio = await db.collection('inscripciones').aggregate([
-            {
-                $lookup: {
-                    from: 'usuarios',
-                    localField: 'usuarioId',
-                    foreignField: '_id',
-                    as: 'usuario'
-                }
-            },
-            { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
-            {
-                $group: {
-                    _id: '$usuario.area',
-                    asistencias: { $sum: 1 },
-                    usuariosUnicos: { $addToSet: '$usuarioId' }
-                }
-            },
-            {
-                $project: {
-                    area: '$_id',
-                    asistencias: 1,
-                    usuariosUnicos: { $size: '$usuariosUnicos' }
-                }
-            },
-            { $sort: { asistencias: -1 } }
+        const capSeries = await db.collection('clases-publicas').aggregate([
+            { $match: { publicada: true, fechaClase: { $gte: iniAnio, $lte: finAnio } } },
+            { $group: { _id: { $month: '$fechaClase' }, total: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
         ]).toArray();
+        for (let m = 0; m < 12; m++) series.capacitaciones.push(capSeries.find(x => x._id === m + 1)?.total || 0);
 
-        // Enriquecer con capacitaciones y material por área
-        for (const s of porServicio) {
-            if (!s.area) continue;
-            s.capacitaciones = await db.collection('clases-publicas').countDocuments({
-                area: s.area, publicada: true
-            });
-            s.material = await db.collection('solicitudMaterial').aggregate([
-                { $lookup: { from: 'usuarios', localField: 'usuarioId', foreignField: '_id', as: 'usuario' } },
-                { $unwind: { path: '$usuario', preserveNullAndEmptyArrays: true } },
-                { $match: { 'usuario.area': s.area } },
-                { $count: 'total' }
-            ]).toArray().then(r => r[0]?.total || 0);
-        }
+        const matSeries = await db.collection('solicitudMaterial').aggregate([
+            { $match: { fechaSolicitud: { $gte: iniAnio, $lte: finAnio } } },
+            { $group: { _id: { $month: '$fechaSolicitud' }, total: { $sum: 1 } } }
+        ]).toArray();
+        for (let m = 0; m < 12; m++) series.material.push(matSeries.find(x => x._id === m + 1)?.total || 0);
 
-        // === Detalle por clase ===
-        const clases = await db.collection('clases-publicas').find({
-            publicada: true,
-            ...(areaFiltro ? { area: areaFiltro } : {})
-        }).sort({ fechaClase: -1 }).limit(200).toArray();
+        const usuSeries = await db.collection('usuarios').aggregate([
+            { $match: { fechaRegistro: { $gte: iniAnio, $lte: finAnio } } },
+            { $group: { _id: { $month: '$fechaRegistro' }, total: { $sum: 1 } } }
+        ]).toArray();
+        for (let m = 0; m < 12; m++) series.usuarios.push(usuSeries.find(x => x._id === m + 1)?.total || 0);
 
-        const porClase = [];
-        for (const c of clases) {
-            const inscriptos = await db.collection('inscripciones').countDocuments({
-                claseId: c._id.toString()
-            });
-            const material = await db.collection('solicitudMaterial').countDocuments({
-                claseId: c._id
-            });
-            porClase.push({
-                _id: c._id.toString(),
-                nombre: c.nombre,
-                fecha: c.fechaClase,
-                area: c.area || 'Todas',
-                inscriptos,
-                asistencias: inscriptos, // inscripción = asistencia en este modelo
-                material
-            });
-        }
-
-        // === Comparativas históricas ===
-        const anioAnt = anioNum - 1;
-        const capAntAnio = await db.collection('clases-publicas').countDocuments({
-            publicada: true,
-            fechaClase: { $gte: new Date(anioAnt,0,1), $lte: new Date(anioAnt,11,31,23,59,59) }
-        });
-        const matAntAnio = await contarEnRango('solicitudMaterial', 'fechaSolicitud',
-            new Date(anioAnt,0,1), new Date(anioAnt,11,31,23,59,59));
-        const asisAntAnio = await contarEnRango('inscripciones', 'fecha',
-            new Date(anioAnt,0,1), new Date(anioAnt,11,31,23,59,59));
-        const usuAntAnio = await db.collection('usuarios').countDocuments({
-            fechaRegistro: { $gte: new Date(anioAnt,0,1), $lte: new Date(anioAnt,11,31,23,59,59) }
-        });
+        const asisSeries = await db.collection('inscripciones').aggregate([
+            { $match: { fecha: { $gte: iniAnio, $lte: finAnio } } },
+            { $group: { _id: { $month: '$fecha' }, total: { $sum: 1 } } }
+        ]).toArray();
+        for (let m = 0; m < 12; m++) series.asistencias.push(asisSeries.find(x => x._id === m + 1)?.total || 0);
 
         res.json({
             success: true,
@@ -4307,20 +4212,21 @@ app.get('/api/admin/estadisticas', async (req, res) => {
                     asistencias: { actual: kpiAsisActual, anterior: kpiAsisAnterior, porcentaje: calcPct(kpiAsisActual, kpiAsisAnterior) }
                 },
                 series,
-                porServicio,
-                porClase,
+                porServicio: [],
+                porClase: [],
                 comparativas: {
-                    anioAnterior: { capacitaciones: capAntAnio, asistencias: asisAntAnio, material: matAntAnio, usuarios: usuAntAnio },
+                    anioAnterior: { capacitaciones: kpiCapacAnterior, asistencias: kpiAsisAnterior, material: kpiMatAnterior, usuarios: kpiUsuAnterior },
                     mesAnterior: { capacitaciones: kpiCapacAnterior, asistencias: kpiAsisAnterior, material: kpiMatAnterior, usuarios: kpiUsuAnterior },
                     promedio: {
-                        capacitaciones: Math.round((kpiCapacActual + capAntAnio) / 2),
-                        asistencias: Math.round((kpiAsisActual + asisAntAnio) / 2),
-                        material: Math.round((kpiMatActual + matAntAnio) / 2),
-                        usuarios: Math.round((kpiUsuActual + usuAntAnio) / 2)
+                        capacitaciones: Math.round((kpiCapacActual + kpiCapacAnterior) / 2),
+                        asistencias: Math.round((kpiAsisActual + kpiAsisAnterior) / 2),
+                        material: Math.round((kpiMatActual + kpiMatAnterior) / 2),
+                        usuarios: Math.round((kpiUsuActual + kpiUsuAnterior) / 2)
                     }
                 }
             }
         });
+
     } catch (error) {
         console.error('❌ Error en estadísticas:', error);
         res.status(500).json({ success: false, message: error.message });
