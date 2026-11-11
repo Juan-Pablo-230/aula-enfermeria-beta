@@ -156,16 +156,6 @@
 
 .tabla-scroll { overflow-x: auto; }
 
-.pct-badge {
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 0.85em;
-}
-.pct-alto { background: #34a85320; color: #34a853; }
-.pct-medio { background: #f9ab0020; color: #f9ab00; }
-.pct-bajo { background: #ea433520; color: #ea4335; }
-
 .comparativa-card {
     background: var(--bg-container);
     padding: 18px;

@@ -266,7 +266,7 @@ class EstadisticasManager {
         }
 
         if (clases.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-message">Sin clases para mostrar</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-message">Sin clases para mostrar</td></tr>';
             return;
         }
 
@@ -285,7 +285,6 @@ class EstadisticasManager {
                     <td>${c.area || 'Todas'}</td>
                     <td>${c.inscriptos}</td>
                     <td>${c.asistencias}</td>
-                    <td><span class="pct-badge ${pctClass}">${pct}%</span></td>
                     <td>${c.material || 0}</td>
                 </tr>
             `;
