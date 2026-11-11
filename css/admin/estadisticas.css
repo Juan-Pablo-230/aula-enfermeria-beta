@@ -58,6 +58,76 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
+
+/* ============================================================
+   BUSCADOR DE CLASES (panel "Asistencia por clase individual")
+   ============================================================ */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.panel-header h3 {
+    margin: 0;
+    flex: 1 1 auto;
+}
+
+/* Input de búsqueda */
+#buscarClaseStats {
+    flex: 0 1 320px;
+    min-width: 200px;
+    padding: 10px 14px 10px 40px;
+    font-size: 0.95em;
+    color: var(--text-primary);
+    background: var(--bg-container)
+        url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E")
+        no-repeat 14px center;
+    background-size: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.25s ease;
+    box-sizing: border-box;
+}
+
+#buscarClaseStats::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+#buscarClaseStats:hover {
+    border-color: var(--accent-color);
+}
+
+#buscarClaseStats:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.15);
+    background-color: var(--bg-card);
+}
+
+/* Modo oscuro: forzar el ícono a un gris más claro */
+@media (prefers-color-scheme: dark) {
+    #buscarClaseStats {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    }
+}
+
+/* En pantallas chicas, el buscador ocupa todo el ancho */
+@media (max-width: 640px) {
+    .panel-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #buscarClaseStats {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
 @media (max-width: 900px) {
     .stats-row-2, .stats-row-3 { grid-template-columns: 1fr; }
 }
